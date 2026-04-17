@@ -91,5 +91,5 @@ const styles = StyleSheet.create({
   },
   buttonWrapper: {
     marginTop: spacing.md,
-  }
+  },
 });

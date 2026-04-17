@@ -1,4 +1,10 @@
-import { ImageSourcePropType, Pressable, StyleSheet, View, Image } from "react-native";
+import {
+  ImageSourcePropType,
+  Pressable,
+  StyleSheet,
+  View,
+  Image,
+} from "react-native";
 import React from "react";
 import { MoreHorizontal } from "lucide-react-native";
 import IconButton from "../common/IconButton";
@@ -86,7 +92,7 @@ const DakkuCard = ({
         </View>
 
         <IconButton
-          icon={<MoreHorizontal size={16} color='#d9d9d9' />}
+          icon={<MoreHorizontal size={16} color="#d9d9d9" />}
           onPress={onMenuPress}
           variant="ghost"
           size={32}
@@ -163,7 +169,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   createIconButton: {
-    backgroundColor: colors.accent.soft,
+    backgroundColor: colors.accent.main,
   },
   createLabel: {
     marginTop: spacing.sm,

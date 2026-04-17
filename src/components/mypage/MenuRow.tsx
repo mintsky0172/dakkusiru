@@ -63,13 +63,10 @@ export default MenuRow;
 
 const styles = StyleSheet.create({
   row: {
-    minHeight: 56,
+    minHeight: 30,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.lg,
-    backgroundColor: colors.card.background,
-    borderWidth: 1,
-    borderColor: colors.card.border,
+    paddingVertical: spacing.xs,
+    backgroundColor: colors.background.base,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
