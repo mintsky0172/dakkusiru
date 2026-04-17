@@ -8,7 +8,8 @@ export const fontFamily = {
 } as const;
 
 export const fontSize = {
-  xs: 11,
+  xxs: 11,
+  xs: 12,
   sm: 13,
   md: 15,
   lg: 17,
@@ -19,6 +20,7 @@ export const fontSize = {
 } as const;
 
 export const lineHeight = {
+  xxs: 14,
   xs: 16,
   sm: 18,
   md: 22,
@@ -39,50 +41,50 @@ export const typography = {
 
   h1: {
     fontFamily: fontFamily.bold,
-    fontSize: fontSize.xxxl,
-    lineHeight: lineHeight.xxxl,
-    color: colors.text.primary,
-  } satisfies TextStyle,
-
-  h2: {
-    fontFamily: fontFamily.bold,
     fontSize: fontSize.xxl,
     lineHeight: lineHeight.xxl,
     color: colors.text.primary,
   } satisfies TextStyle,
 
-  h3: {
-    fontFamily: fontFamily.medium,
+  h2: {
+    fontFamily: fontFamily.bold,
     fontSize: fontSize.xl,
     lineHeight: lineHeight.xl,
     color: colors.text.primary,
   } satisfies TextStyle,
 
-  title: {
+  h3: {
     fontFamily: fontFamily.medium,
     fontSize: fontSize.lg,
     lineHeight: lineHeight.lg,
     color: colors.text.primary,
   } satisfies TextStyle,
 
-  body: {
-    fontFamily: fontFamily.regular,
-    fontSize: fontSize.md,
-    lineHeight: lineHeight.md,
-    color: colors.text.primary,
-  } satisfies TextStyle,
-
-  bodyStrong: {
+  title: {
     fontFamily: fontFamily.medium,
     fontSize: fontSize.md,
     lineHeight: lineHeight.md,
     color: colors.text.primary,
   } satisfies TextStyle,
 
-  caption: {
+  body: {
     fontFamily: fontFamily.regular,
     fontSize: fontSize.sm,
     lineHeight: lineHeight.sm,
+    color: colors.text.primary,
+  } satisfies TextStyle,
+
+  bodyStrong: {
+    fontFamily: fontFamily.medium,
+    fontSize: fontSize.xs,
+    lineHeight: lineHeight.xs,
+    color: colors.text.primary,
+  } satisfies TextStyle,
+
+  caption: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.xxs,
+    lineHeight: lineHeight.xxs,
     color: colors.text.secondary,
   } satisfies TextStyle,
 

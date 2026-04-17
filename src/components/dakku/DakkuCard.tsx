@@ -1,16 +1,11 @@
-import {
-  ImageSourcePropType,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  Image,
-} from "react-native";
+import { ImageSourcePropType, Pressable, StyleSheet, View, Image } from "react-native";
 import React from "react";
+import { MoreHorizontal } from "lucide-react-native";
 import IconButton from "../common/IconButton";
 import { AppText } from "../common/AppText";
 import { colors } from "../../constants/colors";
 import { radius, spacing } from "../../constants/spacing";
+import { theme } from "../../constants/theme";
 
 interface DakkuCardProps {
   title?: string;
@@ -43,6 +38,11 @@ const DakkuCard = ({
           pressed && styles.pressed,
         ]}
       >
+        <View style={styles.createCardSizer}>
+          <View style={styles.thumbnailWrapper} />
+          <View style={styles.createMetaSpacer} />
+        </View>
+
         <View style={styles.createContent}>
           <IconButton
             imageSource={createIconSource}
@@ -86,11 +86,11 @@ const DakkuCard = ({
         </View>
 
         <IconButton
-          imageSource={require("@/assets/icons/more.png")}
+          icon={<MoreHorizontal size={16} color='#d9d9d9' />}
           onPress={onMenuPress}
           variant="ghost"
           size={32}
-          iconSize={16}
+          style={styles.menuButton}
         />
       </View>
     </Pressable>
@@ -101,19 +101,20 @@ export default DakkuCard;
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.card.background,
+    width: "100%",
+    height: theme.card.dakkuHeight,
+    backgroundColor: colors.background.base,
     borderWidth: 1,
     borderColor: colors.card.border,
     borderRadius: radius.xl,
     padding: spacing.sm,
-    minHeight: 210,
   },
   pressed: {
     opacity: 0.9,
   },
   thumbnailWrapper: {
     width: "100%",
-    aspectRatio: 0.78,
+    height: theme.card.dakkuThumbnailHeight,
     borderRadius: radius.lg,
     overflow: "hidden",
     backgroundColor: colors.background.subtle,
@@ -128,24 +129,36 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.subtle,
   },
   metaRow: {
+    alignSelf: "stretch",
     marginTop: spacing.sm,
     flexDirection: "row",
     alignItems: "flex-start",
-    justifyContent: "space-between",
     gap: spacing.xs,
   },
   textBlock: {
     flex: 1,
+    minWidth: 0,
+  },
+  menuButton: {
+    marginLeft: "auto",
+    marginRight: -spacing.xs,
   },
   dateText: {
     marginTop: 2,
   },
   createCard: {
-    justifyContent: "center",
-    alignItems: "center",
+    position: "relative",
     backgroundColor: "#FDF0DD",
   },
+  createCardSizer: {
+    opacity: 0,
+  },
   createContent: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -155,5 +168,9 @@ const styles = StyleSheet.create({
   createLabel: {
     marginTop: spacing.sm,
     color: colors.text.primary,
+  },
+  createMetaSpacer: {
+    marginTop: spacing.sm,
+    flex: 1,
   },
 });

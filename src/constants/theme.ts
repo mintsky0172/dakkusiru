@@ -21,6 +21,8 @@ export const theme = {
     borderColor: colors.card.border,
     borderWidth: 1,
     borderRadius: radius.lg,
+    dakkuHeight: 250,
+    dakkuThumbnailHeight: 160,
   },
 
   button: {

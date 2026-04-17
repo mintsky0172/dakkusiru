@@ -1,8 +1,8 @@
 export const colors = {
   background: {
-    base: '#FFF5E3',
+    base: '#FFFFFF',
     surface: '#FFFAF1',
-    subtle: '#F8EAD3',
+    subtle: '#FFF5E3',
     canvas: '#FFFDF8',
   },
 
