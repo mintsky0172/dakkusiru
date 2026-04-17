@@ -2,7 +2,6 @@ import {
   ImageSourcePropType,
   Pressable,
   StyleSheet,
-  Text,
   View,
   Image,
 } from "react-native";
@@ -10,15 +9,16 @@ import React from "react";
 import { AppText } from "../common/AppText";
 import { colors } from "../../constants/colors";
 import { radius, spacing } from "../../constants/spacing";
-
-type PackStatus = "owned" | "free" | "priced";
+import { PackOwnStatus, PackStatus } from "../../types/shop";
 
 interface PackCardProps {
   title: string;
   thumbnailSource?: ImageSourcePropType;
   priceLabel?: string;
   status?: PackStatus;
+  ownStatus?: PackOwnStatus;
   selected?: boolean;
+  isNew?: boolean;
   onPress?: () => void;
 }
 
@@ -27,15 +27,14 @@ const PackCard = ({
   thumbnailSource,
   priceLabel,
   status = "priced",
+  ownStatus = "not_owned",
   selected = false,
+  isNew = false,
   onPress,
 }: PackCardProps) => {
-  const statusText =
-    status === "owned"
-      ? "보유중"
-      : status === "free"
-        ? "기본"
-        : (priceLabel ?? "");
+  const statusText = status === "free" ? "무료" : (priceLabel ?? "");
+
+  const ownStatusText = ownStatus === "owned" ? "보유중" : "";
 
   return (
     <Pressable
@@ -52,6 +51,14 @@ const PackCard = ({
         ) : (
           <View style={styles.thumbnailPlaceholder} />
         )}
+
+        {isNew ? (
+          <View style={styles.newBadge}>
+            <AppText variant="small" style={styles.newBadgeText}>
+              신규
+            </AppText>
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.content}>
@@ -59,25 +66,43 @@ const PackCard = ({
           {title}
         </AppText>
 
-        <View
-          style={[
-            styles.badge,
-            status === "owned" && styles.ownedBadge,
-            status === "free" && styles.freeBadge,
-            status === "priced" && styles.priceBadge,
-          ]}
-        >
-          <AppText
-            variant="small"
+        <View style={styles.badgeRow}>
+          <View
             style={[
-              styles.badgeText,
-              status === "owned" && styles.ownedBadgeText,
-              status === "free" && styles.freeBadgeText,
-              status === "priced" && styles.priceBadgeText,
+              styles.badge,
+              status === "free" && styles.freeBadge,
+              status === "priced" && styles.priceBadge,
             ]}
           >
-            {statusText}
-          </AppText>
+            <Image
+              source={require("../../../assets/icons/coin.png")}
+              style={{ width: 20, height: 20 }}
+            />
+            <AppText
+              variant="small"
+              style={[
+                styles.badgeText,
+
+                status === "free" && styles.freeBadgeText,
+                status === "priced" && styles.priceBadgeText,
+              ]}
+            >
+              {statusText}
+            </AppText>
+          </View>
+          <View
+            style={[styles.badge, ownStatus === "owned" && styles.ownedBadge]}
+          >
+            <AppText
+              variant="small"
+              style={[
+                styles.badgeText,
+                ownStatus === "owned" && styles.ownedBadgeText,
+              ]}
+            >
+              {ownStatusText}
+            </AppText>
+          </View>
         </View>
       </View>
     </Pressable>
@@ -95,58 +120,78 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
   },
   selectedCard: {
-    borderColor: colors.accent.main,
-    backgroundColor: '#FFF3EE',
+    borderColor: colors.border.strong,
+    backgroundColor: "#FFF3EE",
   },
   pressed: {
     opacity: 0.92,
   },
   thumbnailWrapper: {
-    width: '100%',
+    width: "100%",
     aspectRatio: 1.18,
     borderRadius: radius.lg,
-    overflow: 'hidden',
+    overflow: "hidden",
     backgroundColor: colors.background.subtle,
   },
   thumbnail: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
   },
   thumbnailPlaceholder: {
     flex: 1,
     backgroundColor: colors.background.subtle,
+  },
+  newBadge: {
+    position: "absolute",
+    top: spacing.xs,
+    left: spacing.xs,
+    backgroundColor: colors.state.warning,
+    borderRadius: radius.round,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 3,
+  },
+  newBadgeText: {
+    color: colors.text.inverse,
+    fontSize: 10,
+    lineHeight: 12,
   },
   content: {
     marginTop: spacing.sm,
     gap: spacing.xs,
   },
   badge: {
-    alignSelf: 'flex-start',
+    flexDirection: "row",
+    alignSelf: "flex-start",
     borderRadius: radius.round,
-    paddingHorizontal: spacing.sm,
     paddingVertical: 4,
+    gap: 4,
   },
   badgeText: {
     fontSize: 10,
     lineHeight: 14,
   },
   ownedBadge: {
-    backgroundColor: '#E7F1E1',
+    backgroundColor: "#E7F1E1",
+    paddingHorizontal: 7
   },
   ownedBadgeText: {
     color: colors.state.success,
   },
   freeBadge: {
-    backgroundColor: '#F6E8C8',
+    backgroundColor: "transparent",
   },
   freeBadgeText: {
-    color: colors.state.warning,
+    color: colors.text.primary,
   },
   priceBadge: {
-    backgroundColor: colors.background.subtle,
+    backgroundColor: "transparent",
   },
   priceBadgeText: {
-    color: colors.text.secondary
-  }
+    color: colors.text.secondary,
+  },
+  badgeRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
 });
