@@ -8,17 +8,23 @@ import { radius, spacing } from "../../constants/spacing";
 interface ProfileCardProps {
   name: string;
   description: string;
+  subDescription?: string;
   imageSource?: ImageSourcePropType;
   actionLabel?: string;
+  secondaryActionLabel?: string;
   onPressAction?: () => void;
+  onPressSecondaryAction?: () => void;
 }
 
 const ProfileCard = ({
   name,
   description,
+  subDescription,
   imageSource,
   actionLabel,
+  secondaryActionLabel,
   onPressAction,
+  onPressSecondaryAction
 }: ProfileCardProps) => {
   return (
     <View style={styles.card}>
@@ -36,18 +42,37 @@ const ProfileCard = ({
           <AppText variant="caption" style={styles.description}>
             {description}
           </AppText>
+          {subDescription ? (
+            <AppText variant='small' style={styles.subDescription}>
+                {subDescription}
+            </AppText>
+          ) : null}  
         </View>
       </View>
 
-      {actionLabel ? (
-        <View style={styles.buttonWrapper}>
-          <AppButton
-            label={actionLabel}
-            onPress={onPressAction}
-            variant="secondary"
-          />
+      {(actionLabel || secondaryActionLabel) && (
+        <View style={styles.actions}>
+            {actionLabel ? (
+                <View style={styles.actionButton}>
+                    <AppButton
+                        label={actionLabel}
+                        onPress={onPressAction}
+                        variant='secondary'
+                    />
+                </View>
+            ): null}
+
+            {secondaryActionLabel ? (
+                <View style={styles.actionButton}>
+                    <AppButton
+                        label={secondaryActionLabel}
+                        onPress={onPressSecondaryAction}
+                        variant='ghost'
+                    />
+                </View>
+            ): null}
         </View>
-      ) : null}
+      ) }
     </View>
   );
 };
@@ -89,7 +114,15 @@ const styles = StyleSheet.create({
   description: {
     marginTop: 4,
   },
-  buttonWrapper: {
-    marginTop: spacing.md,
+  subDescription: {
+    marginTop: 2,
   },
+  actions: {
+    marginTop: spacing.md,
+    gap: spacing.sm,
+  },
+  actionButton: {
+    width: '100%' 
+  }
+  
 });
