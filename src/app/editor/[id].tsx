@@ -1,14 +1,3 @@
-import { StyleSheet, Text, View } from 'react-native'
-import React from 'react'
+import NewDakkuScreen from "../new";
 
-const EditorScreen = () => {
-  return (
-    <View>
-      <Text>EditorScreen</Text>
-    </View>
-  )
-}
-
-export default EditorScreen
-
-const styles = StyleSheet.create({})
+export default NewDakkuScreen;

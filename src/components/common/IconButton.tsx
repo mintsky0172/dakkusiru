@@ -11,9 +11,9 @@ import React from "react";
 import { colors } from "../../constants/colors";
 import { radius } from "../../constants/spacing";
 
-type IconButtonVariant = "ghost" | "filled" | "outlined";
+type IconButtonVariant = "ghost" | "filled" | "filledPinkSoft" | "filledPinkAccent" | "outlined";  
 
-interface IconButtonProps {
+interface IconButtonProps { 
   icon?: React.ReactNode;
   imageSource?: ImageSourcePropType;
   onPress?: () => void;
@@ -88,6 +88,12 @@ const variantStyles = StyleSheet.create({
   },
   filled: {
     backgroundColor: colors.background.subtle,
+  },
+  filledPinkSoft: {
+    backgroundColor: colors.accent.soft
+  },
+  filledPinkAccent: {
+    backgroundColor: colors.accent.main,
   },
   outlined: {
     backgroundColor: colors.background.surface,
