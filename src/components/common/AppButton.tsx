@@ -2,12 +2,11 @@ import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
-  Text,
   View,
+  StyleProp,
   ViewStyle,
 } from "react-native";
 import React from "react";
-import { Activity } from "lucide-react-native";
 import { colors } from "../../constants/colors";
 import { AppText } from "./AppText";
 import { radius, spacing } from "../../constants/spacing";
@@ -20,7 +19,8 @@ interface AppButtonProps {
   variant?: ButtonVariant;
   disabled?: boolean;
   loading?: boolean;
-  style?: ViewStyle | ViewStyle[];
+  style?: StyleProp<ViewStyle>;
+  leftIcon?: React.ReactNode;
 }
 
 const AppButton = ({
@@ -30,6 +30,7 @@ const AppButton = ({
   disabled = false,
   loading = false,
   style,
+  leftIcon,
 }: AppButtonProps) => {
   const isDisabled = disabled || loading;
 
@@ -52,16 +53,19 @@ const AppButton = ({
           }
         />
       ) : (
-        <AppText
-          variant="button"
-          style={[
-            styles.label,
-            labelStyles[variant],
-            isDisabled && styles.disabledLabel,
-          ]}
-        >
-          {label}
-        </AppText>
+        <View style={styles.content}>
+          {leftIcon ? <View style={styles.iconSlot}>{leftIcon}</View> : null}
+          <AppText
+            variant="button"
+            style={[
+              styles.label,
+              labelStyles[variant],
+              isDisabled && styles.disabledLabel,
+            ]}
+          >
+            {label}
+          </AppText>
+        </View>
       )}
     </Pressable>
   );
@@ -86,6 +90,14 @@ const styles = StyleSheet.create({
   },
   label: {
     textAlign: "center",
+  },
+  content: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconSlot: {
+    marginRight: spacing.xs,
   },
   disabledLabel: {
     color: colors.button.disabledText,

@@ -42,3 +42,4 @@ yarn-error.*
 
 .env
 *.clip
+assets/pack/

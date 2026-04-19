@@ -1,6 +1,12 @@
 export type PackStatus = "free" | "priced";
 export type PackOwnStatus = "not_owned" | "owned";
 
+export interface PackPreviewSticker {
+  id: string;
+  name: string;
+  imageSource?: any;
+}
+
 export interface StickerPack {
   id: string;
   title: string;
@@ -10,4 +16,6 @@ export interface StickerPack {
   priceLabel?: string;
   thumbnailSource?: any;
   isNew?: boolean;
+  description?: string;
+  previewStickers?: PackPreviewSticker[];
 }

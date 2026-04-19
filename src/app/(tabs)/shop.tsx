@@ -8,6 +8,7 @@ import { AppText } from "../../components/common/AppText";
 import CoinBalanceCard from "../../components/shop/CoinBalanceCard";
 import Chip from "../../components/common/Chip";
 import { spacing } from "../../constants/spacing";
+import { router } from "expo-router";
 
 type CategoryFilter = "all" | "food" | "deco" | "etc";
 
@@ -29,13 +30,12 @@ const ShopScreen = () => {
   }, [selectedCategory]);
 
   const handlePressCharge = () => {
-    Alert.alert("코인 충전 화면으로 이동");
+    router.push('/coin');
   };
 
   const handlePressPack = (pack: StickerPack) => {
-    Alert.alert("팩 선택:", pack.id);
     setSelectedPackId(pack.id);
-    // TODO: router.push(`/shop/${pack.id}`) 같은 식으로 연결
+    router.push(`/shop/${pack.id}`);
   };
 
   const renderPackItem = ({

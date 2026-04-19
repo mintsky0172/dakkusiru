@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   },
   ownedBadge: {
     backgroundColor: "#E7F1E1",
-    paddingHorizontal: 7
+    paddingHorizontal: 7 
   },
   ownedBadgeText: {
     color: colors.state.success,

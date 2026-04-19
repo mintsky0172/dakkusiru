@@ -8,12 +8,24 @@ import { radius, spacing } from "../../constants/spacing";
 interface CoinBalanceCardProps {
   balance: number;
   onPressCharge?: () => void;
+  showChargeButton?: boolean;
+  align?: "left" | "right";
 }
 
-const CoinBalanceCard = ({ balance, onPressCharge }: CoinBalanceCardProps) => {
+const CoinBalanceCard = ({
+  balance,
+  onPressCharge,
+  showChargeButton = true,
+  align = "left",
+}: CoinBalanceCardProps) => {
   return (
     <View style={styles.card}>
-      <View style={styles.left}>
+      <View
+        style={[
+          styles.left,
+          align === "right" ? styles.leftAlignedRight : styles.leftAlignedLeft,
+        ]}
+      >
         <AppText variant="caption">보유 코인</AppText>
         <View style={styles.coinRow}>
           <Image
@@ -26,9 +38,11 @@ const CoinBalanceCard = ({ balance, onPressCharge }: CoinBalanceCardProps) => {
         </View>
       </View>
 
-      <View style={styles.buttonWrapper}>
-        <AppButton label="충전" onPress={onPressCharge} variant="primary" />
-      </View>
+      {showChargeButton ? (
+        <View style={styles.buttonWrapper}>
+          <AppButton label="충전" onPress={onPressCharge} variant="primary" />
+        </View>
+      ) : null}
     </View>
   );
 };
@@ -49,6 +63,12 @@ const styles = StyleSheet.create({
   },
   left: {
     flex: 1,
+  },
+  leftAlignedLeft: {
+    alignItems: "flex-start",
+  },
+  leftAlignedRight: {
+    alignItems: "flex-end",
   },
   balance: {
     includeFontPadding: false,
