@@ -10,6 +10,9 @@ interface EditorStore {
   selectSticker: (id: string | null) => void;
   clearStickers: () => void;
   removeSelectedSticker: () => void;
+
+  updateStickerPosition: (id: string, x: number, y: number) => void;
+  bringStickerToFront: (id: string) => void;
 }
 
 export const useEditorStore = create<EditorStore>((set, get) => ({
@@ -18,6 +21,11 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
   addSticker: ({ stickerId, imageSource }) =>
     set((state) => {
+      const maxZ = state.stickers.reduce(
+        (acc, item) => Math.max(acc, item.zIndex),
+        0,
+      );
+
       const newSticker: CanvasSticker = {
         id: `${Date.now()}-${Math.random()}`,
         stickerId,
@@ -27,7 +35,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         width: 120,
         height: 120,
         rotation: 0,
-        zIndex: state.stickers.length + 1,
+        zIndex: maxZ + 1,
       };
 
       return {
@@ -50,4 +58,24 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       selectedStickerId: null,
     }));
   },
+
+  updateStickerPosition: (id, x, y) =>
+    set((state) => ({
+      stickers: state.stickers.map((item) =>
+        item.id === id ? { ...item, x, y } : item,
+      ),
+    })),
+
+  bringStickerToFront: (id) =>
+    set((state) => {
+      const maxZ = state.stickers.reduce(
+        (acc, item) => Math.max(acc, item.zIndex),
+        0,
+      );
+      return {
+        stickers: state.stickers.map((item) =>
+          item.id === id ? { ...item, zIndex: maxZ + 1 } : item,
+        ),
+      };
+    }),
 }));

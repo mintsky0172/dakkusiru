@@ -60,7 +60,7 @@ const EditorTopBar = ({ onRemove }: EditorTopBarProps) => {
           iconSize={18}
         />
         <IconButton
-          imageSource={require("../../../assets/icons/scissors.png")}
+          imageSource={require("../../../assets/icons/trash.png")}
           onPress={handleRemove}
           variant="ghost"
           size={40}

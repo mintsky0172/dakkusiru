@@ -8,15 +8,24 @@ const EditorCanvas = () => {
   const stickers = useEditorStore((state) => state.stickers);
   const selectedStickerId = useEditorStore((state) => state.selectedStickerId);
   const selectSticker = useEditorStore((state) => state.selectSticker);
+  const updateStickerPosition = useEditorStore(
+    (state) => state.updateStickerPosition,
+  );
+  const bringStickerToFront = useEditorStore(
+    (state) => state.bringStickerToFront,
+  );
+  const orderedStickers = [...stickers].sort((a, b) => a.zIndex - b.zIndex);
 
   return (
     <Pressable style={styles.canvas} onPress={() => selectSticker(null)}>
-      {stickers.map((item) => (
+      {orderedStickers.map((item) => (
         <StickerItem
           key={item.id}
           item={item}
           selected={selectedStickerId === item.id}
-          onPress={() => selectSticker(item.id)}
+          onSelect={() => selectSticker(item.id)}
+          onDragStart={() => bringStickerToFront(item.id)}
+          onDragEnd={(x, y) => updateStickerPosition(item.id, x, y)}
         />
       ))}
     </Pressable>
@@ -29,6 +38,6 @@ const styles = StyleSheet.create({
   canvas: {
     flex: 1,
     backgroundColor: colors.background.canvas,
-    overflow: 'hidden' 
+    overflow: "hidden",
   },
 });
