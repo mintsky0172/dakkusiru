@@ -23,9 +23,10 @@ const NewDakkuScreen = () => {
 
   const background = useEditorStore((state) => state.background);
   const addSticker = useEditorStore((state) => state.addSticker);
+  const addText = useEditorStore((state) => state.addText);
   const setBackground = useEditorStore((state) => state.setBackground);
-  const removeSelectedSticker = useEditorStore(
-    (state) => state.removeSelectedSticker,
+  const removeSelectedObject = useEditorStore(
+    (state) => state.removeSelectedObject,
   );
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const toastTranslateY = useRef(new Animated.Value(8)).current;
@@ -51,20 +52,20 @@ const NewDakkuScreen = () => {
       const uri = await canvasRef.current?.capture?.();
 
       if (!uri) {
-        throw new Error('캔버스 이미지를 생성하지 못했어요.')
+        throw new Error("캔버스 이미지를 생성하지 못했어요.");
       }
 
       await saveCanvasToGallery(uri);
-      Alert.alert('저장 완료', '사진 앱에 이미지가 저장되었어요.')
-    } catch(error) {
+      Alert.alert("저장 완료", "사진 앱에 이미지가 저장되었어요.");
+    } catch (error) {
       const message =
         error instanceof Error
           ? error.message
-          : '이미지를 저장하는 중 오류가 발생했어요.';
-      
-      Alert.alert('저장 실패', message) 
+          : "이미지를 저장하는 중 오류가 발생했어요.";
+
+      Alert.alert("저장 실패", message);
     }
-  }
+  };
 
   useEffect(() => {
     if (!toastVisible) return;
@@ -107,10 +108,14 @@ const NewDakkuScreen = () => {
   return (
     <Screen padded={false}>
       <View style={styles.container}>
-        <EditorTopBar onRemove={removeSelectedSticker} onSave={handleSaveImage} />
+        <EditorTopBar
+          onRemove={removeSelectedObject}
+          onSave={handleSaveImage}
+          onAddText={addText}
+        />
 
         <View style={styles.canvasArea}>
-          <EditorCanvas ref={canvasRef}/>
+          <EditorCanvas ref={canvasRef} />
 
           <FloatingToolButtons
             onPressBackground={handleOpenBackgroundPanel}
@@ -178,7 +183,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     backgroundColor: colors.background.base,
     borderWidth: 1,
-    borderColor: colors.border.light, 
+    borderColor: colors.border.light,
     borderRadius: radius.round,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,

@@ -1,21 +1,28 @@
 import { create } from "zustand";
-import { CanvasBackground, CanvasSticker } from "../types/editor";
+import {
+  CanvasBackground,
+  CanvasObject,
+  CanvasSticker,
+  CanvasText,
+} from "../types/editor";
 
 interface EditorStore {
   background: CanvasBackground | null;
-  stickers: CanvasSticker[];
-  selectedStickerId: string | null;
+  objects: CanvasObject[];
+  selectedObjectId: string | null;
 
   setBackground: (payload: CanvasBackground) => void;
 
   addSticker: (payload: { stickerId: string; imageSource: any }) => void;
 
-  selectSticker: (id: string | null) => void;
-  clearStickers: () => void;
-  removeSelectedSticker: () => void;
+  addText: () => void;
 
-  updateStickerPosition: (id: string, x: number, y: number) => void;
-  bringStickerToFront: (id: string) => void;
+  selectObject: (id: string | null) => void;
+  clearObjects: () => void;
+  removeSelectedObject: () => void;
+
+  updateObjectPosition: (id: string, x: number, y: number) => void;
+  bringObjectToFront: (id: string) => void;
 }
 
 export const useEditorStore = create<EditorStore>((set, get) => ({
@@ -24,20 +31,21 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     backgroundColor: "#FFFFFF",
   },
 
-  stickers: [],
-  selectedStickerId: null,
+  objects: [],
+  selectedObjectId: null,
 
   setBackground: (payload) => set({ background: payload }),
 
   addSticker: ({ stickerId, imageSource }) =>
     set((state) => {
-      const maxZ = state.stickers.reduce(
+      const maxZ = state.objects.reduce(
         (acc, item) => Math.max(acc, item.zIndex),
         0,
       );
 
       const newSticker: CanvasSticker = {
         id: `${Date.now()}-${Math.random()}`,
+        type: "sticker",
         stickerId,
         imageSource,
         x: 20,
@@ -49,41 +57,68 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       };
 
       return {
-        stickers: [...state.stickers, newSticker],
-        selectedStickerId: newSticker.id,
+        objects: [...state.objects, newSticker],
+        selectedObjectId: newSticker.id,
       };
     }),
 
-  selectSticker: (id) => set({ selectedStickerId: id }),
+  addText: () =>
+    set((state) => {
+      const maxZ = state.objects.reduce(
+        (acc, item) => Math.max(acc, item.zIndex),
+        0,
+      );
 
-  clearStickers: () => set({ stickers: [], selectedStickerId: null }),
+      const newText: CanvasText = {
+        id: `${Date.now()}-${Math.random()}`,
+        type: "text",
+        text: "텍스트를 입력하세요",
+        x: 20,
+        y: 20,
+        width: 140,
+        height: 40,
+        rotation: 0,
+        zIndex: maxZ + 1,
+        fontSize: 16,
+        color: "#590D0D",
+      };
 
-  removeSelectedSticker: () => {
-    const selectedStickerId = get().selectedStickerId;
+      return {
+        objects: [...state.objects, newText],
+        selectedObjectId: newText.id,
+      };
+    }),
 
-    if (!selectedStickerId) return;
+  selectObject: (id) => set({ selectedObjectId: id }),
+
+  clearObjects: () => set({ objects: [], selectedObjectId: null }),
+
+  removeSelectedObject: () => {
+    const selectedObjectId = get().selectedObjectId;
+
+    if (!selectedObjectId) return;
 
     set((state) => ({
-      stickers: state.stickers.filter((item) => item.id !== selectedStickerId),
-      selectedStickerId: null,
+      objects: state.objects.filter((item) => item.id !== selectedObjectId),
+      selectedObjectId: null,
     }));
   },
 
-  updateStickerPosition: (id, x, y) =>
+  updateObjectPosition: (id, x, y) =>
     set((state) => ({
-      stickers: state.stickers.map((item) =>
+      objects: state.objects.map((item) =>
         item.id === id ? { ...item, x, y } : item,
       ),
     })),
 
-  bringStickerToFront: (id) =>
+  bringObjectToFront: (id) =>
     set((state) => {
-      const maxZ = state.stickers.reduce(
+      const maxZ = state.objects.reduce(
         (acc, item) => Math.max(acc, item.zIndex),
         0,
       );
       return {
-        stickers: state.stickers.map((item) =>
+        objects: state.objects.map((item) =>
           item.id === id ? { ...item, zIndex: maxZ + 1 } : item,
         ),
       };

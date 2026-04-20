@@ -9,12 +9,13 @@ import { useEditorStore } from "../../store/editorStore";
 interface EditorTopBarProps {
   onRemove?: () => void;
   onSave?: () => void;
+  onAddText?: () => void;
 }
 
-const EditorTopBar = ({ onRemove, onSave }: EditorTopBarProps) => {
-  const selectedStickerId = useEditorStore((state) => state.selectedStickerId);
-  const removeSelectedSticker = useEditorStore(
-    (state) => state.removeSelectedSticker,
+const EditorTopBar = ({ onRemove, onSave, onAddText }: EditorTopBarProps) => {
+  const selectedObjectId = useEditorStore((state) => state.selectedObjectId);
+  const removeSelectedObject = useEditorStore(
+    (state) => state.removeSelectedObject,
   );
 
   const handleRemove = () => {
@@ -23,7 +24,7 @@ const EditorTopBar = ({ onRemove, onSave }: EditorTopBarProps) => {
       return;
     }
 
-    removeSelectedSticker();
+    removeSelectedObject();
   };
 
   return (
@@ -55,7 +56,7 @@ const EditorTopBar = ({ onRemove, onSave }: EditorTopBarProps) => {
         />
         <IconButton
           imageSource={require("../../../assets/icons/text.png")}
-          onPress={() => {}}
+          onPress={onAddText}
           variant="ghost"
           size={40}
           iconSize={18}
@@ -66,7 +67,7 @@ const EditorTopBar = ({ onRemove, onSave }: EditorTopBarProps) => {
           variant="ghost"
           size={40}
           iconSize={18}
-          disabled={!selectedStickerId}
+          disabled={!selectedObjectId}
         />
       </View>
 

@@ -4,19 +4,22 @@ import { useEditorStore } from "../../store/editorStore";
 import StickerItem from "./StickerItem";
 import { colors } from "../../constants/colors";
 import ViewShot from "react-native-view-shot";
+import TextItem from "./TextItem";
 
 const EditorCanvas = forwardRef<ViewShot>((_, ref) => {
   const background = useEditorStore((state) => state.background);
-  const stickers = useEditorStore((state) => state.stickers);
-  const selectedStickerId = useEditorStore((state) => state.selectedStickerId);
-  const selectSticker = useEditorStore((state) => state.selectSticker);
-  const updateStickerPosition = useEditorStore(
-    (state) => state.updateStickerPosition,
+  const objects = useEditorStore((state) => state.objects);
+  const selectedObjectId = useEditorStore((state) => state.selectedObjectId);
+  const selectObject = useEditorStore((state) => state.selectObject);
+  const updateObjectPosition = useEditorStore(
+    (state) => state.updateObjectPosition,
   );
-  const bringStickerToFront = useEditorStore(
-    (state) => state.bringStickerToFront,
+  const bringObjectToFront = useEditorStore(
+    (state) => state.bringObjectToFront,
   );
-  const orderedStickers = [...stickers].sort((a, b) => a.zIndex - b.zIndex);
+  const orderedStickers = [...objects]
+    .filter((item) => item.type === "sticker")
+    .sort((a, b) => a.zIndex - b.zIndex);
 
   return (
     <ViewShot
@@ -32,7 +35,7 @@ const EditorCanvas = forwardRef<ViewShot>((_, ref) => {
         quality: 1,
       }}
     >
-      <Pressable style={styles.canvas} onPress={() => selectSticker(null)}>
+      <Pressable style={styles.canvas} onPress={() => selectObject(null)}>
         {background?.imageSource ? (
           <Image
             source={background.imageSource}
@@ -40,16 +43,31 @@ const EditorCanvas = forwardRef<ViewShot>((_, ref) => {
           />
         ) : null}
 
-        {orderedStickers.map((item) => (
-          <StickerItem
+        {objects.map((item) => {
+          if (item.type === 'sticker') {
+            return (
+              <StickerItem
             key={item.id}
             item={item}
-            selected={selectedStickerId === item.id}
-            onSelect={() => selectSticker(item.id)}
-            onDragStart={() => bringStickerToFront(item.id)}
-            onDragEnd={(x, y) => updateStickerPosition(item.id, x, y)}
+            selected={selectedObjectId === item.id}
+            onSelect={() => selectObject(item.id)}
+            onDragStart={() => bringObjectToFront(item.id)}
+            onDragEnd={(x, y) => updateObjectPosition(item.id, x, y)}
+          /> 
+            )
+          }
+
+        return (
+          <TextItem
+            key={item.id}
+            item={item}
+            selected={selectedObjectId === item.id}
+            onSelect={() => selectObject(item.id)}
+            onDragStart={() => bringObjectToFront}
+            onDragEnd={(x, y) => updateObjectPosition(item.id, x, y)}
           />
-        ))}
+        )
+        })}
       </Pressable>
     </ViewShot>
   );

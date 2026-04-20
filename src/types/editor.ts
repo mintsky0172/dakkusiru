@@ -4,10 +4,11 @@ export interface CanvasBackground {
     backgroundColor?: string;
 }
 
-export interface CanvasSticker {
+export type CanvasObjectType = 'sticker' | 'text';
+
+interface BaseCanvasObject {
     id: string;
-    stickerId: string;
-    imageSource?: any;
+    type: CanvasObjectType
     x: number;
     y: number;
     width: number;
@@ -16,8 +17,23 @@ export interface CanvasSticker {
     zIndex: number;
 }
 
+export interface CanvasSticker extends BaseCanvasObject {
+    type: 'sticker';
+    stickerId: string;
+    imageSource?: any;
+}
+
+export interface CanvasText extends BaseCanvasObject {
+    type: 'text';
+    text: string;
+    fontSize: number;
+    color: string;
+}
+
+export type CanvasObject = CanvasSticker | CanvasText;
+
 export interface EditorState {
     background: CanvasBackground | null;
-    stickers: CanvasSticker[];
-    selectedStickerId: string | null;
+    objects: CanvasObject[];
+    selectedObjectId: string | null;
 }
