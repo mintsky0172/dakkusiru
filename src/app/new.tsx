@@ -10,12 +10,16 @@ import { AppText } from "../components/common/AppText";
 import { colors } from "../constants/colors";
 import { radius, spacing } from "../constants/spacing";
 import BackgroundPanelSheet from "../components/editor/BackgroundPanelSheet";
+import ViewShot from "react-native-view-shot";
+import { saveCanvasToGallery } from "../utils/saveCanvasToGallery";
 
 const NewDakkuScreen = () => {
   const [isStickerSheetVisible, setIsStickerSheetVisible] = useState(false);
   const [isBackgroundSheetVisible, setIsBackgroundSheetVisible] =
     useState(false);
   const [toastVisible, setToastVisible] = useState(false);
+
+  const canvasRef = useRef<ViewShot>(null);
 
   const background = useEditorStore((state) => state.background);
   const addSticker = useEditorStore((state) => state.addSticker);
@@ -41,6 +45,26 @@ const NewDakkuScreen = () => {
   const handleCloseBackgroundPanel = () => {
     setIsBackgroundSheetVisible(false);
   };
+
+  const handleSaveImage = async () => {
+    try {
+      const uri = await canvasRef.current?.capture?.();
+
+      if (!uri) {
+        throw new Error('캔버스 이미지를 생성하지 못했어요.')
+      }
+
+      await saveCanvasToGallery(uri);
+      Alert.alert('저장 완료', '사진 앱에 이미지가 저장되었어요.')
+    } catch(error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : '이미지를 저장하는 중 오류가 발생했어요.';
+      
+      Alert.alert('저장 실패', message) 
+    }
+  }
 
   useEffect(() => {
     if (!toastVisible) return;
@@ -83,10 +107,10 @@ const NewDakkuScreen = () => {
   return (
     <Screen padded={false}>
       <View style={styles.container}>
-        <EditorTopBar onRemove={removeSelectedSticker} />
+        <EditorTopBar onRemove={removeSelectedSticker} onSave={handleSaveImage} />
 
         <View style={styles.canvasArea}>
-          <EditorCanvas />
+          <EditorCanvas ref={canvasRef}/>
 
           <FloatingToolButtons
             onPressBackground={handleOpenBackgroundPanel}
@@ -124,7 +148,7 @@ const NewDakkuScreen = () => {
 
         <BackgroundPanelSheet
           visible={isBackgroundSheetVisible}
-          onClose={() => setIsBackgroundSheetVisible(false)}
+          onClose={handleCloseBackgroundPanel}
           selectedBackgroundId={background?.id ?? null}
           onSelectBackground={(item) => {
             setBackground({
@@ -160,6 +184,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
   },
   toastText: {
-    color: colors.text.inverse,
+    color: colors.text.primary,
   },
 });

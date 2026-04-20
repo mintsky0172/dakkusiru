@@ -8,9 +8,10 @@ import { useEditorStore } from "../../store/editorStore";
 
 interface EditorTopBarProps {
   onRemove?: () => void;
+  onSave?: () => void;
 }
 
-const EditorTopBar = ({ onRemove }: EditorTopBarProps) => {
+const EditorTopBar = ({ onRemove, onSave }: EditorTopBarProps) => {
   const selectedStickerId = useEditorStore((state) => state.selectedStickerId);
   const removeSelectedSticker = useEditorStore(
     (state) => state.removeSelectedSticker,
@@ -72,7 +73,7 @@ const EditorTopBar = ({ onRemove }: EditorTopBarProps) => {
       <View style={styles.rightGroup}>
         <IconButton
           imageSource={require("../../../assets/icons/save.png")}
-          onPress={() => {}}
+          onPress={onSave}
           variant="ghost"
           size={40}
           iconSize={18}
