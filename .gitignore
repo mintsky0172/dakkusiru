@@ -42,4 +42,5 @@ yarn-error.*
 
 .env
 *.clip
-assets/pack/
+assets/sticker_pack/
+assets/background_pack/

@@ -9,12 +9,17 @@ import StickerPanelSheet from "../components/editor/StickerPanelSheet";
 import { AppText } from "../components/common/AppText";
 import { colors } from "../constants/colors";
 import { radius, spacing } from "../constants/spacing";
+import BackgroundPanelSheet from "../components/editor/BackgroundPanelSheet";
 
 const NewDakkuScreen = () => {
   const [isStickerSheetVisible, setIsStickerSheetVisible] = useState(false);
+  const [isBackgroundSheetVisible, setIsBackgroundSheetVisible] =
+    useState(false);
   const [toastVisible, setToastVisible] = useState(false);
 
+  const background = useEditorStore((state) => state.background);
   const addSticker = useEditorStore((state) => state.addSticker);
+  const setBackground = useEditorStore((state) => state.setBackground);
   const removeSelectedSticker = useEditorStore(
     (state) => state.removeSelectedSticker,
   );
@@ -30,8 +35,11 @@ const NewDakkuScreen = () => {
   };
 
   const handleOpenBackgroundPanel = () => {
-    Alert.alert("배경 선택");
-    // TODO : 배경 패널 붙이기
+    setIsBackgroundSheetVisible(true);
+  };
+
+  const handleCloseBackgroundPanel = () => {
+    setIsBackgroundSheetVisible(false);
   };
 
   useEffect(() => {
@@ -113,6 +121,19 @@ const NewDakkuScreen = () => {
             setToastVisible(true);
           }}
         />
+
+        <BackgroundPanelSheet
+          visible={isBackgroundSheetVisible}
+          onClose={() => setIsBackgroundSheetVisible(false)}
+          selectedBackgroundId={background?.id ?? null}
+          onSelectBackground={(item) => {
+            setBackground({
+              id: item.id,
+              imageSource: item.imageSource,
+              backgroundColor: item.backgroundColor,
+            });
+          }}
+        />
       </View>
     </Screen>
   );
@@ -131,7 +152,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: spacing.md,
     alignSelf: "center",
-    backgroundColor: colors.text.primary,
+    backgroundColor: colors.background.base,
+    borderWidth: 1,
+    borderColor: colors.border.light, 
     borderRadius: radius.round,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,

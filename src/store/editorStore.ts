@@ -1,9 +1,12 @@
 import { create } from "zustand";
-import { CanvasSticker } from "../types/editor";
+import { CanvasBackground, CanvasSticker } from "../types/editor";
 
 interface EditorStore {
+  background: CanvasBackground | null;
   stickers: CanvasSticker[];
   selectedStickerId: string | null;
+
+  setBackground: (payload: CanvasBackground) => void;
 
   addSticker: (payload: { stickerId: string; imageSource: any }) => void;
 
@@ -16,8 +19,15 @@ interface EditorStore {
 }
 
 export const useEditorStore = create<EditorStore>((set, get) => ({
+  background: {
+    id: "default-background",
+    backgroundColor: "#FFFFFF",
+  },
+
   stickers: [],
   selectedStickerId: null,
+
+  setBackground: (payload) => set({ background: payload }),
 
   addSticker: ({ stickerId, imageSource }) =>
     set((state) => {

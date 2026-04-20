@@ -1,3 +1,9 @@
+export interface CanvasBackground {
+    id: string;
+    imageSource?: any;
+    backgroundColor?: string;
+}
+
 export interface CanvasSticker {
     id: string;
     stickerId: string;
@@ -11,6 +17,7 @@ export interface CanvasSticker {
 }
 
 export interface EditorState {
+    background: CanvasBackground | null;
     stickers: CanvasSticker[];
     selectedStickerId: string | null;
 }
