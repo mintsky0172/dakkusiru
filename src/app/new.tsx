@@ -12,22 +12,34 @@ import { radius, spacing } from "../constants/spacing";
 import BackgroundPanelSheet from "../components/editor/BackgroundPanelSheet";
 import ViewShot from "react-native-view-shot";
 import { saveCanvasToGallery } from "../utils/saveCanvasToGallery";
+import TextEditModal from "../components/editor/TextEditModal";
+import { CanvasText } from "../types/editor";
 
 const NewDakkuScreen = () => {
   const [isStickerSheetVisible, setIsStickerSheetVisible] = useState(false);
   const [isBackgroundSheetVisible, setIsBackgroundSheetVisible] =
     useState(false);
+  const [isTextEditModalVisible, setIsTextEditModalVisible] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
 
   const canvasRef = useRef<ViewShot>(null);
 
   const background = useEditorStore((state) => state.background);
+  const objects = useEditorStore((state) => state.objects);
+  const selectedObjectId = useEditorStore((state) => state.selectedObjectId);
   const addSticker = useEditorStore((state) => state.addSticker);
   const addText = useEditorStore((state) => state.addText);
+  const updateTextContent = useEditorStore((state) => state.updateTextContent);
   const setBackground = useEditorStore((state) => state.setBackground);
   const removeSelectedObject = useEditorStore(
     (state) => state.removeSelectedObject,
   );
+
+  const selectedTextObject = objects.find(
+    (item): item is CanvasText =>
+      item.id === selectedObjectId && item.type === "text",
+  );
+
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const toastTranslateY = useRef(new Animated.Value(8)).current;
 
@@ -65,6 +77,14 @@ const NewDakkuScreen = () => {
 
       Alert.alert("저장 실패", message);
     }
+  };
+
+  const handleOpenTextEditor = () => {
+    if (!selectedTextObject) {
+      Alert.alert("텍스트 선택", "먼저 텍스트 박스를 선택해 주세요.");
+      return;
+    }
+    setIsTextEditModalVisible(true);
   };
 
   useEffect(() => {
@@ -112,6 +132,7 @@ const NewDakkuScreen = () => {
           onRemove={removeSelectedObject}
           onSave={handleSaveImage}
           onAddText={addText}
+          onEditText={handleOpenTextEditor}
         />
 
         <View style={styles.canvasArea}>
@@ -161,6 +182,18 @@ const NewDakkuScreen = () => {
               imageSource: item.imageSource,
               backgroundColor: item.backgroundColor,
             });
+          }}
+        />
+
+        <TextEditModal
+          visible={isTextEditModalVisible}
+          initialValue={selectedTextObject?.text ?? ""}
+          onClose={() => setIsTextEditModalVisible(false)}
+          onConfirm={(value) => {
+            if (selectedTextObject) {
+              updateTextContent(selectedTextObject.id, value);
+            }
+            setIsTextEditModalVisible(false);
           }}
         />
       </View>

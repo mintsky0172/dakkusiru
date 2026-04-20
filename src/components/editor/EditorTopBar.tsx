@@ -10,9 +10,10 @@ interface EditorTopBarProps {
   onRemove?: () => void;
   onSave?: () => void;
   onAddText?: () => void;
+  onEditText?: () => void;
 }
 
-const EditorTopBar = ({ onRemove, onSave, onAddText }: EditorTopBarProps) => {
+const EditorTopBar = ({ onRemove, onSave, onAddText, onEditText }: EditorTopBarProps) => {
   const selectedObjectId = useEditorStore((state) => state.selectedObjectId);
   const removeSelectedObject = useEditorStore(
     (state) => state.removeSelectedObject,
@@ -57,6 +58,13 @@ const EditorTopBar = ({ onRemove, onSave, onAddText }: EditorTopBarProps) => {
         <IconButton
           imageSource={require("../../../assets/icons/text.png")}
           onPress={onAddText}
+          variant="ghost"
+          size={40}
+          iconSize={18}
+        />
+        <IconButton
+          imageSource={require("../../../assets/icons/pencil.png")}
+          onPress={onEditText}
           variant="ghost"
           size={40}
           iconSize={18}

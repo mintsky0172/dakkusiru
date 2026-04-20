@@ -16,6 +16,7 @@ interface EditorStore {
   addSticker: (payload: { stickerId: string; imageSource: any }) => void;
 
   addText: () => void;
+  updateTextContent: (id: string, text: string) => void;
 
   selectObject: (id: string | null) => void;
   clearObjects: () => void;
@@ -88,6 +89,23 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         selectedObjectId: newText.id,
       };
     }),
+
+  updateTextContent: (id, text) =>
+    set((state) => ({
+      objects: state.objects.map((item) => {
+        if (item.id !== id || item.type !== "text") return item;
+
+        const nextWidth = Math.max(120, text.length * (item.fontSize * 0.75));
+        const nextHeight = Math.max(44, item.fontSize + 20);
+
+        return {
+          ...item,
+          text,
+          width: nextWidth,
+          height: nextHeight,
+        };
+      }),
+    })),
 
   selectObject: (id) => set({ selectedObjectId: id }),
 
