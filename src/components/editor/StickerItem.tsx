@@ -1,5 +1,5 @@
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
-import React from "react";
+import { Animated, Easing, Image, Pressable, StyleSheet, View } from "react-native";
+import React, { useEffect, useRef } from "react";
 import { CanvasSticker } from "../../types/editor";
 import { colors } from "../../constants/colors";
 
@@ -10,9 +10,35 @@ interface StickerItemProps {
 }
 
 const StickerItem = ({ item, selected = false, onPress }: StickerItemProps) => {
+  const scale = useRef(new Animated.Value(0.88)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 160,
+        useNativeDriver: true,
+      }),
+      Animated.sequence([
+        Animated.timing(scale, {
+          toValue: 1.06,
+          duration: 120,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.spring(scale, {
+          toValue: 1,
+          friction: 6,
+          tension: 120,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+  }, [opacity, scale]);
+
   return (
-    <Pressable
-      onPress={onPress}
+    <Animated.View
       style={[
         styles.wrapper,
         {
@@ -21,19 +47,23 @@ const StickerItem = ({ item, selected = false, onPress }: StickerItemProps) => {
           width: item.width,
           height: item.height,
           zIndex: item.zIndex,
+          opacity,
+          transform: [{ scale: selected ? Animated.multiply(scale, 1.02) : scale }],
         },
       ]}
     >
-      {item.imageSource ? (
-        <Image source={item.imageSource} style={styles.image} />
-      ) : (
-        <View style={styles.placeholder} />
-      )}
+      <Pressable onPress={onPress} style={styles.pressable}>
+        {item.imageSource ? (
+          <Image source={item.imageSource} style={styles.image} />
+        ) : (
+          <View style={styles.placeholder} />
+        )}
 
-      {selected ? (
-        <View pointerEvents="none" style={styles.selectedBorder} />
-      ) : null}
-    </Pressable>
+        {selected ? (
+          <View pointerEvents="none" style={styles.selectedBorder} />
+        ) : null}
+      </Pressable>
+    </Animated.View>
   );
 };
 
@@ -42,6 +72,10 @@ export default StickerItem;
 const styles = StyleSheet.create({
   wrapper: {
     position: "absolute",
+  },
+  pressable: {
+    width: "100%",
+    height: "100%",
   },
   image: {
     width: "100%",

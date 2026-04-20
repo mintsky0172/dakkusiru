@@ -6,14 +6,16 @@ import { colors } from "../../constants/colors";
 
 interface BottomSheetHeaderProps {
   title: string;
+  leftSlot?: React.ReactNode;
   rightSlot?: React.ReactNode;
 }
 
-const BottomSheetHeader = ({ title, rightSlot }: BottomSheetHeaderProps) => {
+const BottomSheetHeader = ({ title, leftSlot, rightSlot }: BottomSheetHeaderProps) => {
   return (
     <View style={styles.wrapper}>
       <View style={styles.handle} />
       <View style={styles.row}>
+        {leftSlot}
         <AppText variant="h3">{title}</AppText>
         {rightSlot}
       </View>
@@ -38,7 +40,7 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: 'flex-start',
     alignItems: "center",
   },
 });
