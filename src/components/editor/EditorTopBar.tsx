@@ -8,12 +8,13 @@ import { useEditorStore } from "../../store/editorStore";
 
 interface EditorTopBarProps {
   onRemove?: () => void;
-  onSave?: () => void;
+  onSave?: () => void; // 사진 앱 저장
+  onSaveDakku?: () => void; // 앱 내부 저장
   onAddText?: () => void;
   onEditText?: () => void;
 }
 
-const EditorTopBar = ({ onRemove, onSave, onAddText, onEditText }: EditorTopBarProps) => {
+const EditorTopBar = ({ onRemove, onSave, onSaveDakku, onAddText, onEditText }: EditorTopBarProps) => {
   const selectedObjectId = useEditorStore((state) => state.selectedObjectId);
   const removeSelectedObject = useEditorStore(
     (state) => state.removeSelectedObject,
@@ -80,6 +81,13 @@ const EditorTopBar = ({ onRemove, onSave, onAddText, onEditText }: EditorTopBarP
       </View>
 
       <View style={styles.rightGroup}>
+        <IconButton
+          imageSource={require("../../../assets/icons/save2.png")}
+          onPress={onSaveDakku}
+          variant="ghost"
+          size={40}
+          iconSize={18}
+        />
         <IconButton
           imageSource={require("../../../assets/icons/save.png")}
           onPress={onSave}

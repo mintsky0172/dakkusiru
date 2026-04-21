@@ -24,6 +24,13 @@ interface EditorStore {
 
   updateObjectPosition: (id: string, x: number, y: number) => void;
   bringObjectToFront: (id: string) => void;
+
+  setEditorData: (payload: {
+    background: CanvasBackground | null;
+    objects: CanvasObject[];
+  }) => void;
+
+  resetEditor: () => void;
 }
 
 export const useEditorStore = create<EditorStore>((set, get) => ({
@@ -34,6 +41,23 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
   objects: [],
   selectedObjectId: null,
+
+  setEditorData: ({ background, objects }) =>
+    set({
+      background,
+      objects,
+      selectedObjectId: null,
+    }),
+
+  resetEditor: () =>
+    set({
+      background: {
+        id: "default-background",
+        backgroundColor: "#FFFFFF",
+      },
+      objects: [],
+      selectedObjectId: null,
+    }),
 
   setBackground: (payload) => set({ background: payload }),
 

@@ -1,5 +1,6 @@
-import { Alert, StyleSheet, Text, View, FlatList } from "react-native";
-import React from "react";
+import { Alert, StyleSheet, View, FlatList } from "react-native";
+import React, { useCallback, useState } from "react";
+import { useFocusEffect } from "expo-router";
 import Screen from "../../components/common/Screen";
 import { AppText } from "../../components/common/AppText";
 import AppButton from "../../components/common/AppButton";
@@ -8,57 +9,97 @@ import IconButton from "../../components/common/IconButton";
 import { layout, spacing } from "../../constants/spacing";
 import { colors } from "../../constants/colors";
 import { router } from "expo-router";
-
-type DakkuItem = {
-  id: string;
-  title: string;
-  dateLabel: string;
-  thumbnailSource: any;
-};
+import { SavedDakku } from "../../types/savedDakku";
+import {
+  deleteDakkuFromLocal,
+  loadSavedDakkusFromLocal,
+  renameDakkuFromLocal,
+} from "../../services/localDakkuStorage";
+import DakkuActionModal from "../../components/dakku/DakkuActionModal";
+import RenameDakkuModal from "../../components/dakku/RenameDakkuModal";
 
 type CreateCardItem = {
   id: "create-card";
   isCreateCard: true;
 };
 
-type HomeListItem = DakkuItem | CreateCardItem;
-
-// 테스트용 : 빈 상태 보려면 []로 바꾸기
-const mockDakkus: DakkuItem[] = [
-  {
-    id: "1",
-    title: "다꾸1",
-    dateLabel: "26.04.15 18:00",
-    thumbnailSource: require("../../../assets/images/dakku_default.png"),
-  },
-  {
-    id: "2",
-    title: "다꾸2",
-    dateLabel: "26.04.15 18:00",
-    thumbnailSource: require("../../../assets/images/dakku_default.png"),
-  },
-  {
-    id: "3",
-    title: "다꾸3",
-    dateLabel: "26.04.15 18:00",
-    thumbnailSource: require("../../../assets/images/dakku_default.png"),
-  },
-];
+type HomeListItem = SavedDakku | CreateCardItem;
 
 const HomeScreen = () => {
+  const [savedDakkus, setSavedDakkus] = useState<SavedDakku[]>([]);
+  const [selectedDakku, setSelectedDakku] = useState<SavedDakku | null>(null);
+  const [isActionModalVisible, setIsActionModalVisible] = useState(false);
+  const [isRenameModalVisible, setIsRenameModalVisible] = useState(false);
+
+  const loadDakkus = useCallback(async () => {
+    const data = await loadSavedDakkusFromLocal();
+    setSavedDakkus(data);
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadDakkus();
+    }, [loadDakkus]),
+  );
+
   const handlePressDakku = (id: string) => {
     router.push(`/editor/${id}`);
   };
 
-  const handlePressMenu = (id: string) => {
-    Alert.alert("메뉴 열기:", id);
+  const handlePressMenu = (dakku: SavedDakku) => {
+    setSelectedDakku(dakku);
+    setIsActionModalVisible(true);
+  };
+
+  const handleCloseActionModal = () => {
+    setIsActionModalVisible(false);
+  };
+
+  const handleOpenRenameModal = () => {
+    setIsActionModalVisible(false);
+    setIsRenameModalVisible(true);
   };
 
   const handleCreateDakku = () => {
     router.push("/new");
   };
 
-  if (mockDakkus.length === 0) {
+  const handleRenameDakku = async (title: string) => {
+    if (!selectedDakku) return;
+
+    await renameDakkuFromLocal(selectedDakku.id, title);
+    setIsRenameModalVisible(false);
+    setSelectedDakku(null);
+    await loadDakkus();
+  };
+
+  const handleDeleteDakku = () => {
+    if (!selectedDakku) return;
+
+    setIsActionModalVisible(false);
+
+    Alert.alert(
+      "다꾸 삭제",
+      "삭제한 다꾸는 되돌릴 수 없어요. 정말 삭제할까요?",
+      [
+        {
+          text: "취소",
+          style: "cancel",
+        },
+        {
+          text: "삭제",
+          style: "destructive",
+          onPress: async () => {
+            await deleteDakkuFromLocal(selectedDakku.id);
+            setSelectedDakku(null);
+            await loadDakkus();
+          },
+        },
+      ],
+    );
+  };
+
+  if (savedDakkus.length === 0) {
     return (
       <Screen style={styles.screen}>
         <View style={styles.header}>
@@ -82,15 +123,15 @@ const HomeScreen = () => {
   }
 
   const dataWithCreateCard: HomeListItem[] = [
-    ...mockDakkus,
-    { id: "create-card", isCreateCard: true },
+    ...savedDakkus,
+    { id: "create-card", isCreateCard: true as const },
   ];
 
   const renderItem = ({
     item,
     index,
   }: {
-    item: HomeListItem;
+    item: SavedDakku | { id: "create-card"; isCreateCard: true };
     index: number;
   }) => {
     if ("isCreateCard" in item) {
@@ -119,10 +160,12 @@ const HomeScreen = () => {
       >
         <DakkuCard
           title={item.title}
-          dateLabel={item.dateLabel}
-          thumbnailSource={item.thumbnailSource}
+          dateLabel={formatDateLabel(item.updatedAt)}
+          thumbnailSource={
+            item.thumbnailUri ? { uri: item.thumbnailUri } : undefined
+          }
           onPress={() => handlePressDakku(item.id)}
-          onMenuPress={() => handlePressMenu(item.id)}
+          onMenuPress={() => handlePressMenu(item)}
         />
       </View>
     );
@@ -151,9 +194,39 @@ const HomeScreen = () => {
         iconSize={24}
         style={styles.fab}
       />
+
+      <DakkuActionModal
+        visible={isActionModalVisible}
+        title={selectedDakku?.title ?? ""}
+        onClose={handleCloseActionModal}
+        onRename={handleOpenRenameModal}
+        onDelete={handleDeleteDakku}
+      />
+
+      <RenameDakkuModal
+        visible={isRenameModalVisible}
+        initialTitle={selectedDakku?.title ?? ""}
+        onClose={() => {
+          setIsRenameModalVisible(false);
+          setSelectedDakku(null);
+        }}
+        onConfirm={handleRenameDakku}
+      />
     </Screen>
   );
 };
+
+function formatDateLabel(value: string) {
+  const date = new Date(value);
+
+  const yy = String(date.getFullYear()).slice(2);
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const min = String(date.getMinutes()).padStart(2, "0");
+
+  return `${yy}.${mm}.${dd} ${hh}:${min}`;
+}
 
 export default HomeScreen;
 
