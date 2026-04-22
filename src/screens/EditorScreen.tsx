@@ -153,7 +153,6 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
     <Screen padded={false}>
       <View style={styles.container}>
         <EditorTopBar
-          onRemove={removeSelectedObject}
           onSave={handleSaveImageToGallery}
           onAddText={addText}
           onEditText={handleOpenTextEditor}

@@ -1,5 +1,5 @@
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
-import React, { forwardRef } from "react";
+import React, { forwardRef, useState } from "react";
 import { useEditorStore } from "../../store/editorStore";
 import StickerItem from "./StickerItem";
 import { colors } from "../../constants/colors";
@@ -7,6 +7,11 @@ import ViewShot from "react-native-view-shot";
 import TextItem from "./TextItem";
 
 const EditorCanvas = forwardRef<ViewShot>((_, ref) => {
+  const [canvasSize, setCanvasSize] = useState({
+    width: 0,
+    height: 0,
+  });
+
   const background = useEditorStore((state) => state.background);
   const objects = useEditorStore((state) => state.objects);
   const selectedObjectId = useEditorStore((state) => state.selectedObjectId);
@@ -17,9 +22,24 @@ const EditorCanvas = forwardRef<ViewShot>((_, ref) => {
   const bringObjectToFront = useEditorStore(
     (state) => state.bringObjectToFront,
   );
-  const orderedStickers = [...objects]
-    .filter((item) => item.type === "sticker")
-    .sort((a, b) => a.zIndex - b.zIndex);
+  const updateObjectSize = useEditorStore((state) => state.updateObjectSize);
+  const updateObjectRotation = useEditorStore(
+    (state) => state.updateObjectRotation,
+  );
+  const orderedObjects = [...objects].sort((a, b) => a.zIndex - b.zIndex);
+
+  const removeObject = useEditorStore((state) => state.removeObject);
+
+  const clampTextWidth = (x: number, width: number) => {
+    if (!canvasSize.width) return innerWidth;
+
+    const SAFE_PADDING = 16;
+    const MIN_WIDTH = 80;
+
+    const maxWidth = Math.max(MIN_WIDTH, canvasSize.width - x - SAFE_PADDING);
+
+    return Math.max(MIN_WIDTH, Math.min(width, maxWidth));
+  };
 
   return (
     <ViewShot
@@ -34,6 +54,10 @@ const EditorCanvas = forwardRef<ViewShot>((_, ref) => {
         format: "png",
         quality: 1,
       }}
+      onLayout={(event) => {
+        const { width, height } = event.nativeEvent.layout;
+        setCanvasSize({ width, height });
+      }}
     >
       <Pressable style={styles.canvas} onPress={() => selectObject(null)}>
         {background?.imageSource ? (
@@ -43,30 +67,45 @@ const EditorCanvas = forwardRef<ViewShot>((_, ref) => {
           />
         ) : null}
 
-        {objects.map((item) => {
-          if (item.type === 'sticker') {
+        {orderedObjects.map((item) => {
+          if (item.type === "sticker") {
             return (
               <StickerItem
-            key={item.id}
-            item={item}
-            selected={selectedObjectId === item.id}
-            onSelect={() => selectObject(item.id)}
-            onDragStart={() => bringObjectToFront(item.id)}
-            onDragEnd={(x, y) => updateObjectPosition(item.id, x, y)}
-          /> 
-            )
+                key={item.id}
+                item={item}
+                selected={selectedObjectId === item.id}
+                onSelect={() => selectObject(item.id)}
+                onDragStart={() => bringObjectToFront(item.id)}
+                onDragEnd={(x, y) => updateObjectPosition(item.id, x, y)}
+                onResizeEnd={(width, height) =>
+                  updateObjectSize(item.id, width, height)
+                }
+                onRotateEnd={(rotation) =>
+                  updateObjectRotation(item.id, rotation)
+                }
+                onDelete={() => removeObject(item.id)}
+              />
+            );
           }
 
-        return (
-          <TextItem
-            key={item.id}
-            item={item}
-            selected={selectedObjectId === item.id}
-            onSelect={() => selectObject(item.id)}
-            onDragStart={() => bringObjectToFront}
-            onDragEnd={(x, y) => updateObjectPosition(item.id, x, y)}
-          />
-        )
+          return (
+            <TextItem
+              key={item.id}
+              item={item}
+              selected={selectedObjectId === item.id}
+              onSelect={() => selectObject(item.id)}
+              onDragStart={() => bringObjectToFront(item.id)}
+              onDragEnd={(x, y) => updateObjectPosition(item.id, x, y)}
+              onResizeEnd={(width, height) => {
+                const clampedWidth = clampTextWidth(item.x, width);
+                updateObjectSize(item.id, clampedWidth, height);
+              }}
+              onRotateEnd={(rotation) =>
+                updateObjectRotation(item.id, rotation)
+              }
+              onDelete={() => removeObject(item.id)}
+            />
+          );
         })}
       </Pressable>
     </ViewShot>
@@ -75,7 +114,7 @@ const EditorCanvas = forwardRef<ViewShot>((_, ref) => {
 
 export default EditorCanvas;
 
-EditorCanvas.displayName = 'EditorCanvas';
+EditorCanvas.displayName = "EditorCanvas";
 
 const styles = StyleSheet.create({
   canvas: {

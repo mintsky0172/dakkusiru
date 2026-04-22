@@ -1,22 +1,22 @@
 import {
-  Animated,
-  Easing,
   Image,
   PanResponder,
-  Pressable,
   StyleSheet,
   View,
 } from "react-native";
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { CanvasSticker } from "../../types/editor";
-import { colors } from "../../constants/colors";
+import ObjectTransformHandles from "./ObjectTransformHandles";
 
 interface StickerItemProps {
   item: CanvasSticker;
   selected?: boolean;
   onSelect?: () => void;
   onDragStart?: () => void;
+  onResizeEnd?: (width: number, height: number) => void;
+  onRotateEnd?: (rotation: number) => void;
   onDragEnd?: (x: number, y: number) => void;
+  onDelete?: () => void;
 }
 
 const StickerItem = ({
@@ -25,40 +25,24 @@ const StickerItem = ({
   onSelect,
   onDragStart,
   onDragEnd,
+  onResizeEnd,
+  onRotateEnd,
+  onDelete,
 }: StickerItemProps) => {
-  const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
-  const scale = useRef(new Animated.Value(0.88)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
+  const contentRef = useRef<View>(null);
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
 
   const startPositionRef = useRef({
     x: item.x,
     y: item.y,
   });
 
-  // 스티커 추가 시 애니메이션
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 160,
-        useNativeDriver: true,
-      }),
-      Animated.sequence([
-        Animated.timing(scale, {
-          toValue: 1.06,
-          duration: 120,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.spring(scale, {
-          toValue: 1,
-          friction: 6,
-          tension: 120,
-          useNativeDriver: true,
-        }),
-      ]),
-    ]).start();
-  }, [opacity, scale]);
+  const getTransform = (translateX = 0, translateY = 0) => [
+    { translateX },
+    { translateY },
+    { rotate: `${item.rotation}deg` },
+  ];
 
   // 스티커 드래그
   useEffect(() => {
@@ -72,48 +56,81 @@ const StickerItem = ({
     () =>
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: (_, gestureState) => {
-          return Math.abs(gestureState.dx) > 2 || Math.abs(gestureState.dy) > 2;
-        },
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderTerminationRequest: () => false,
+        onStartShouldSetPanResponderCapture: () => true,
+        onMoveShouldSetPanResponderCapture: () => true,
 
         onPanResponderGrant: () => {
           onSelect?.();
           onDragStart?.();
-
+          setIsDragging(true);
           startPositionRef.current = {
             x: item.x,
             y: item.y,
           };
 
-          pan.setValue({ x: 0, y: 0 });
+          dragOffsetRef.current = { x: 0, y: 0 };
+          contentRef.current?.setNativeProps({
+            style: {
+              transform: getTransform(0, 0),
+            },
+          });
         },
 
-        onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
-          useNativeDriver: false,
-        }),
+        onPanResponderMove: (_, gestureState) => {
+          dragOffsetRef.current = {
+            x: gestureState.dx,
+            y: gestureState.dy,
+          };
+
+          contentRef.current?.setNativeProps({
+            style: {
+              transform: getTransform(gestureState.dx, gestureState.dy),
+            },
+          });
+        },
 
         onPanResponderRelease: (_, gestureState) => {
           const nextX = startPositionRef.current.x + gestureState.dx;
           const nextY = startPositionRef.current.y + gestureState.dy;
 
-          pan.setValue({ x: 0, y: 0 });
+          dragOffsetRef.current = { x: 0, y: 0 };
+          contentRef.current?.setNativeProps({
+            style: {
+              left: nextX,
+              top: nextY,
+              transform: getTransform(0, 0),
+            },
+          });
+
           onDragEnd?.(nextX, nextY);
+          setIsDragging(false);
         },
 
         onPanResponderTerminate: (_, gestureState) => {
           const nextX = startPositionRef.current.x + gestureState.dx;
           const nextY = startPositionRef.current.y + gestureState.dy;
 
-          pan.setValue({ x: 0, y: 0 });
+          dragOffsetRef.current = { x: 0, y: 0 };
+          contentRef.current?.setNativeProps({
+            style: {
+              left: nextX,
+              top: nextY,
+              transform: getTransform(0, 0),
+            },
+          });
+
           onDragEnd?.(nextX, nextY);
+          setIsDragging(false);
         },
       }),
-    [item.x, item.y, onDragEnd, onDragStart, onSelect, pan],
+    [item.x, item.y, item.rotation, onDragEnd, onDragStart, onSelect],
   );
 
   return (
-    <Animated.View
-      {...panResponder.panHandlers}
+    <View
+      ref={contentRef}
       style={[
         styles.wrapper,
         {
@@ -122,27 +139,34 @@ const StickerItem = ({
           width: item.width,
           height: item.height,
           zIndex: item.zIndex,
-          opacity,
-          transform: [
-            { scale: selected ? Animated.multiply(scale, 1.02) : scale },
-            { translateX: pan.x },
-            { translateY: pan.y },
-          ],
+          transform: getTransform(0, 0),
         },
       ]}
     >
-      
+      <View {...panResponder.panHandlers} style={styles.pressable}>
         {item.imageSource ? (
           <Image source={item.imageSource} style={styles.image} />
         ) : (
           <View style={styles.placeholder} />
         )}
+      </View>
 
-        {selected ? (
-          <View pointerEvents="none" style={styles.selectedBorder} />
-        ) : null}
-
-    </Animated.View>
+      {selected && !isDragging ? (
+        <View pointerEvents="box-none" style={styles.overlay}>
+          <ObjectTransformHandles
+            width={item.width}
+            height={item.height}
+            rotation={item.rotation}
+            measureParentInWindow={(callback) => {
+              contentRef.current?.measureInWindow(callback);
+            }}
+            onResizeEnd={(width, height) => onResizeEnd?.(width, height)}
+            onRotateEnd={(rotation) => onRotateEnd?.(rotation)}
+            onDelete={onDelete}
+          />
+        </View>
+      ) : null}
+    </View>
   );
 };
 
@@ -151,6 +175,11 @@ export default StickerItem;
 const styles = StyleSheet.create({
   wrapper: {
     position: "absolute",
+    backgroundColor: "transparent",
+    overflow: "visible",
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
   },
   pressable: {
     width: "100%",
@@ -164,12 +193,5 @@ const styles = StyleSheet.create({
   placeholder: {
     flex: 1,
     backgroundColor: "#eee",
-  },
-  selectedBorder: {
-    ...StyleSheet.absoluteFillObject,
-    borderWidth: 2,
-    borderColor: colors.accent.main,
-    borderStyle: "dashed",
-    borderRadius: 8,
   },
 });

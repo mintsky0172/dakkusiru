@@ -7,27 +7,17 @@ import { spacing } from "../../constants/spacing";
 import { useEditorStore } from "../../store/editorStore";
 
 interface EditorTopBarProps {
-  onRemove?: () => void;
   onSave?: () => void; // 사진 앱 저장
   onSaveDakku?: () => void; // 앱 내부 저장
   onAddText?: () => void;
   onEditText?: () => void;
 }
 
-const EditorTopBar = ({ onRemove, onSave, onSaveDakku, onAddText, onEditText }: EditorTopBarProps) => {
-  const selectedObjectId = useEditorStore((state) => state.selectedObjectId);
-  const removeSelectedObject = useEditorStore(
-    (state) => state.removeSelectedObject,
-  );
-
-  const handleRemove = () => {
-    if (onRemove) {
-      onRemove();
-      return;
-    }
-
-    removeSelectedObject();
-  };
+const EditorTopBar = ({ onSave, onSaveDakku, onAddText, onEditText }: EditorTopBarProps) => {
+  const undo = useEditorStore((state) => state.undo);
+  const redo = useEditorStore((state) => state.redo);
+  const canUndo = useEditorStore((state) => state.historyPast.length > 0);
+  const canRedo = useEditorStore((state) => state.historyFuture.length > 0);
 
   return (
     <View style={styles.container}>
@@ -44,17 +34,19 @@ const EditorTopBar = ({ onRemove, onSave, onSaveDakku, onAddText, onEditText }: 
       <View style={styles.centerGroup}>
         <IconButton
           imageSource={require("../../../assets/icons/undo.png")}
-          onPress={() => {}}
+          onPress={canUndo ? undo : undefined}
           variant="ghost"
           size={40}
           iconSize={18}
+          disabled={!canUndo}
         />
         <IconButton
           imageSource={require("../../../assets/icons/redo.png")}
-          onPress={() => {}}
+          onPress={canRedo ? redo : undefined}
           variant="ghost"
           size={40}
           iconSize={18}
+          disabled={!canRedo}
         />
         <IconButton
           imageSource={require("../../../assets/icons/text.png")}
@@ -70,14 +62,7 @@ const EditorTopBar = ({ onRemove, onSave, onSaveDakku, onAddText, onEditText }: 
           size={40}
           iconSize={18}
         />
-        <IconButton
-          imageSource={require("../../../assets/icons/trash.png")}
-          onPress={handleRemove}
-          variant="ghost"
-          size={40}
-          iconSize={18}
-          disabled={!selectedObjectId}
-        />
+      
       </View>
 
       <View style={styles.rightGroup}>
