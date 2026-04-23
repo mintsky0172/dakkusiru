@@ -50,6 +50,14 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
   const removeSelectedObject = useEditorStore(
     (state) => state.removeSelectedObject,
   );
+
+  const bringObjectForward = useEditorStore(
+    (state) => state.bringObjectForward,
+  );
+  const sendObjectBackward = useEditorStore(
+    (state) => state.sendObjectBackward,
+  );
+
   const setEditorData = useEditorStore((state) => state.setEditorData);
   const resetEditor = useEditorStore((state) => state.resetEditor);
 
@@ -149,6 +157,16 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
     setIsTextEditModalVisible(true);
   };
 
+  const handleBringForward = () => {
+    if (!selectedObjectId) return;
+    bringObjectForward(selectedObjectId);
+  };
+
+  const handleSendBackward = () => {
+    if (!selectedObjectId) return;
+    sendObjectBackward(selectedObjectId);
+  };
+
   return (
     <Screen padded={false}>
       <View style={styles.container}>
@@ -156,6 +174,8 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
           onSave={handleSaveImageToGallery}
           onAddText={addText}
           onSaveDakku={handleSaveDakkuLocally}
+          onBringForward={handleBringForward}
+          onSendBackward={handleSendBackward}
         />
 
         <View style={styles.canvasArea}>

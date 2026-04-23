@@ -10,9 +10,17 @@ interface EditorTopBarProps {
   onSave?: () => void; // 사진 앱 저장
   onSaveDakku?: () => void; // 앱 내부 저장
   onAddText?: () => void;
+  onBringForward?: () => void;
+  onSendBackward?: () => void;
 }
 
-const EditorTopBar = ({ onSave, onSaveDakku, onAddText }: EditorTopBarProps) => {
+const EditorTopBar = ({
+  onSave,
+  onSaveDakku,
+  onAddText,
+  onBringForward,
+  onSendBackward
+}: EditorTopBarProps) => {
   const undo = useEditorStore((state) => state.undo);
   const redo = useEditorStore((state) => state.redo);
   const canUndo = useEditorStore((state) => state.historyPast.length > 0);
@@ -50,6 +58,20 @@ const EditorTopBar = ({ onSave, onSaveDakku, onAddText }: EditorTopBarProps) => 
         <IconButton
           imageSource={require("../../../assets/icons/text.png")}
           onPress={onAddText}
+          variant="ghost"
+          size={40}
+          iconSize={18}
+        />
+        <IconButton
+          imageSource={require("../../../assets/icons/forward.png")}
+          onPress={onBringForward}
+          variant="ghost"
+          size={40}
+          iconSize={18}
+        />
+        <IconButton
+          imageSource={require("../../../assets/icons/backward.png")}
+          onPress={onSendBackward}
           variant="ghost"
           size={40}
           iconSize={18}

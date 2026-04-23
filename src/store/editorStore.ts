@@ -34,7 +34,8 @@ interface EditorStore {
   removeObject: (id: string) => void;
 
   updateObjectPosition: (id: string, x: number, y: number) => void;
-  bringObjectToFront: (id: string) => void;
+  bringObjectForward: (id: string) => void;
+  sendObjectBackward: (id: string) => void;
 
   updateObjectSize: (
     id: string,
@@ -76,7 +77,8 @@ const getTextLineHeight = (fontSize: number) =>
 const getMinTextHeight = (text: string, fontSize: number) =>
   Math.max(
     MIN_TEXT_HEIGHT,
-    getTextLines(text).length * getTextLineHeight(fontSize) + TEXT_HEIGHT_PADDING,
+    getTextLines(text).length * getTextLineHeight(fontSize) +
+      TEXT_HEIGHT_PADDING,
   );
 
 const cloneSnapshot = (snapshot: EditorSnapshot): EditorSnapshot => ({
@@ -237,18 +239,53 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       historyFuture: [],
     })),
 
-  bringObjectToFront: (id) =>
+  bringObjectForward: (id) =>
     set((state) => {
-      const maxZ = state.objects.reduce(
-        (acc, item) => Math.max(acc, item.zIndex),
-        0,
-      );
+      const current = state.objects.find((item) => item.id === id);
+      if (!current) return state;
+
+      const higherObjects = state.objects
+        .filter((item) => item.zIndex > current.zIndex)
+        .sort((a, b) => a.zIndex - b.zIndex);
+
+      const nextHigher = higherObjects[0];
+      if (!nextHigher) return state;
+
       return {
-        objects: state.objects.map((item) =>
-          item.id === id ? { ...item, zIndex: maxZ + 1 } : item,
-        ),
-        historyPast: [...state.historyPast, getSnapshot(state)],
-        historyFuture: [],
+        objects: state.objects.map((item) => {
+          if (item.id === current.id) {
+            return { ...item, zIndex: nextHigher.zIndex };
+          }
+          if (item.id === nextHigher.id) {
+            return { ...item, zIndex: current.zIndex };
+          }
+          return item;
+        }),
+      };
+    }),
+
+  sendObjectBackward: (id) =>
+    set((state) => {
+      const current = state.objects.find((item) => item.id === id);
+      if (!current) return state;
+
+      const lowerObjects = state.objects
+        .filter((item) => item.zIndex < current.zIndex)
+        .sort((a, b) => b.zIndex - a.zIndex);
+
+      const nextLower = lowerObjects[0];
+      if (!nextLower) return state;
+
+      return {
+        objects: state.objects.map((item) => {
+          if (item.id === current.id) {
+            return { ...item, zIndex: nextLower.zIndex };
+          }
+          if (item.id === nextLower.id) {
+            return { ...item, zIndex: current.zIndex };
+          }
+          return item;
+        }),
       };
     }),
 

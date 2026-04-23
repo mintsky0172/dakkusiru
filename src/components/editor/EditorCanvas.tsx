@@ -29,8 +29,8 @@ const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
   const updateObjectPosition = useEditorStore(
     (state) => state.updateObjectPosition,
   );
-  const bringObjectToFront = useEditorStore(
-    (state) => state.bringObjectToFront,
+  const bringObjectForward = useEditorStore(
+    (state) => state.bringObjectForward,
   );
   const updateObjectSize = useEditorStore((state) => state.updateObjectSize);
   const updateObjectRotation = useEditorStore(
@@ -124,7 +124,7 @@ const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
                 item={item}
                 selected={selectedObjectId === item.id}
                 onSelect={() => selectObject(item.id)}
-                onDragStart={() => bringObjectToFront(item.id)}
+                onDragStart={() => bringObjectForward(item.id)}
                 onDragEnd={(x, y) => updateObjectPosition(item.id, x, y)}
                 onResizeEnd={(width, height, options) =>
                   updateObjectSize(item.id, width, height, options)
@@ -143,7 +143,7 @@ const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
               item={item}
               selected={selectedObjectId === item.id}
               onSelect={() => selectObject(item.id)}
-              onDragStart={() => bringObjectToFront(item.id)}
+              onDragStart={() => bringObjectForward(item.id)}
               onDragEnd={(x, y) => {
                 const nextPosition = clampTextPosition(
                   x,
