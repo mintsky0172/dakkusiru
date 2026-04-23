@@ -1,14 +1,13 @@
 import { Image, Pressable, StyleSheet, View } from "react-native";
-import React, { forwardRef, useState } from "react";
+import React, { forwardRef, useEffect, useState } from "react";
 import { useEditorStore } from "../../store/editorStore";
 import StickerItem from "./StickerItem";
 import { colors } from "../../constants/colors";
 import ViewShot from "react-native-view-shot";
 import TextItem from "./TextItem";
-import { ObjectResizeOptions } from "../../types/editor";
+import { CanvasText, ObjectResizeOptions } from "../../types/editor";
 
 interface EditorCanvasProps {
-  onEditText?: () => void;
   hideSelectionUI?: boolean;
 }
 
@@ -17,11 +16,14 @@ const MIN_TEXT_WIDTH = 120;
 const MIN_TEXT_HEIGHT = 44;
 
 const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
-  ({onEditText, hideSelectionUI = false}, ref) => {
+  ({ hideSelectionUI = false }, ref) => {
   const [canvasSize, setCanvasSize] = useState({
     width: 0,
     height: 0,
   });
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  const [editingTextDraft, setEditingTextDraft] = useState("");
+  const [editingTextHeight, setEditingTextHeight] = useState(0);
 
   const background = useEditorStore((state) => state.background);
   const objects = useEditorStore((state) => state.objects);
@@ -40,6 +42,56 @@ const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
   const orderedObjects = [...objects].sort((a, b) => a.zIndex - b.zIndex);
 
   const removeObject = useEditorStore((state) => state.removeObject);
+  const updateTextContent = useEditorStore((state) => state.updateTextContent);
+
+  useEffect(() => {
+    if (!editingTextId) return;
+
+    const editingItem = objects.find(
+      (item): item is CanvasText =>
+        item.id === editingTextId && item.type === "text",
+    );
+
+    if (!editingItem) {
+      setEditingTextId(null);
+      setEditingTextDraft("");
+      setEditingTextHeight(0);
+    }
+  }, [editingTextId, objects]);
+
+  const finishEditingText = (nextSelectedId?: string | null) => {
+    if (!editingTextId) {
+      if (nextSelectedId !== undefined) {
+        selectObject(nextSelectedId);
+      }
+      return;
+    }
+
+    const currentItem = objects.find(
+      (item): item is CanvasText =>
+        item.id === editingTextId && item.type === "text",
+    );
+    const nextText = editingTextDraft.trim() || "텍스트 입력";
+
+    if (currentItem && currentItem.text !== nextText) {
+      updateTextContent(editingTextId, nextText, editingTextHeight);
+    }
+
+    setEditingTextId(null);
+    setEditingTextDraft("");
+    setEditingTextHeight(0);
+
+    if (nextSelectedId !== undefined) {
+      selectObject(nextSelectedId);
+    }
+  };
+
+  const startEditingText = (item: CanvasText) => {
+    setEditingTextId(item.id);
+    setEditingTextDraft(item.text);
+    setEditingTextHeight(item.height);
+    selectObject(item.id);
+  };
 
   const clampTextPosition = (
     x: number,
@@ -109,7 +161,10 @@ const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
         setCanvasSize({ width, height });
       }}
     >
-      <Pressable style={styles.canvas} onPress={() => selectObject(null)}>
+      <Pressable
+        style={styles.canvas}
+        onPress={() => finishEditingText(null)}
+      >
         {background?.imageSource ? (
           <Image
             source={background.imageSource}
@@ -126,8 +181,11 @@ const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
                 key={item.id}
                 item={item}
                 selected={isSelected}
-                onSelect={() => selectObject(item.id)}
-                onDragStart={() => bringObjectForward(item.id)}
+                onSelect={() => finishEditingText(item.id)}
+                onDragStart={() => {
+                  finishEditingText(item.id);
+                  bringObjectForward(item.id);
+                }}
                 onDragEnd={(x, y) => updateObjectPosition(item.id, x, y)}
                 onResizeEnd={(width, height, options) =>
                   updateObjectSize(item.id, width, height, options)
@@ -140,12 +198,16 @@ const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
             );
           }
 
+          const isEditing = !hideSelectionUI && editingTextId === item.id;
+
           return (
             <TextItem
               key={item.id}
               item={item}
               selected={isSelected}
-              onSelect={() => selectObject(item.id)}
+              editing={isEditing}
+              editingText={editingTextId === item.id ? editingTextDraft : undefined}
+              onSelect={() => finishEditingText(item.id)}
               onDragStart={() => bringObjectForward(item.id)}
               onDragEnd={(x, y) => {
                 const nextPosition = clampTextPosition(
@@ -169,7 +231,10 @@ const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
                 updateObjectRotation(item.id, rotation)
               }
               onDelete={() => removeObject(item.id)}
-              onEdit={onEditText}
+              onEdit={() => startEditingText(item)}
+              onEditingTextChange={setEditingTextDraft}
+              onEditingHeightChange={setEditingTextHeight}
+              onEditingEnd={() => finishEditingText(item.id)}
             />
           );
         })}

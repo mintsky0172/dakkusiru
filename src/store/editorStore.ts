@@ -26,7 +26,7 @@ interface EditorStore {
   addSticker: (payload: { stickerId: string; imageSource: any }) => void;
 
   addText: () => void;
-  updateTextContent: (id: string, text: string) => void;
+  updateTextContent: (id: string, text: string, measuredHeight?: number) => void;
 
   selectObject: (id: string | null) => void;
   clearObjects: () => void;
@@ -65,6 +65,7 @@ const MIN_TEXT_WIDTH = 120;
 const MIN_TEXT_HEIGHT = 44;
 const MIN_TEXT_FONT_SIZE = 12;
 const TEXT_HEIGHT_PADDING = spacing.xs * 2;
+const TEXT_HEIGHT_BUFFER = spacing.xxs;
 
 const getTextLines = (text: string) => text.split(/\r?\n/);
 
@@ -78,7 +79,8 @@ const getMinTextHeight = (text: string, fontSize: number) =>
   Math.max(
     MIN_TEXT_HEIGHT,
     getTextLines(text).length * getTextLineHeight(fontSize) +
-      TEXT_HEIGHT_PADDING,
+      TEXT_HEIGHT_PADDING +
+      TEXT_HEIGHT_BUFFER,
   );
 
 const cloneSnapshot = (snapshot: EditorSnapshot): EditorSnapshot => ({
@@ -182,16 +184,20 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       };
     }),
 
-  updateTextContent: (id, text) =>
+  updateTextContent: (id, text, measuredHeight) =>
     set((state) => ({
       objects: state.objects.map((item) => {
         if (item.id !== id || item.type !== "text") return item;
 
         const nextWidth = Math.max(
+          item.width,
           MIN_TEXT_WIDTH,
           getLongestLineLength(text) * (item.fontSize * 0.75),
         );
-        const nextHeight = getMinTextHeight(text, item.fontSize);
+        const nextHeight = Math.max(
+          measuredHeight ?? 0,
+          getMinTextHeight(text, item.fontSize),
+        );
 
         return {
           ...item,

@@ -1,5 +1,13 @@
-import { Pressable, StyleSheet, Modal, TextInput, View } from "react-native";
-import React, { useEffect, useState } from "react";;
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
+import React, { useEffect, useRef, useState } from "react";
 import { AppText } from "../common/AppText";
 import { colors } from "../../constants/colors";
 import AppButton from "../common/AppButton";
@@ -18,16 +26,18 @@ const TextEditModal = ({
   onClose,
   onConfirm,
 }: TextEditModalProps) => {
-  const [value, setValue] = useState(initialValue);
+  const valueRef = useRef(initialValue);
+  const [inputKey, setInputKey] = useState(0);
 
   useEffect(() => {
     if (visible) {
-      setValue(initialValue);
+      valueRef.current = initialValue;
+      setInputKey((prev) => prev + 1);
     }
   }, [initialValue, visible]);
 
   const handleConfirm = () => {
-    const trimmed = value.trim();
+    const trimmed = valueRef.current.trim();
     onConfirm(trimmed.length > 0 ? trimmed : "텍스트 입력");
   };
 
@@ -37,20 +47,34 @@ const TextEditModal = ({
       transparent
       animationType="fade"
       onRequestClose={onClose}
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      hardwareAccelerated
     >
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
         <Pressable style={styles.backdrop} onPress={onClose} />
 
         <View style={styles.modalCard}>
           <AppText variant="h3">텍스트 수정</AppText>
 
           <TextInput
-            value={value}
-            onChangeText={setValue}
+            key={inputKey}
+            defaultValue={initialValue}
+            onChangeText={(nextValue) => {
+              valueRef.current = nextValue;
+            }}
             placeholder="텍스트를 입력하세요"
             placeholderTextColor={colors.text.muted}
             multiline
+            autoCorrect={false}
+            spellCheck={false}
+            underlineColorAndroid="transparent"
             style={styles.input}
+            autoFocus
+            scrollEnabled
           />
 
           <View style={styles.buttonRow}>
@@ -66,7 +90,7 @@ const TextEditModal = ({
             </View>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -77,7 +101,8 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: colors.overlay.dim,
-    justifyContent: "center",
+    justifyContent: "flex-start",
+    paddingTop: spacing.xxxl * 2,
     paddingHorizontal: spacing.xl,
   },
   backdrop: {
@@ -102,6 +127,7 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     fontFamily: "Iseoyun",
     fontSize: 16,
+    lineHeight: 22,
     textAlignVertical: "top",
   },
   buttonRow: {

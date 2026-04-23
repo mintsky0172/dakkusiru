@@ -2,6 +2,7 @@ import {
   NativeSyntheticEvent,
   PanResponder,
   StyleSheet,
+  TextInput,
   TextLayoutEventData,
   View,
 } from "react-native";
@@ -25,6 +26,11 @@ interface TextItemProps {
   onRotateEnd?: (rotation: number) => void;
   onDelete?: () => void;
   onEdit?: () => void;
+  editing?: boolean;
+  editingText?: string;
+  onEditingTextChange?: (text: string) => void;
+  onEditingHeightChange?: (height: number) => void;
+  onEditingEnd?: () => void;
 }
 
 const TextItem = ({
@@ -37,11 +43,18 @@ const TextItem = ({
   onRotateEnd,
   onDelete,
   onEdit,
+  editing = false,
+  editingText,
+  onEditingTextChange,
+  onEditingHeightChange,
+  onEditingEnd,
 }: TextItemProps) => {
+  const TEXT_INPUT_HEIGHT_BUFFER = spacing.xxs;
   const contentRef = useRef<View>(null);
   const measuredHeightRef = useRef(item.height);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const [editingHeight, setEditingHeight] = useState(item.height);
 
   const startPositionRef = useRef({
     x: item.x,
@@ -65,15 +78,44 @@ const TextItem = ({
     measuredHeightRef.current = item.height;
   }, [item.height]);
 
+  const currentText = editingText ?? item.text;
+  const lineHeight = Math.max(item.fontSize, Math.round(item.fontSize * 1.25));
+
+  useEffect(() => {
+    setEditingHeight(item.height);
+  }, [editing, item.height, item.id]);
+
+  useEffect(() => {
+    if (!editing) return;
+
+    const lineCount = (currentText || "").split(/\r?\n/).length;
+    const nextHeight = Math.max(
+      item.height,
+      lineCount * lineHeight + spacing.xs * 2 + TEXT_INPUT_HEIGHT_BUFFER,
+    );
+
+    setEditingHeight(nextHeight);
+    onEditingHeightChange?.(nextHeight);
+  }, [
+    TEXT_INPUT_HEIGHT_BUFFER,
+    currentText,
+    editing,
+    item.height,
+    lineHeight,
+    onEditingHeightChange,
+  ]);
+
   const handleTextLayout = (
     event: NativeSyntheticEvent<TextLayoutEventData>,
   ) => {
+    if (editing || editingText !== undefined) return;
+
     const measuredTextHeight = event.nativeEvent.lines.reduce(
       (total, line) => total + line.height,
       0,
     );
     const nextHeight =
-      measuredTextHeight + spacing.xs * 2;
+      measuredTextHeight + spacing.xs * 2 + TEXT_INPUT_HEIGHT_BUFFER;
 
     if (nextHeight <= item.height || nextHeight === measuredHeightRef.current) {
       return;
@@ -82,6 +124,10 @@ const TextItem = ({
     measuredHeightRef.current = nextHeight;
     onResizeEnd?.(item.width, nextHeight, { source: "content" });
   };
+  const renderedHeight =
+    editing || editingText !== undefined
+      ? Math.max(item.height, editingHeight)
+      : item.height;
 
   const panResponder = useMemo(
     () =>
@@ -162,6 +208,14 @@ const TextItem = ({
       }),
     [item.x, item.y, item.rotation, onDragEnd, onDragStart, onSelect],
   );
+
+  const textStyle = {
+    width: "100%",
+    fontSize: item.fontSize,
+    color: item.color,
+    lineHeight,
+  } as const;
+
   return (
     <View
       ref={contentRef}
@@ -171,30 +225,53 @@ const TextItem = ({
           left: item.x,
           top: item.y,
           width: item.width,
-          height: item.height,
+          height: renderedHeight,
           zIndex: item.zIndex,
           transform: getTransform(0, 0)
         }
       ]}
     >
-      <View {...panResponder.panHandlers} style={styles.contentBox}>
+      <View
+        {...(!editing ? panResponder.panHandlers : {})}
+        style={styles.contentBox}
+      >
         <View style={styles.textBox}>
-          <AppText  
-            variant='bodyStrong'
-            onTextLayout={handleTextLayout}
-            style={{
-              width: "100%",
-              fontSize: item.fontSize,
-              color: item.color,
-              lineHeight: Math.max(item.fontSize, Math.round(item.fontSize * 1.25)),
-            }}
-          >
-            {item.text}
-          </AppText>
+          {editing ? (
+            <TextInput
+              value={currentText}
+              onChangeText={onEditingTextChange}
+              onBlur={onEditingEnd}
+              autoFocus
+              multiline
+              scrollEnabled={false}
+              autoCorrect={false}
+              spellCheck={false}
+              underlineColorAndroid="transparent"
+              textAlignVertical="top"
+              style={[styles.input, textStyle]}
+              onContentSizeChange={(event) => {
+                const nextHeight =
+                  event.nativeEvent.contentSize.height +
+                  spacing.xs * 2 +
+                  TEXT_INPUT_HEIGHT_BUFFER;
+                const resolvedHeight = Math.max(item.height, nextHeight);
+                setEditingHeight(resolvedHeight);
+                onEditingHeightChange?.(resolvedHeight);
+              }}
+            />
+          ) : (
+            <AppText
+              variant='bodyStrong'
+              onTextLayout={handleTextLayout}
+              style={textStyle}
+            >
+              {currentText}
+            </AppText>
+          )}
         </View>
       </View>
 
-      {selected && !isDragging ? (
+      {selected && !isDragging && !editing ? (
         <View pointerEvents="box-none" style={styles.overlay}>
           <ObjectTransformHandles
             width={item.width}
@@ -240,5 +317,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     justifyContent: "flex-start",
     alignItems: "flex-start",
+  },
+  input: {
+    padding: 0,
+    margin: 0,
+    fontFamily: "Iseoyun",
   },
 });

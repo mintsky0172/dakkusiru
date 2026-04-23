@@ -15,8 +15,6 @@ import EditorCanvas from "../components/editor/EditorCanvas";
 import FloatingToolButtons from "../components/editor/FloatingToolButtons";
 import StickerPanelSheet from "../components/editor/StickerPanelSheet";
 import BackgroundPanelSheet from "../components/editor/BackgroundPanelSheet";
-import TextEditModal from "../components/editor/TextEditModal";
-import { CanvasText } from "../types/editor";
 
 interface EditorScreenProps {
   mode: "new" | "edit";
@@ -31,7 +29,6 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
   const [isStickerSheetVisible, setIsStickerSheetVisible] = useState(false);
   const [isBackgroundSheetVisible, setIsBackgroundSheetVisible] =
     useState(false);
-  const [isTextEditModalVisible, setIsTextEditModalVisible] = useState(false);
   const [currentDakkuId, setCurrentDakkuId] = useState<string>(
     dakkuId ?? createDakkuId(),
   );
@@ -46,11 +43,7 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
 
   const addSticker = useEditorStore((state) => state.addSticker);
   const addText = useEditorStore((state) => state.addText);
-  const updateTextContent = useEditorStore((state) => state.updateTextContent);
   const setBackground = useEditorStore((state) => state.setBackground);
-  const removeSelectedObject = useEditorStore(
-    (state) => state.removeSelectedObject,
-  );
 
   const bringObjectForward = useEditorStore(
     (state) => state.bringObjectForward,
@@ -61,11 +54,6 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
 
   const setEditorData = useEditorStore((state) => state.setEditorData);
   const resetEditor = useEditorStore((state) => state.resetEditor);
-
-  const selectedTextObject = objects.find(
-    (item): item is CanvasText =>
-      item.id === selectedObjectId && item.type === "text",
-  );
 
   useEffect(() => {
     async function initializeEditor() {
@@ -149,15 +137,6 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
     }
   };
 
-  const handleOpenTextEditor = () => {
-    if (!selectedTextObject) {
-      Alert.alert("텍스트 선택", "먼저 텍스트 박스를 선택해 주세요.");
-      return;
-    }
-
-    setIsTextEditModalVisible(true);
-  };
-
   const handleBringForward = () => {
     if (!selectedObjectId) return;
     bringObjectForward(selectedObjectId);
@@ -205,8 +184,9 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
         />
 
         <View style={styles.canvasArea}>
-          <EditorCanvas ref={canvasRef} onEditText={handleOpenTextEditor} 
-          hideSelectionUI={hideSelectionUI}
+          <EditorCanvas
+            ref={canvasRef}
+            hideSelectionUI={hideSelectionUI}
           />
 
           <FloatingToolButtons
@@ -236,17 +216,6 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
           }}
         />
 
-        <TextEditModal
-          visible={isTextEditModalVisible}
-          initialValue={selectedTextObject?.text ?? ""}
-          onClose={() => setIsTextEditModalVisible(false)}
-          onConfirm={(value) => {
-            if (selectedTextObject) {
-              updateTextContent(selectedTextObject.id, value);
-            }
-            setIsTextEditModalVisible(false);
-          }}
-        />
       </View>
     </Screen>
   );
