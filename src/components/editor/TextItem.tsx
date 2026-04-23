@@ -24,6 +24,7 @@ interface TextItemProps {
   ) => void;
   onRotateEnd?: (rotation: number) => void;
   onDelete?: () => void;
+  onEdit?: () => void;
 }
 
 const TextItem = ({
@@ -35,6 +36,7 @@ const TextItem = ({
   onResizeEnd,
   onRotateEnd,
   onDelete,
+  onEdit,
 }: TextItemProps) => {
   const contentRef = useRef<View>(null);
   const measuredHeightRef = useRef(item.height);
@@ -207,6 +209,7 @@ const TextItem = ({
             }
             onRotateEnd={(rotation) => onRotateEnd?.(rotation)}
             onDelete={onDelete}
+            onEdit={onEdit}
           /> 
         </View>
       ) : null}

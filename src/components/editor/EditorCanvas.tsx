@@ -7,11 +7,16 @@ import ViewShot from "react-native-view-shot";
 import TextItem from "./TextItem";
 import { ObjectResizeOptions } from "../../types/editor";
 
+interface EditorCanvasProps {
+  onEditText?: () => void;
+}
+
 const TEXT_SAFE_PADDING = 16;
 const MIN_TEXT_WIDTH = 120;
 const MIN_TEXT_HEIGHT = 44;
 
-const EditorCanvas = forwardRef<ViewShot>((_, ref) => {
+const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
+  ({onEditText}, ref) => {
   const [canvasSize, setCanvasSize] = useState({
     width: 0,
     height: 0,
@@ -161,6 +166,7 @@ const EditorCanvas = forwardRef<ViewShot>((_, ref) => {
                 updateObjectRotation(item.id, rotation)
               }
               onDelete={() => removeObject(item.id)}
+              onEdit={onEditText}
             />
           );
         })}

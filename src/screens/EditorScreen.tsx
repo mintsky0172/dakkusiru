@@ -155,12 +155,11 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
         <EditorTopBar
           onSave={handleSaveImageToGallery}
           onAddText={addText}
-          onEditText={handleOpenTextEditor}
           onSaveDakku={handleSaveDakkuLocally}
         />
 
         <View style={styles.canvasArea}>
-          <EditorCanvas ref={canvasRef} />
+          <EditorCanvas ref={canvasRef} onEditText={handleOpenTextEditor} />
 
           <FloatingToolButtons
             onPressBackground={() => setIsBackgroundSheetVisible(true)}
@@ -208,10 +207,10 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
 export default EditorScreen;
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    canvasArea: {
-        flex: 1
-    }
+  container: {
+    flex: 1,
+  },
+  canvasArea: {
+    flex: 1,
+  },
 });

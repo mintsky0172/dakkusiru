@@ -26,6 +26,7 @@ interface ObjectTransformHandlesProps {
   ) => void;
   onRotateEnd: (rotation: number) => void;
   onDelete?: () => void;
+  onEdit?: () => void;
 }
 
 const MIN_SIZE = 40;
@@ -39,6 +40,7 @@ const ObjectTransformHandles = ({
   onResizeEnd,
   onRotateEnd,
   onDelete,
+  onEdit,
 }: ObjectTransformHandlesProps) => {
   const startSizeRef = useRef({ width, height });
   const startRotationRef = useRef(rotation);
@@ -283,6 +285,19 @@ const ObjectTransformHandles = ({
         />
       </Pressable>
 
+      <Pressable
+        onPress={onEdit}
+        style={({ pressed }) => [
+          styles.editHandle,
+          pressed && styles.pressedHandle,
+        ]}
+      >
+        <Image
+          source={require("../../../assets/icons/pencil.png")}
+          style={styles.icon}
+        />
+      </Pressable>
+
       <View
         {...rotateResponder.panHandlers}
         style={[styles.handle, styles.rotateHandle]}
@@ -292,6 +307,8 @@ const ObjectTransformHandles = ({
           style={styles.icon}
         />
       </View>
+
+
 
       {resizeMode === "free" ? (
         <>
@@ -415,4 +432,17 @@ const styles = StyleSheet.create({
   pressedHandle: {
     opacity: 0.8,
   },
+  editHandle: {
+    position: 'absolute',
+    left: -11,
+    bottom: -11,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.accent.soft,
+    borderWidth: 2,
+    borderColor: colors.accent.main,
+    alignItems: 'center',
+    justifyContent: 'center',
+  }
 });
