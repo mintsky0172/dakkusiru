@@ -32,6 +32,13 @@ export interface CanvasText extends BaseCanvasObject {
 
 export type CanvasObject = CanvasSticker | CanvasText;
 
+export type ResizeHandleAxis = 'proportional' | 'x' | 'y' | 'xy';
+
+export interface ObjectResizeOptions {
+    source?: 'transform' | 'content';
+    axis?: ResizeHandleAxis;
+}
+
 export interface EditorState {
     background: CanvasBackground | null;
     objects: CanvasObject[];

@@ -4,7 +4,9 @@ import {
   CanvasObject,
   CanvasSticker,
   CanvasText,
+  ObjectResizeOptions,
 } from "../types/editor";
+import { spacing } from "../constants/spacing";
 
 interface EditorSnapshot {
   background: CanvasBackground | null;
@@ -34,7 +36,12 @@ interface EditorStore {
   updateObjectPosition: (id: string, x: number, y: number) => void;
   bringObjectToFront: (id: string) => void;
 
-  updateObjectSize: (id: string, width: number, height: number) => void;
+  updateObjectSize: (
+    id: string,
+    width: number,
+    height: number,
+    options?: ObjectResizeOptions,
+  ) => void;
   updateObjectRotation: (id: string, rotation: number) => void;
 
   setEditorData: (payload: {
@@ -52,6 +59,25 @@ const DEFAULT_BACKGROUND: CanvasBackground = {
   id: "default-background",
   backgroundColor: "#FFFFFF",
 };
+
+const MIN_TEXT_WIDTH = 120;
+const MIN_TEXT_HEIGHT = 44;
+const MIN_TEXT_FONT_SIZE = 12;
+const TEXT_HEIGHT_PADDING = spacing.xs * 2;
+
+const getTextLines = (text: string) => text.split(/\r?\n/);
+
+const getLongestLineLength = (text: string) =>
+  getTextLines(text).reduce((max, line) => Math.max(max, line.length), 0);
+
+const getTextLineHeight = (fontSize: number) =>
+  Math.max(fontSize, Math.round(fontSize * 1.25));
+
+const getMinTextHeight = (text: string, fontSize: number) =>
+  Math.max(
+    MIN_TEXT_HEIGHT,
+    getTextLines(text).length * getTextLineHeight(fontSize) + TEXT_HEIGHT_PADDING,
+  );
 
 const cloneSnapshot = (snapshot: EditorSnapshot): EditorSnapshot => ({
   background: snapshot.background ? { ...snapshot.background } : null,
@@ -159,8 +185,11 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       objects: state.objects.map((item) => {
         if (item.id !== id || item.type !== "text") return item;
 
-        const nextWidth = Math.max(120, text.length * (item.fontSize * 0.75));
-        const nextHeight = Math.max(44, item.fontSize + 20);
+        const nextWidth = Math.max(
+          MIN_TEXT_WIDTH,
+          getLongestLineLength(text) * (item.fontSize * 0.75),
+        );
+        const nextHeight = getMinTextHeight(text, item.fontSize);
 
         return {
           ...item,
@@ -223,15 +252,41 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       };
     }),
 
-  updateObjectSize: (id, width, height) =>
+  updateObjectSize: (id, width, height, options) =>
     set((state) => ({
       objects: state.objects.map((item) => {
         if (item.id !== id) return item;
 
         if (item.type === "text") {
-          const nextWidth = Math.max(120, width);
-          const nextFontSize = Math.max(12, Math.round(height - 20));
-          const nextHeight = Math.max(44, nextFontSize + 20);
+          const nextWidth = Math.max(MIN_TEXT_WIDTH, width);
+          const nextRawHeight = Math.max(MIN_TEXT_HEIGHT, height);
+          const source = options?.source ?? "transform";
+          const axis = options?.axis ?? "proportional";
+          const widthScale = item.width ? nextWidth / item.width : 1;
+          const heightScale = item.height ? nextRawHeight / item.height : 1;
+
+          let nextFontSize = item.fontSize;
+
+          if (source === "transform") {
+            const scale =
+              axis === "x"
+                ? 1
+                : axis === "y"
+                  ? 1
+                  : axis === "xy"
+                    ? Math.max(widthScale, heightScale)
+                    : widthScale;
+
+            nextFontSize = Math.max(
+              MIN_TEXT_FONT_SIZE,
+              Math.round(item.fontSize * scale),
+            );
+          }
+
+          const nextHeight = Math.max(
+            nextRawHeight,
+            getMinTextHeight(item.text, nextFontSize),
+          );
 
           return {
             ...item,

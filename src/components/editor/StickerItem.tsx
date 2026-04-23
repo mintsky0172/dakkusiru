@@ -5,7 +5,7 @@ import {
   View,
 } from "react-native";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { CanvasSticker } from "../../types/editor";
+import { CanvasSticker, ObjectResizeOptions } from "../../types/editor";
 import ObjectTransformHandles from "./ObjectTransformHandles";
 
 interface StickerItemProps {
@@ -13,7 +13,11 @@ interface StickerItemProps {
   selected?: boolean;
   onSelect?: () => void;
   onDragStart?: () => void;
-  onResizeEnd?: (width: number, height: number) => void;
+  onResizeEnd?: (
+    width: number,
+    height: number,
+    options?: ObjectResizeOptions,
+  ) => void;
   onRotateEnd?: (rotation: number) => void;
   onDragEnd?: (x: number, y: number) => void;
   onDelete?: () => void;
@@ -160,7 +164,9 @@ const StickerItem = ({
             measureParentInWindow={(callback) => {
               contentRef.current?.measureInWindow(callback);
             }}
-            onResizeEnd={(width, height) => onResizeEnd?.(width, height)}
+            onResizeEnd={(width, height, options) =>
+              onResizeEnd?.(width, height, options)
+            }
             onRotateEnd={(rotation) => onRotateEnd?.(rotation)}
             onDelete={onDelete}
           />

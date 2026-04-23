@@ -1,10 +1,15 @@
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, View } from "react-native";
 import React, { forwardRef, useState } from "react";
 import { useEditorStore } from "../../store/editorStore";
 import StickerItem from "./StickerItem";
 import { colors } from "../../constants/colors";
 import ViewShot from "react-native-view-shot";
 import TextItem from "./TextItem";
+import { ObjectResizeOptions } from "../../types/editor";
+
+const TEXT_SAFE_PADDING = 16;
+const MIN_TEXT_WIDTH = 120;
+const MIN_TEXT_HEIGHT = 44;
 
 const EditorCanvas = forwardRef<ViewShot>((_, ref) => {
   const [canvasSize, setCanvasSize] = useState({
@@ -30,15 +35,54 @@ const EditorCanvas = forwardRef<ViewShot>((_, ref) => {
 
   const removeObject = useEditorStore((state) => state.removeObject);
 
-  const clampTextWidth = (x: number, width: number) => {
-    if (!canvasSize.width) return innerWidth;
+  const clampTextPosition = (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ) => {
+    if (!canvasSize.width || !canvasSize.height) {
+      return { x, y };
+    }
 
-    const SAFE_PADDING = 16;
-    const MIN_WIDTH = 80;
+    return {
+      x: Math.min(
+        Math.max(TEXT_SAFE_PADDING, x),
+        Math.max(TEXT_SAFE_PADDING, canvasSize.width - width - TEXT_SAFE_PADDING),
+      ),
+      y: Math.min(
+        Math.max(TEXT_SAFE_PADDING, y),
+        Math.max(
+          TEXT_SAFE_PADDING,
+          canvasSize.height - height - TEXT_SAFE_PADDING,
+        ),
+      ),
+    };
+  };
 
-    const maxWidth = Math.max(MIN_WIDTH, canvasSize.width - x - SAFE_PADDING);
+  const clampTextSize = (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ) => {
+    if (!canvasSize.width || !canvasSize.height) {
+      return { width, height };
+    }
 
-    return Math.max(MIN_WIDTH, Math.min(width, maxWidth));
+    const maxWidth = Math.max(
+      MIN_TEXT_WIDTH,
+      canvasSize.width - x - TEXT_SAFE_PADDING,
+    );
+    const maxHeight = Math.max(
+      MIN_TEXT_HEIGHT,
+      canvasSize.height - y - TEXT_SAFE_PADDING,
+    );
+
+    return {
+      width: Math.max(MIN_TEXT_WIDTH, Math.min(width, maxWidth)),
+      height: Math.max(MIN_TEXT_HEIGHT, Math.min(height, maxHeight)),
+    };
   };
 
   return (
@@ -77,8 +121,8 @@ const EditorCanvas = forwardRef<ViewShot>((_, ref) => {
                 onSelect={() => selectObject(item.id)}
                 onDragStart={() => bringObjectToFront(item.id)}
                 onDragEnd={(x, y) => updateObjectPosition(item.id, x, y)}
-                onResizeEnd={(width, height) =>
-                  updateObjectSize(item.id, width, height)
+                onResizeEnd={(width, height, options) =>
+                  updateObjectSize(item.id, width, height, options)
                 }
                 onRotateEnd={(rotation) =>
                   updateObjectRotation(item.id, rotation)
@@ -95,10 +139,23 @@ const EditorCanvas = forwardRef<ViewShot>((_, ref) => {
               selected={selectedObjectId === item.id}
               onSelect={() => selectObject(item.id)}
               onDragStart={() => bringObjectToFront(item.id)}
-              onDragEnd={(x, y) => updateObjectPosition(item.id, x, y)}
-              onResizeEnd={(width, height) => {
-                const clampedWidth = clampTextWidth(item.x, width);
-                updateObjectSize(item.id, clampedWidth, height);
+              onDragEnd={(x, y) => {
+                const nextPosition = clampTextPosition(
+                  x,
+                  y,
+                  item.width,
+                  item.height,
+                );
+                updateObjectPosition(item.id, nextPosition.x, nextPosition.y);
+              }}
+              onResizeEnd={(width, height, options?: ObjectResizeOptions) => {
+                const nextSize = clampTextSize(item.x, item.y, width, height);
+                updateObjectSize(
+                  item.id,
+                  nextSize.width,
+                  nextSize.height,
+                  options,
+                );
               }}
               onRotateEnd={(rotation) =>
                 updateObjectRotation(item.id, rotation)

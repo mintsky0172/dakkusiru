@@ -9,15 +9,21 @@ import {
 import React, { useMemo, useRef } from "react";
 import { colors } from "../../constants/colors";
 import { radius } from "../../constants/spacing";
+import { ObjectResizeOptions, ResizeHandleAxis } from "../../types/editor";
 
 interface ObjectTransformHandlesProps {
   width: number;
   height: number;
   rotation: number;
+  resizeMode?: "proportional" | "free";
   measureParentInWindow?: (
     callback: (x: number, y: number, width: number, height: number) => void,
   ) => void;
-  onResizeEnd: (width: number, height: number) => void;
+  onResizeEnd: (
+    width: number,
+    height: number,
+    options?: ObjectResizeOptions,
+  ) => void;
   onRotateEnd: (rotation: number) => void;
   onDelete?: () => void;
 }
@@ -28,6 +34,7 @@ const ObjectTransformHandles = ({
   width,
   height,
   rotation,
+  resizeMode = "proportional",
   measureParentInWindow,
   onResizeEnd,
   onRotateEnd,
@@ -38,6 +45,7 @@ const ObjectTransformHandles = ({
   const centerRef = useRef<{ x: number; y: number } | null>(null);
   const startAngleRef = useRef(0);
   const startRadiusRef = useRef(0);
+  const startPointerRef = useRef<{ pageX: number; pageY: number } | null>(null);
 
   const updateCenter = (afterMeasure?: () => void) => {
     if (!measureParentInWindow) {
@@ -70,11 +78,8 @@ const ObjectTransformHandles = ({
     return Math.hypot(dx, dy);
   };
 
-  const getNextSize = (event: GestureResponderEvent) => {
-    const nextRadius = getDistanceFromCenter(
-      event.nativeEvent.pageX,
-      event.nativeEvent.pageY,
-    );
+  const getNextProportionalSize = (pageX: number, pageY: number) => {
+    const nextRadius = getDistanceFromCenter(pageX, pageY);
     const scale = startRadiusRef.current
       ? nextRadius / startRadiusRef.current
       : 1;
@@ -82,6 +87,43 @@ const ObjectTransformHandles = ({
     const nextWidth = Math.max(MIN_SIZE, startSizeRef.current.width * scale);
     const ratio = startSizeRef.current.height / startSizeRef.current.width;
     const nextHeight = Math.max(MIN_SIZE, nextWidth * ratio);
+
+    return { nextWidth, nextHeight };
+  };
+
+  const getLocalDragDelta = (pageX: number, pageY: number) => {
+    if (!startPointerRef.current) {
+      return { x: 0, y: 0 };
+    }
+
+    const deltaX = pageX - startPointerRef.current.pageX;
+    const deltaY = pageY - startPointerRef.current.pageY;
+    const angleInRadians = (rotation * Math.PI) / 180;
+    const cos = Math.cos(angleInRadians);
+    const sin = Math.sin(angleInRadians);
+
+    return {
+      x: deltaX * cos + deltaY * sin,
+      y: -deltaX * sin + deltaY * cos,
+    };
+  };
+
+  const getNextFreeSize = (
+    event: GestureResponderEvent,
+    axis: ResizeHandleAxis,
+  ) => {
+    const localDelta = getLocalDragDelta(
+      event.nativeEvent.pageX,
+      event.nativeEvent.pageY,
+    );
+    const nextWidth =
+      axis === "y"
+        ? startSizeRef.current.width
+        : Math.max(MIN_SIZE, startSizeRef.current.width + localDelta.x);
+    const nextHeight =
+      axis === "x"
+        ? startSizeRef.current.height
+        : Math.max(MIN_SIZE, startSizeRef.current.height + localDelta.y);
 
     return { nextWidth, nextHeight };
   };
@@ -106,19 +148,81 @@ const ObjectTransformHandles = ({
 
         onPanResponderMove: (event) => {
           if (!startRadiusRef.current) return;
-          const { nextWidth, nextHeight } = getNextSize(event);
+          const { nextWidth, nextHeight } = getNextProportionalSize(
+            event.nativeEvent.pageX,
+            event.nativeEvent.pageY,
+          );
 
-          onResizeEnd(nextWidth, nextHeight);
+          onResizeEnd(nextWidth, nextHeight, {
+            source: "transform",
+            axis: "proportional",
+          });
         },
 
         onPanResponderRelease: (event) => {
           if (!startRadiusRef.current) return;
-          const { nextWidth, nextHeight } = getNextSize(event);
+          const { nextWidth, nextHeight } = getNextProportionalSize(
+            event.nativeEvent.pageX,
+            event.nativeEvent.pageY,
+          );
 
-          onResizeEnd(nextWidth, nextHeight);
+          onResizeEnd(nextWidth, nextHeight, {
+            source: "transform",
+            axis: "proportional",
+          });
         },
       }),
     [height, measureParentInWindow, onResizeEnd, width],
+  );
+
+  const createFreeResizeResponder = (axis: ResizeHandleAxis) =>
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderTerminationRequest: () => false,
+
+      onPanResponderGrant: (event) => {
+        startSizeRef.current = { width, height };
+        startPointerRef.current = {
+          pageX: event.nativeEvent.pageX,
+          pageY: event.nativeEvent.pageY,
+        };
+      },
+
+      onPanResponderMove: (event) => {
+        const { nextWidth, nextHeight } = getNextFreeSize(event, axis);
+
+        onResizeEnd(nextWidth, nextHeight, { source: "transform", axis });
+      },
+
+      onPanResponderRelease: (event) => {
+        const { nextWidth, nextHeight } = getNextFreeSize(event, axis);
+
+        onResizeEnd(nextWidth, nextHeight, { source: "transform", axis });
+        startPointerRef.current = null;
+      },
+
+      onPanResponderTerminate: (event) => {
+        const { nextWidth, nextHeight } = getNextFreeSize(event, axis);
+
+        onResizeEnd(nextWidth, nextHeight, { source: "transform", axis });
+        startPointerRef.current = null;
+      },
+    });
+
+  const resizeXResponder = useMemo(
+    () => createFreeResizeResponder("x"),
+    [height, onResizeEnd, rotation, width],
+  );
+
+  const resizeYResponder = useMemo(
+    () => createFreeResizeResponder("y"),
+    [height, onResizeEnd, rotation, width],
+  );
+
+  const resizeXYResponder = useMemo(
+    () => createFreeResizeResponder("xy"),
+    [height, onResizeEnd, rotation, width],
   );
 
   const rotateResponder = useMemo(
@@ -189,15 +293,49 @@ const ObjectTransformHandles = ({
         />
       </View>
 
-      <View
-        {...resizeResponder.panHandlers}
-        style={[styles.handle, styles.resizeHandle]}
-      >
-        <Image
-          source={require("../../../assets/icons/resize.png")}
-          style={styles.icon}
-        />
-      </View>
+      {resizeMode === "free" ? (
+        <>
+          <View
+            {...resizeXResponder.panHandlers}
+            style={[styles.handle, styles.resizeXHandle]}
+          >
+            <Image
+              source={require("../../../assets/icons/horizontal.png")}
+              style={styles.icon}
+            />
+          </View>
+
+          <View
+            {...resizeYResponder.panHandlers}
+            style={[styles.handle, styles.resizeYHandle]}
+          >
+            <Image
+              source={require("../../../assets/icons/vertical.png")}
+              style={styles.icon}
+            />
+          </View>
+
+          <View
+            {...resizeXYResponder.panHandlers}
+            style={[styles.handle, styles.resizeHandle]}
+          >
+            <Image
+              source={require("../../../assets/icons/resize.png")}
+              style={styles.icon}
+            />
+          </View>
+        </>
+      ) : (
+        <View
+          {...resizeResponder.panHandlers}
+          style={[styles.handle, styles.resizeHandle]}
+        >
+          <Image
+            source={require("../../../assets/icons/resize.png")}
+            style={styles.icon}
+          />
+        </View>
+      )}
     </>
   );
 };
@@ -231,9 +369,35 @@ const styles = StyleSheet.create({
     right: -11,
     bottom: -11,
   },
+  resizeXHandle: {
+    width: 18,
+    height: 18,
+    right: -9,
+    top: "50%",
+    marginTop: -11,
+  },
+  resizeYHandle: {
+    width: 18,
+    height: 18,
+    left: "50%",
+    bottom: -9,
+    marginLeft: -11,
+  },
   icon: {
     width: "100%",
     height: "100%",
+  },
+  axisIndicatorVertical: {
+    width: 3,
+    height: 10,
+    borderRadius: radius.round,
+    backgroundColor: colors.accent.main,
+  },
+  axisIndicatorHorizontal: {
+    width: 10,
+    height: 3,
+    borderRadius: radius.round,
+    backgroundColor: colors.accent.main,
   },
   deleteHandle: {
     position: "absolute",
@@ -249,6 +413,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   pressedHandle: {
-    opacity: 0.8
-  }
+    opacity: 0.8,
+  },
 });
