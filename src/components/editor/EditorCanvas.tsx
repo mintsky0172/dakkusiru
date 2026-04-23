@@ -9,6 +9,7 @@ import { ObjectResizeOptions } from "../../types/editor";
 
 interface EditorCanvasProps {
   onEditText?: () => void;
+  hideSelectionUI?: boolean;
 }
 
 const TEXT_SAFE_PADDING = 16;
@@ -16,7 +17,7 @@ const MIN_TEXT_WIDTH = 120;
 const MIN_TEXT_HEIGHT = 44;
 
 const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
-  ({onEditText}, ref) => {
+  ({onEditText, hideSelectionUI = false}, ref) => {
   const [canvasSize, setCanvasSize] = useState({
     width: 0,
     height: 0,
@@ -117,12 +118,14 @@ const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
         ) : null}
 
         {orderedObjects.map((item) => {
+          const isSelected = !hideSelectionUI && selectedObjectId === item.id;
+
           if (item.type === "sticker") {
             return (
               <StickerItem
                 key={item.id}
                 item={item}
-                selected={selectedObjectId === item.id}
+                selected={isSelected}
                 onSelect={() => selectObject(item.id)}
                 onDragStart={() => bringObjectForward(item.id)}
                 onDragEnd={(x, y) => updateObjectPosition(item.id, x, y)}
@@ -141,7 +144,7 @@ const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
             <TextItem
               key={item.id}
               item={item}
-              selected={selectedObjectId === item.id}
+              selected={isSelected}
               onSelect={() => selectObject(item.id)}
               onDragStart={() => bringObjectForward(item.id)}
               onDragEnd={(x, y) => {

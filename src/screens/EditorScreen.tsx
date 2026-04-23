@@ -36,6 +36,7 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
     dakkuId ?? createDakkuId(),
   );
   const [title, setTitle] = useState("새 다꾸");
+  const [hideSelectionUI, setHideSelectionUI] = useState(false);
 
   const canvasRef = useRef<ViewShot>(null);
 
@@ -101,7 +102,7 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
 
   const handleSaveImageToGallery = async () => {
     try {
-      const uri = await canvasRef.current?.capture?.();
+      const uri = await captureCanvasWithoutSelection();
 
       if (!uri) {
         throw new Error("캔버스 이미지를 생성하지 못했어요.");
@@ -124,7 +125,7 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
       let thumbnailUri: string | undefined;
 
       try {
-        thumbnailUri = await canvasRef.current?.capture?.();
+        thumbnailUri = await captureCanvasWithoutSelection();
       } catch {
         thumbnailUri = undefined;
       }
@@ -167,6 +168,31 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
     sendObjectBackward(selectedObjectId);
   };
 
+  const waitForNextFrame = () =>
+    new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
+
+  const captureCanvasWithoutSelection = async () => {
+    setHideSelectionUI(true);
+
+    await waitForNextFrame();
+    await waitForNextFrame();
+
+    try {
+      const uri = await canvasRef.current?.capture?.();
+
+      if(!uri) {
+        throw new Error('캔버스 이미지를 생성하지 못했어요.');
+      }
+
+      return uri;
+    } finally {
+      setHideSelectionUI(false);
+    }
+
+  }
+
   return (
     <Screen padded={false}>
       <View style={styles.container}>
@@ -179,7 +205,9 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
         />
 
         <View style={styles.canvasArea}>
-          <EditorCanvas ref={canvasRef} onEditText={handleOpenTextEditor} />
+          <EditorCanvas ref={canvasRef} onEditText={handleOpenTextEditor} 
+          hideSelectionUI={hideSelectionUI}
+          />
 
           <FloatingToolButtons
             onPressBackground={() => setIsBackgroundSheetVisible(true)}
