@@ -4,7 +4,7 @@ export interface CanvasBackground {
     backgroundColor?: string;
 }
 
-export type CanvasObjectType = 'sticker' | 'text';
+export type CanvasObjectType = 'sticker' | 'text' | 'photo';
 
 interface BaseCanvasObject {
     id: string;
@@ -30,7 +30,12 @@ export interface CanvasText extends BaseCanvasObject {
     color: string;
 }
 
-export type CanvasObject = CanvasSticker | CanvasText;
+export interface CanvasPhoto extends BaseCanvasObject {
+    type: 'photo';
+    uri: string;
+}
+
+export type CanvasObject = CanvasSticker | CanvasText | CanvasPhoto;
 
 export type ResizeHandleAxis = 'proportional' | 'x' | 'y' | 'xy';
 

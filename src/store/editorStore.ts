@@ -24,9 +24,14 @@ interface EditorStore {
   setBackground: (payload: CanvasBackground) => void;
 
   addSticker: (payload: { stickerId: string; imageSource: any }) => void;
+  addPhoto: (payload: { uri: string; width?: number; height?: number }) => void;
 
   addText: () => void;
-  updateTextContent: (id: string, text: string, measuredHeight?: number) => void;
+  updateTextContent: (
+    id: string,
+    text: string,
+    measuredHeight?: number,
+  ) => void;
 
   selectObject: (id: string | null) => void;
   clearObjects: () => void;
@@ -179,6 +184,28 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       return {
         objects: [...state.objects, newText],
         selectedObjectId: newText.id,
+        historyPast: [...state.historyPast, getSnapshot(state)],
+        historyFuture: [],
+      };
+    }),
+
+  addPhoto: ({ uri, width = 180, height = 180 }) =>
+    set((state) => {
+      const newPhoto = {
+        id: `${Date.now()}-${Math.random()}`,
+        type: "photo" as const,
+        uri,
+        x: 20,
+        y: 20,
+        width,
+        height,
+        rotation: 0,
+        zIndex: state.objects.length + 1,
+      };
+
+      return {
+        objects: [...state.objects, newPhoto],
+        selectedObjectId: newPhoto.id,
         historyPast: [...state.historyPast, getSnapshot(state)],
         historyFuture: [],
       };

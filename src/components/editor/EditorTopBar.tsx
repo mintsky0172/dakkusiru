@@ -12,6 +12,8 @@ interface EditorTopBarProps {
   onAddText?: () => void;
   onBringForward?: () => void;
   onSendBackward?: () => void;
+  onGoHome?: () => void;
+  onAddPhoto?: () => void;
 }
 
 const EditorTopBar = ({
@@ -19,7 +21,9 @@ const EditorTopBar = ({
   onSaveDakku,
   onAddText,
   onBringForward,
-  onSendBackward
+  onSendBackward,
+  onGoHome,
+  onAddPhoto,
 }: EditorTopBarProps) => {
   const undo = useEditorStore((state) => state.undo);
   const redo = useEditorStore((state) => state.redo);
@@ -31,7 +35,7 @@ const EditorTopBar = ({
       <View style={styles.leftGroup}>
         <IconButton
           imageSource={require("../../../assets/icons/home_active.png")}
-          onPress={() => router.back()}
+          onPress={onGoHome}
           variant="ghost"
           size={40}
           iconSize={18}
@@ -58,6 +62,13 @@ const EditorTopBar = ({
         <IconButton
           imageSource={require("../../../assets/icons/text.png")}
           onPress={onAddText}
+          variant="ghost"
+          size={40}
+          iconSize={18}
+        />
+        <IconButton
+          imageSource={require("../../../assets/icons/image.png")}
+          onPress={onAddPhoto}
           variant="ghost"
           size={40}
           iconSize={18}

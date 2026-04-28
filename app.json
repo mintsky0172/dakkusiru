@@ -13,7 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "다꾸시루에서 앨범 사진을 배경이나 꾸미기 요소로 불러오기 위해 사진 접근 권한이 필요해요.",
+        "NSPhotoLibraryAddUsageDescription": "다꾸시루에서 완성한 이미지를 사진 앱에 저장하기 위해 사진 저장 권한이 필요해요."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -27,7 +31,14 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router"
-    ]
+      "expo-router",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "다꾸시루에서 앨범 사진을 배경이나 꾸미기 요소로 불러오기 위해 사진 접근 권한이 필요해요.",
+          "savePhotosPermission": "다꾸시루에서 완성한 이미지를 사진 앱에 저장하기 위해 사진 저장 권한이 필요해요."
+        }
+      ]
+    ]    
   }
 }

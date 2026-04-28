@@ -23,8 +23,18 @@ export default function RootLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="new" />
-      <Stack.Screen name="editor/[id]" />
+      <Stack.Screen
+        name="new"
+        options={{
+          gestureEnabled: false,
+        }}
+      />
+      <Stack.Screen
+        name="editor/[id]"
+        options={{
+          gestureEnabled: false,
+        }}
+      />
     </Stack>
   );
 }
