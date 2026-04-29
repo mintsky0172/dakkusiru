@@ -73,7 +73,7 @@ export const mockPacks: ShopPack[] = [
     category: "food",
     kind: 'sticker',
     status: "priced",
-    priceLabel: "1,000",
+    coinPrice: "1,000",
     ownStatus: "not_owned",
     thumbnailSource: require("../../assets/sticker_pack/thumbnails/baedal.png"),
      description: '보기만 해도 배고파지는 다양한 배달음식들로 구성되어 있어요.',
@@ -107,7 +107,7 @@ export const mockPacks: ShopPack[] = [
     kind: 'sticker',
     status: "priced",
     ownStatus: "not_owned",
-    priceLabel: "1,000",
+    coinPrice: "1,000",
     thumbnailSource: require("../../assets/sticker_pack/thumbnails/strawberry.png"),
      description: '사랑스러운 비주얼의 딸기 디저트로 구성된 팩이에요.',
     previewStickers: [

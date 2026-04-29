@@ -10,11 +10,14 @@ import IconButton from "../../components/common/IconButton";
 import StickerPreviewCard from "../../components/shop/StickerPreviewCard";
 import { colors } from "../../constants/colors";
 import { usePurchaseStore } from "../../store/purchaseStore";
+import { useCoinStore } from "../../store/coinStore";
 
 const PackDetailScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const userCoinBalance = 10000; // TODO: 유저 코인 잔액 스토어에서 불러오기
+  const balance = useCoinStore((state) => state.balance);
+  const loadCoins = useCoinStore((state) => state.loadCoins);
+  const spendCoins = useCoinStore((state) => state.spendCoins);
 
   const ownedPackIds = usePurchaseStore((state) => state.ownedPackIds);
   const loadOwnedPackIds = usePurchaseStore((state) => state.loadOwnedPackIds);
@@ -22,7 +25,8 @@ const PackDetailScreen = () => {
 
   useEffect(() => {
     void loadOwnedPackIds();
-  }, [loadOwnedPackIds]);
+    void loadCoins();
+  }, [loadOwnedPackIds, loadCoins]);
 
   const rawPack = useMemo(() => {
     return mockPacks.find((item) => item.id === id);
@@ -46,34 +50,37 @@ const PackDetailScreen = () => {
       return;
     }
 
-    // 임시 구매 성공 처리
+    const coinPrice = Number(pack.coinPrice) ?? 0;
+
+    if(balance < coinPrice) {
+      Alert.alert(
+        '코인이 부족해요',
+        '코인을 충전한 뒤 다시 구매해 주세요.',
+        [
+          { text: '취소', style: 'cancel' },
+          {
+            text: '코인 충전하기',
+            onPress: () => router.push('/coin'),
+          }
+        ]
+      )
+      return;
+    }
+
+    const success = await spendCoins({
+       amount: coinPrice,
+       description: `${pack.title} 구매`,
+    });
+
+    if(!success) {
+      Alert.alert('구매 실패', '코인이 부족해요.');
+      return;
+    }
+
     await markPackAsOwned(pack.id);
+
+    Alert.alert('구매 완료', `${pack.title}을 사용할 수 있어요!`);
   };
-
-  //   const requiredCoins = 1000; // TODO: pack price 숫자화
-  //   if (userCoinBalance < requiredCoins) {
-  //     Alert.alert(
-  //       "코인 부족",
-  //       "보유 코인이 부족해요. 충전 화면으로 이동할까요?",
-  //       [
-  //         {
-  //           text: "Cancel",
-  //           onPress: () => {},
-  //           style: "cancel",
-  //         },
-  //         {
-  //           text: "OK",
-  //           onPress: () => router.push("/coin"),
-  //           style: "destructive",
-  //         },
-  //       ],
-  //     );
-  //     return;
-  //   }
-
-  //   Alert.alert("팩 구매하기:", pack.id);
-  //   // TODO : 구매 로직 연결
-  // };
 
   if (!pack) {
     return (
@@ -93,7 +100,7 @@ const PackDetailScreen = () => {
       ? "사용하기"
       : pack.status === "free"
         ? "무료로 받기"
-        : `${pack.priceLabel}에 구매하기`;
+        : `${pack.coinPrice?.toLocaleString() ?? 0}코인으로 구매하기`;
 
   return (
     <Screen>
@@ -165,7 +172,7 @@ const PackDetailScreen = () => {
                     style={{ width: 20, height: 20 }}
                   />
                   <AppText variant="small" style={styles.priceBadgeText}>
-                    {pack.priceLabel}
+                    {pack.coinPrice?.toLocaleString() ?? 0}코인
                   </AppText>
                 </View>
               ) : null}

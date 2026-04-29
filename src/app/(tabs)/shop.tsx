@@ -11,6 +11,7 @@ import { spacing } from "../../constants/spacing";
 import { router, useFocusEffect } from "expo-router";
 import { usePurchaseStore } from "../../store/purchaseStore";
 import { resolvePacks } from "../../utils/shop";
+import { useCoinStore } from "../../store/coinStore";
 
 type CategoryFilter = "all" | "sticker" | "background";
 
@@ -21,6 +22,8 @@ const categories: { label: string; value: CategoryFilter }[] = [
 ];
 
 const ShopScreen = () => {
+  const balance = useCoinStore((state) => state.balance);
+  const loadCoins = useCoinStore((state) => state.loadCoins);
   const [selectedCategory, setSelectedCategory] =
     useState<CategoryFilter>("all");
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
@@ -31,7 +34,8 @@ const ShopScreen = () => {
   useFocusEffect(
     useCallback(() => {
       void loadOwnedPackIds();
-    }, [loadOwnedPackIds]),
+      void loadCoins();
+    }, [loadOwnedPackIds, loadCoins]),
   );
 
   const resolvedPacks = useMemo(() => {
@@ -70,7 +74,7 @@ const ShopScreen = () => {
           title={item.title}
           thumbnailSource={item.thumbnailSource}
           status={item.status}
-          priceLabel={item.priceLabel}
+          priceLabel={item.coinPrice}
           ownStatus={item.ownStatus}
           isNew={item.isNew}
           selected={selectedPackId === item.id}
@@ -95,7 +99,7 @@ const ShopScreen = () => {
             </View>
 
             <CoinBalanceCard
-              balance={mockCoinBalance}
+              balance={balance}
               onPressCharge={handlePressCharge}
             />
 

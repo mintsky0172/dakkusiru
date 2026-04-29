@@ -21,7 +21,7 @@ interface BasePack {
   kind: PackKind;
   status: PackStatus;
   ownStatus: PackOwnStatus;
-  priceLabel?: string;
+  coinPrice?: string;
   thumbnailSource?: any;
   isNew?: boolean;
   description?: string;

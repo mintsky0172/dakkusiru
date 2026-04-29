@@ -25,11 +25,11 @@ export function resolvePacks(
 export function getPackBadgeLabel(pack: ShopPack) {
   if (pack.status === "free") return "무료";
   if (pack.ownStatus === "owned") return "보유중";
-  return pack.priceLabel ?? "";
+  return `${pack.coinPrice?.toLocaleString() ?? 0}코인`
 }
 
 export function getPackActionLabel(pack: ShopPack) {
   if (pack.status === "free") return "사용하기";
   if (pack.ownStatus === "owned") return "사용하기";
-  return `${pack.priceLabel ?? ""}에 구매하기`;
+  return `${pack.coinPrice?.toLocaleString() ?? 0}코인으로 구매하기`;
 }
