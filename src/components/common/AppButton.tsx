@@ -4,6 +4,7 @@ import {
   StyleSheet,
   View,
   StyleProp,
+  TextStyle,
   ViewStyle,
 } from "react-native";
 import React from "react";
@@ -20,6 +21,7 @@ interface AppButtonProps {
   disabled?: boolean;
   loading?: boolean;
   style?: StyleProp<ViewStyle>;
+  labelStyle?: StyleProp<TextStyle>;
   leftIcon?: React.ReactNode;
 }
 
@@ -30,6 +32,7 @@ const AppButton = ({
   disabled = false,
   loading = false,
   style,
+  labelStyle,
   leftIcon,
 }: AppButtonProps) => {
   const isDisabled = disabled || loading;
@@ -61,6 +64,7 @@ const AppButton = ({
               styles.label,
               labelStyles[variant],
               isDisabled && styles.disabledLabel,
+              labelStyle,
             ]}
           >
             {label}

@@ -1,6 +1,6 @@
-import { PanResponder, StyleSheet, Image, View } from "react-native";
+import { Image, PanResponder, StyleSheet, View } from "react-native";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { CanvasPhoto } from "../../types/editor";
+import { CanvasPhoto, ObjectResizeOptions } from "../../types/editor";
 import ObjectTransformHandles from "./ObjectTransformHandles";
 
 interface PhotoItemProps {
@@ -9,10 +9,17 @@ interface PhotoItemProps {
   onSelect?: () => void;
   onDragStart?: () => void;
   onDragEnd?: (x: number, y: number) => void;
-  onResizeEnd?: (width: number, height: number) => void;
+  onResizeEnd?: (
+    width: number,
+    height: number,
+    options?: ObjectResizeOptions,
+  ) => void;
   onRotateEnd?: (rotation: number) => void;
   onDelete?: () => void;
+  onEdit?: () => void;
 }
+
+const DRAG_ACTIVATION_DISTANCE = 8;
 
 const PhotoItem = ({
   item,
@@ -23,8 +30,8 @@ const PhotoItem = ({
   onResizeEnd,
   onRotateEnd,
   onDelete,
+  onEdit,
 }: PhotoItemProps) => {
-  const DRAG_ACTIVATION_DISTANCE = 8;
   const contentRef = useRef<View>(null);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const dragActivationOffsetRef = useRef({ x: 0, y: 0 });
@@ -35,6 +42,18 @@ const PhotoItem = ({
     x: item.x,
     y: item.y,
   });
+
+  const originalWidth = item.originalWidth ?? item.width;
+  const originalHeight = item.originalHeight ?? item.height;
+  const photoZoom = Math.max(1, item.photoZoom ?? 1);
+  const photoScale =
+    item.photoScale ??
+    Math.max(item.width / originalWidth, item.height / originalHeight) *
+      photoZoom;
+  const renderedImageWidth = originalWidth * photoScale;
+  const renderedImageHeight = originalHeight * photoScale;
+  const cropOffsetX = item.cropOffsetX ?? 0;
+  const cropOffsetY = item.cropOffsetY ?? 0;
 
   const getTransform = (translateX = 0, translateY = 0) => [
     { translateX },
@@ -151,16 +170,9 @@ const PhotoItem = ({
           resetDragState();
         },
       }),
-    [
-      DRAG_ACTIVATION_DISTANCE,
-      item.x,
-      item.y,
-      item.rotation,
-      onSelect,
-      onDragStart,
-      onDragEnd,
-    ],
+    [item.x, item.y, item.rotation, onDragEnd, onDragStart, onSelect],
   );
+
   return (
     <View
       ref={contentRef}
@@ -177,7 +189,21 @@ const PhotoItem = ({
       ]}
     >
       <View {...panResponder.panHandlers} style={styles.pressable}>
-        <Image source={{ uri: item.uri }} style={styles.image} />
+        <View style={styles.frame}>
+          <View
+            style={[
+              styles.imageLayer,
+              {
+                width: renderedImageWidth,
+                height: renderedImageHeight,
+                left: (item.width - renderedImageWidth) / 2 + cropOffsetX,
+                top: (item.height - renderedImageHeight) / 2 + cropOffsetY,
+              },
+            ]}
+          >
+            <Image source={{ uri: item.uri }} style={styles.image} />
+          </View>
+        </View>
       </View>
 
       {selected && !isDragging ? (
@@ -186,12 +212,17 @@ const PhotoItem = ({
             width={item.width}
             height={item.height}
             rotation={item.rotation}
+            resizeMode="proportional"
             measureParentInWindow={(callback) => {
               contentRef.current?.measureInWindow(callback);
             }}
-            onResizeEnd={(width, height) => onResizeEnd?.(width, height)}
+            onResizeEnd={(width, height, options) =>
+              onResizeEnd?.(width, height, options)
+            }
             onRotateEnd={(rotation) => onRotateEnd?.(rotation)}
             onDelete={onDelete}
+            onEdit={onEdit}
+            editIconSource={require("../../../assets/icons/crop.png")}
           />
         </View>
       ) : null}
@@ -213,6 +244,15 @@ const styles = StyleSheet.create({
   pressable: {
     width: "100%",
     height: "100%",
+  },
+  frame: {
+    width: "100%",
+    height: "100%",
+    overflow: "hidden",
+    backgroundColor: "transparent",
+  },
+  imageLayer: {
+    position: "absolute",
   },
   image: {
     width: "100%",

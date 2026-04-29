@@ -1,6 +1,7 @@
 import {
   GestureResponderEvent,
   Image,
+  ImageSourcePropType,
   PanResponder,
   Pressable,
   StyleSheet,
@@ -27,6 +28,7 @@ interface ObjectTransformHandlesProps {
   onRotateEnd: (rotation: number) => void;
   onDelete?: () => void;
   onEdit?: () => void;
+  editIconSource?: ImageSourcePropType;
 }
 
 const MIN_SIZE = 40;
@@ -41,6 +43,7 @@ const ObjectTransformHandles = ({
   onRotateEnd,
   onDelete,
   onEdit,
+  editIconSource,
 }: ObjectTransformHandlesProps) => {
   const startSizeRef = useRef({ width, height });
   const startRotationRef = useRef(rotation);
@@ -295,6 +298,24 @@ const ObjectTransformHandles = ({
         />
       </View>
 
+      {onEdit ? (
+        <Pressable
+          onPress={onEdit}
+          style={({ pressed }) => [
+            styles.editHandle,
+            pressed && styles.pressedHandle,
+          ]}
+        >
+          <Image
+            source={
+              editIconSource ??
+              require("../../../assets/icons/pencil.png")
+            }
+            style={styles.icon}
+          />
+        </Pressable>
+      ) : null}
+
       {resizeMode === "free" ? (
         <>
           <View
@@ -326,19 +347,6 @@ const ObjectTransformHandles = ({
               style={styles.icon}
             />
           </View>
-
-          <Pressable
-            onPress={onEdit}
-            style={({ pressed }) => [
-              styles.editHandle,
-              pressed && styles.pressedHandle,
-            ]}
-          >
-            <Image
-              source={require("../../../assets/icons/pencil.png")}
-              style={styles.icon}
-            />
-          </Pressable>
         </>
       ) : (
         <View

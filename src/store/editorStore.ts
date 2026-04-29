@@ -24,7 +24,13 @@ interface EditorStore {
   setBackground: (payload: CanvasBackground) => void;
 
   addSticker: (payload: { stickerId: string; imageSource: any }) => void;
-  addPhoto: (payload: { uri: string; width?: number; height?: number }) => void;
+  addPhoto: (payload: {
+    uri: string;
+    width?: number;
+    height?: number;
+    originalWidth?: number;
+    originalHeight?: number;
+  }) => void;
 
   addText: () => void;
   updateTextContent: (
@@ -47,6 +53,14 @@ interface EditorStore {
     width: number,
     height: number,
     options?: ObjectResizeOptions,
+  ) => void;
+  updatePhotoCrop: (
+    id: string,
+    cropOffsetX: number,
+    cropOffsetY: number,
+    photoZoom?: number,
+    width?: number,
+    height?: number,
   ) => void;
   updateObjectRotation: (id: string, rotation: number) => void;
 
@@ -71,6 +85,7 @@ const MIN_TEXT_HEIGHT = 44;
 const MIN_TEXT_FONT_SIZE = 12;
 const TEXT_HEIGHT_PADDING = spacing.xs * 2;
 const TEXT_HEIGHT_BUFFER = spacing.xxs;
+const MIN_PHOTO_ZOOM = 1;
 
 const getTextLines = (text: string) => text.split(/\r?\n/);
 
@@ -87,6 +102,70 @@ const getMinTextHeight = (text: string, fontSize: number) =>
       TEXT_HEIGHT_PADDING +
       TEXT_HEIGHT_BUFFER,
   );
+
+const getPhotoRenderedSize = (
+  frameWidth: number,
+  frameHeight: number,
+  originalWidth: number,
+  originalHeight: number,
+  zoom = MIN_PHOTO_ZOOM,
+  photoScale?: number,
+) => {
+  const safeOriginalWidth = Math.max(1, originalWidth);
+  const safeOriginalHeight = Math.max(1, originalHeight);
+  const scale =
+    photoScale ??
+    getPhotoBaseCoverScale(
+      frameWidth,
+      frameHeight,
+      safeOriginalWidth,
+      safeOriginalHeight,
+    ) *
+      zoom;
+
+  return {
+    width: safeOriginalWidth * scale,
+    height: safeOriginalHeight * scale,
+  };
+};
+
+const getPhotoBaseCoverScale = (
+  frameWidth: number,
+  frameHeight: number,
+  originalWidth: number,
+  originalHeight: number,
+) =>
+  Math.max(
+    frameWidth / Math.max(1, originalWidth),
+    frameHeight / Math.max(1, originalHeight),
+  );
+
+const clampPhotoCropOffsets = (
+  frameWidth: number,
+  frameHeight: number,
+  originalWidth: number,
+  originalHeight: number,
+  zoom = MIN_PHOTO_ZOOM,
+  cropOffsetX = 0,
+  cropOffsetY = 0,
+  photoScale?: number,
+) => {
+  const renderedSize = getPhotoRenderedSize(
+    frameWidth,
+    frameHeight,
+    originalWidth,
+    originalHeight,
+    zoom,
+    photoScale,
+  );
+  const maxOffsetX = Math.max(0, (renderedSize.width - frameWidth) / 2);
+  const maxOffsetY = Math.max(0, (renderedSize.height - frameHeight) / 2);
+
+  return {
+    cropOffsetX: Math.min(maxOffsetX, Math.max(-maxOffsetX, cropOffsetX)),
+    cropOffsetY: Math.min(maxOffsetY, Math.max(-maxOffsetY, cropOffsetY)),
+  };
+};
 
 const cloneSnapshot = (snapshot: EditorSnapshot): EditorSnapshot => ({
   background: snapshot.background ? { ...snapshot.background } : null,
@@ -189,7 +268,13 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       };
     }),
 
-  addPhoto: ({ uri, width = 180, height = 180 }) =>
+  addPhoto: ({
+    uri,
+    width = 180,
+    height = 180,
+    originalWidth = width,
+    originalHeight = height,
+  }) =>
     set((state) => {
       const newPhoto = {
         id: `${Date.now()}-${Math.random()}`,
@@ -199,6 +284,14 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         y: 20,
         width,
         height,
+        originalWidth,
+        originalHeight,
+        photoZoom: MIN_PHOTO_ZOOM,
+        photoScale:
+          getPhotoBaseCoverScale(width, height, originalWidth, originalHeight) *
+          MIN_PHOTO_ZOOM,
+        cropOffsetX: 0,
+        cropOffsetY: 0,
         rotation: 0,
         zIndex: state.objects.length + 1,
       };
@@ -366,10 +459,118 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
           };
         }
 
+        if (item.type === "photo") {
+          const originalWidth = item.originalWidth ?? item.width;
+          const originalHeight = item.originalHeight ?? item.height;
+          const currentZoom = Math.max(
+            MIN_PHOTO_ZOOM,
+            item.photoZoom ?? MIN_PHOTO_ZOOM,
+          );
+          const currentPhotoScale =
+            item.photoScale ??
+            getPhotoBaseCoverScale(
+              item.width,
+              item.height,
+              originalWidth,
+              originalHeight,
+            ) *
+              currentZoom;
+          const nextWidth = width;
+          const nextHeight = height;
+          const widthScale = item.width ? nextWidth / item.width : 1;
+          const heightScale = item.height ? nextHeight / item.height : 1;
+          const objectScale = Math.max(widthScale, heightScale);
+          const nextBaseCoverScale = getPhotoBaseCoverScale(
+            nextWidth,
+            nextHeight,
+            originalWidth,
+            originalHeight,
+          );
+          const nextPhotoScale = Math.max(
+            currentPhotoScale * objectScale,
+            nextBaseCoverScale,
+          );
+          const nextZoom = Math.max(
+            MIN_PHOTO_ZOOM,
+            Number(
+              (nextPhotoScale / Math.max(0.001, nextBaseCoverScale)).toFixed(3),
+            ),
+          );
+          const nextCrop = clampPhotoCropOffsets(
+            nextWidth,
+            nextHeight,
+            originalWidth,
+            originalHeight,
+            nextZoom,
+            (item.cropOffsetX ?? 0) * widthScale,
+            (item.cropOffsetY ?? 0) * heightScale,
+            nextPhotoScale,
+          );
+
+          return {
+            ...item,
+            width: nextWidth,
+            height: nextHeight,
+            originalWidth,
+            originalHeight,
+            photoZoom: nextZoom,
+            photoScale: nextPhotoScale,
+            ...nextCrop,
+          };
+        }
+
         return {
           ...item,
           width,
           height,
+        };
+      }),
+      historyPast: [...state.historyPast, getSnapshot(state)],
+      historyFuture: [],
+    })),
+
+  updatePhotoCrop: (id, cropOffsetX, cropOffsetY, photoZoom, width, height) =>
+    set((state) => ({
+      objects: state.objects.map((item) => {
+        if (item.id !== id || item.type !== "photo") {
+          return item;
+        }
+
+        const originalWidth = item.originalWidth ?? item.width;
+        const originalHeight = item.originalHeight ?? item.height;
+        const nextWidth = width ?? item.width;
+        const nextHeight = height ?? item.height;
+        const nextZoom = Math.max(
+          MIN_PHOTO_ZOOM,
+          photoZoom ?? item.photoZoom ?? MIN_PHOTO_ZOOM,
+        );
+        const nextPhotoScale =
+          getPhotoBaseCoverScale(
+            nextWidth,
+            nextHeight,
+            originalWidth,
+            originalHeight,
+          ) * nextZoom;
+        const nextCrop = clampPhotoCropOffsets(
+          nextWidth,
+          nextHeight,
+          originalWidth,
+          originalHeight,
+          nextZoom,
+          cropOffsetX,
+          cropOffsetY,
+          nextPhotoScale,
+        );
+
+        return {
+          ...item,
+          width: nextWidth,
+          height: nextHeight,
+          originalWidth,
+          originalHeight,
+          photoZoom: nextZoom,
+          photoScale: nextPhotoScale,
+          ...nextCrop,
         };
       }),
       historyPast: [...state.historyPast, getSnapshot(state)],

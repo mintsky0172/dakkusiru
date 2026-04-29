@@ -10,6 +10,7 @@ import PhotoItem from "./PhotoItem";
 
 interface EditorCanvasProps {
   hideSelectionUI?: boolean;
+  onEditPhoto?: (photoId: string) => void;
 }
 
 const TEXT_SAFE_PADDING = 16;
@@ -17,7 +18,7 @@ const MIN_TEXT_WIDTH = 120;
 const MIN_TEXT_HEIGHT = 44;
 
 const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
-  ({ hideSelectionUI = false }, ref) => {
+  ({ hideSelectionUI = false, onEditPhoto }, ref) => {
     const [canvasSize, setCanvasSize] = useState({
       width: 0,
       height: 0,
@@ -46,7 +47,6 @@ const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
     const updateTextContent = useEditorStore(
       (state) => state.updateTextContent,
     );
-
     useEffect(() => {
       if (!editingTextId) return;
 
@@ -169,7 +169,9 @@ const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
       >
         <Pressable
           style={styles.canvas}
-          onPress={() => finishEditingText(null)}
+          onPress={() => {
+            finishEditingText(null);
+          }}
         >
           {background?.imageSource ? (
             <Image
@@ -209,17 +211,25 @@ const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
                 <PhotoItem
                   key={item.id}
                   item={item}
-                  selected={!hideSelectionUI && selectedObjectId === item.id}
-                  onSelect={() => selectObject(item.id)}
-                  onDragStart={() => bringObjectForward(item.id)}
+                  selected={isSelected}
+                  onSelect={() => finishEditingText(item.id)}
+                  onDragStart={() => {
+                    finishEditingText(item.id);
+                    bringObjectForward(item.id);
+                  }}
                   onDragEnd={(x, y) => updateObjectPosition(item.id, x, y)}
-                  onResizeEnd={(width, height) =>
-                    updateObjectSize(item.id, width, height)
+                  onResizeEnd={(width, height, options) =>
+                    updateObjectSize(item.id, width, height, options)
                   }
                   onRotateEnd={(rotation) =>
                     updateObjectRotation(item.id, rotation)
                   }
                   onDelete={() => removeObject(item.id)}
+                  onEdit={() => {
+                    finishEditingText(item.id);
+                    bringObjectForward(item.id);
+                    onEditPhoto?.(item.id);
+                  }}
                 />
               );
             }
@@ -235,7 +245,9 @@ const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
                   editingTextId === item.id ? editingTextDraft : undefined
                 }
                 onSelect={() => finishEditingText(item.id)}
-                onDragStart={() => bringObjectForward(item.id)}
+                onDragStart={() => {
+                  bringObjectForward(item.id);
+                }}
                 onDragEnd={(x, y) => {
                   const nextPosition = clampTextPosition(
                     x,

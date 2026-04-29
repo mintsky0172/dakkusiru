@@ -4,13 +4,11 @@ import {
   BackHandler,
   Platform,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import ViewShot from "react-native-view-shot";
 import { useEditorStore } from "../store/editorStore";
-import { Satellite } from "lucide-react-native";
 import {
   loadDakkuByIdFromLocal,
   saveDakkuToLocal,
@@ -24,6 +22,8 @@ import FloatingToolButtons from "../components/editor/FloatingToolButtons";
 import StickerPanelSheet from "../components/editor/StickerPanelSheet";
 import BackgroundPanelSheet from "../components/editor/BackgroundPanelSheet";
 import { pickImageFromLibrary } from "../utils/pickImageFromLibrary";
+import { CanvasPhoto } from "../types/editor";
+import PhotoCropModal from "../components/editor/PhotoCropModal";
 
 interface EditorScreenProps {
   mode: "new" | "edit";
@@ -43,7 +43,7 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
   );
   const [title, setTitle] = useState("새 다꾸");
   const [hideSelectionUI, setHideSelectionUI] = useState(false);
-  const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [editingPhotoId, setEditingPhotoId] = useState<string | null>(null);
 
   const canvasRef = useRef<ViewShot>(null);
   const autoSavingRef = useRef(false);
@@ -56,6 +56,7 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
   const addText = useEditorStore((state) => state.addText);
   const addPhoto = useEditorStore((state) => state.addPhoto);
   const setBackground = useEditorStore((state) => state.setBackground);
+  const updatePhotoCrop = useEditorStore((state) => state.updatePhotoCrop);
 
   const bringObjectForward = useEditorStore(
     (state) => state.bringObjectForward,
@@ -66,6 +67,11 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
 
   const setEditorData = useEditorStore((state) => state.setEditorData);
   const resetEditor = useEditorStore((state) => state.resetEditor);
+  const editingPhoto =
+    objects.find(
+      (item): item is CanvasPhoto =>
+        item.id === editingPhotoId && item.type === "photo",
+    ) ?? null;
 
   useEffect(() => {
     async function initializeEditor() {
@@ -168,10 +174,13 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
     sendObjectBackward(selectedObjectId);
   };
 
-  const waitForNextFrame = () =>
-    new Promise<void>((resolve) => {
-      requestAnimationFrame(() => resolve());
-    });
+  const waitForNextFrame = useCallback(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      }),
+    [],
+  );
 
   const captureCanvasWithoutSelection = async () => {
     setHideSelectionUI(true);
@@ -301,11 +310,22 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
     try {
       const asset = await pickImageFromLibrary();
 
-      if (!asset) return;
+      if (!asset) {
+        return;
+      }
+
+      const originalWidth = asset.width || 180;
+      const originalHeight = asset.height || 180;
+      const scale = Math.min(180 / originalWidth, 180 / originalHeight, 1);
+      const width = Math.max(72, Math.round(originalWidth * scale));
+      const height = Math.max(72, Math.round(originalHeight * scale));
 
       addPhoto({
         uri: asset.uri,
-        width: 180,
+        width,
+        height,
+        originalWidth,
+        originalHeight,
       });
     } catch (error) {
       const message =
@@ -313,7 +333,7 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
           ? error.message
           : "사진을 불러오는 중 오류가 발생했어요.";
 
-      Alert.alert("사진 불러오기 실패", message);
+      Alert.alert("사진 추가 실패", message);
     }
   };
 
@@ -331,7 +351,11 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
         />
 
         <View style={styles.canvasArea}>
-          <EditorCanvas ref={canvasRef} hideSelectionUI={hideSelectionUI} />
+          <EditorCanvas
+            ref={canvasRef}
+            hideSelectionUI={hideSelectionUI}
+            onEditPhoto={setEditingPhotoId}
+          />
 
           <FloatingToolButtons
             onPressBackground={() => setIsBackgroundSheetVisible(true)}
@@ -357,6 +381,27 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
               imageSource: item.imageSource,
               backgroundColor: item.backgroundColor,
             });
+          }}
+        />
+
+        <PhotoCropModal
+          visible={editingPhotoId !== null}
+          photo={editingPhoto}
+          onClose={() => setEditingPhotoId(null)}
+          onConfirm={({ cropOffsetX, cropOffsetY, photoZoom, width, height }) => {
+            if (!editingPhotoId) {
+              return;
+            }
+
+            updatePhotoCrop(
+              editingPhotoId,
+              cropOffsetX,
+              cropOffsetY,
+              photoZoom,
+              width,
+              height,
+            );
+            setEditingPhotoId(null);
           }}
         />
       </View>

@@ -33,6 +33,12 @@ export interface CanvasText extends BaseCanvasObject {
 export interface CanvasPhoto extends BaseCanvasObject {
     type: 'photo';
     uri: string;
+    originalWidth?: number;
+    originalHeight?: number;
+    photoZoom?: number;
+    photoScale?: number;
+    cropOffsetX?: number;
+    cropOffsetY?: number;
 }
 
 export type CanvasObject = CanvasSticker | CanvasText | CanvasPhoto;

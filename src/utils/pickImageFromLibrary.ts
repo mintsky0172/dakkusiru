@@ -1,6 +1,13 @@
 import * as ImagePicker from "expo-image-picker";
 
-export async function pickImageFromLibrary() {
+interface PickImageFromLibraryOptions {
+  allowsEditing?: boolean;
+  aspect?: [number, number];
+}
+
+export async function pickImageFromLibrary(
+  options: PickImageFromLibraryOptions = {},
+) {
   const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
   if (!permission.granted) {
@@ -10,8 +17,8 @@ export async function pickImageFromLibrary() {
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ["images"],
     quality: 1,
-    allowsEditing: false,
-    allowsMultipleSelection: false,
+    allowsEditing: options.allowsEditing ?? false,
+    ...(options.aspect ? { aspect: options.aspect } : {}),
   });
 
   if (result.canceled || !result.assets?.length) {
