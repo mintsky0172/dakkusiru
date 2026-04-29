@@ -1,7 +1,6 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import React, { useEffect, useMemo, useState } from "react";
-import { StickerPanelPack } from "../../types/stickerPanel";
-import { mockStickerPacks } from "../../mocks/stickerPanel";
+import { mockPacks } from "../../mocks/shop";
 import SimpleBottomSheet from "../common/SimpleBottomSheet";
 import BottomSheetHeader from "../common/BottomSheetHeader";
 import IconButton from "../common/IconButton";
@@ -10,13 +9,17 @@ import StickerPackCard from "./StickerPackCard";
 import { AppText } from "../common/AppText";
 import StickerThumb from "./StickerThumb";
 import { spacing } from "../../constants/spacing";
+import { resolvePacks } from "../../utils/shop";
+import { StickerPack } from "../../types/shop";
+import { usePurchaseStore } from "../../store/purchaseStore";
 
-type CategoryFilter = "all" | "food" | "deco" | "etc";
+type CategoryFilter = "all" | StickerPack["category"];
 
 const categories: { label: string; value: CategoryFilter }[] = [
   { label: "전체", value: "all" },
   { label: "음식", value: "food" },
   { label: "데코", value: "deco" },
+  { label: "메모", value: "memo" },
   { label: "기타", value: "etc" },
 ];
 
@@ -33,19 +36,37 @@ const StickerPanelSheet = ({
 }: StickerPanelSheetProps) => {
   const [selectedCategory, setSelectedCategory] =
     useState<CategoryFilter>("all");
-  const [selectedPack, setSelectedPack] = useState<StickerPanelPack | null>(
+  const [selectedPack, setSelectedPack] = useState<StickerPack | null>(
     null,
   );
-  const [recentlyAddedStickerId, setRecentlyAddedStickerId] = useState<string | null>(
-    null,
+  const [recentlyAddedStickerId, setRecentlyAddedStickerId] = useState<
+    string | null
+  >(null);
+  const ownedPackIds = usePurchaseStore((state) => state.ownedPackIds);
+  const isLoaded = usePurchaseStore((state) => state.isLoaded);
+  const loadOwnedPackIds = usePurchaseStore((state) => state.loadOwnedPackIds);
+
+  useEffect(() => {
+    if (!visible || isLoaded) return;
+
+    void loadOwnedPackIds();
+  }, [isLoaded, loadOwnedPackIds, visible]);
+
+  const ownedStickerPacks = useMemo(
+    () =>
+      resolvePacks(mockPacks, ownedPackIds).filter(
+        (pack): pack is StickerPack =>
+          pack.kind === "sticker" && pack.ownStatus === "owned",
+      ),
+    [ownedPackIds],
   );
 
   const filteredPacks = useMemo(() => {
-    if (selectedCategory === "all") return mockStickerPacks;
-    return mockStickerPacks.filter(
+    if (selectedCategory === "all") return ownedStickerPacks;
+    return ownedStickerPacks.filter(
       (pack) => pack.category === selectedCategory,
     );
-  }, [selectedCategory]);
+  }, [ownedStickerPacks, selectedCategory]);
 
   const handleClose = () => {
     setSelectedPack(null);
@@ -128,7 +149,7 @@ const StickerPanelSheet = ({
               contentContainerStyle={styles.scrollContent}
             >
               <View style={styles.grid}>
-                {selectedPack.stickers.map((sticker) => (
+                {selectedPack.previewStickers.map((sticker) => (
                   <StickerThumb
                     key={sticker.id}
                     name={sticker.name}

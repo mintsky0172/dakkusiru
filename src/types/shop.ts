@@ -1,5 +1,6 @@
 export type PackStatus = "free" | "priced";
 export type PackOwnStatus = "not_owned" | "owned";
+export type PackKind = 'sticker' | 'background';
 
 export interface PackPreviewSticker {
   id: string;
@@ -7,15 +8,35 @@ export interface PackPreviewSticker {
   imageSource?: any;
 }
 
-export interface StickerPack {
+export interface PackPreviewBackground {
+  id: string;
+  name: string;
+  imageSource?: any;
+  backgroundColor?: string;
+}
+
+interface BasePack {
   id: string;
   title: string;
-  category: "all" | "food" | "deco" | "etc";
+  kind: PackKind;
   status: PackStatus;
   ownStatus: PackOwnStatus;
   priceLabel?: string;
   thumbnailSource?: any;
   isNew?: boolean;
   description?: string;
-  previewStickers?: PackPreviewSticker[];
 }
+
+export interface StickerPack extends BasePack {
+  kind: 'sticker';
+  category: 'food' | 'deco' | 'memo' | 'etc';
+  previewStickers: PackPreviewSticker[];
+}
+
+export interface BackgroundPack extends BasePack {
+  kind: 'background';
+  category: 'grid' | 'check' | 'deco' | 'landscape';
+  previewBackgrounds?: PackPreviewBackground[];
+}
+
+export type ShopPack = StickerPack | BackgroundPack;

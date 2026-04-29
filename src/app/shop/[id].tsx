@@ -1,5 +1,5 @@
 import { Alert, ScrollView, StyleSheet, Image, View } from "react-native";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { mockPacks } from "../../mocks/shop";
 import Screen from "../../components/common/Screen";
@@ -9,13 +9,27 @@ import AppButton from "../../components/common/AppButton";
 import IconButton from "../../components/common/IconButton";
 import StickerPreviewCard from "../../components/shop/StickerPreviewCard";
 import { colors } from "../../constants/colors";
+import { usePurchaseStore } from "../../store/purchaseStore";
 
 const PackDetailScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const userCoinBalance = 500; // mock
+  const userCoinBalance = 10000; // TODO: 유저 코인 잔액 스토어에서 불러오기
+
+  const ownedPackIds = usePurchaseStore((state) => state.ownedPackIds);
+  const loadOwnedPackIds = usePurchaseStore((state) => state.loadOwnedPackIds);
+  const markPackAsOwned = usePurchaseStore((state) => state.markPackAsOwned);
+
+  useEffect(() => {
+    void loadOwnedPackIds();
+  }, [loadOwnedPackIds]);
+
+  const rawPack = useMemo(() => {
+    return mockPacks.find((item) => item.id === id);
+  }, [id]);
 
   const pack = useMemo(() => {
+    if (!rawPack) return null;
     return mockPacks.find((item) => item.id === id);
   }, [id]);
 
@@ -23,7 +37,7 @@ const PackDetailScreen = () => {
     router.back();
   };
 
-  const handlePrimaryAction = () => {
+  const handlePrimaryAction = async () => {
     if (!pack) return;
 
     if (pack.ownStatus === "owned" || pack.status === "free") {
@@ -32,30 +46,34 @@ const PackDetailScreen = () => {
       return;
     }
 
-    const requiredCoins = 1000; // TODO: pack price 숫자화
-    if (userCoinBalance < requiredCoins) {
-      Alert.alert(
-        "코인 부족",
-        "보유 코인이 부족해요. 충전 화면으로 이동할까요?",
-        [
-          {
-            text: "Cancel",
-            onPress: () => {},
-            style: "cancel",
-          },
-          {
-            text: "OK",
-            onPress: () => router.push("/coin"),
-            style: "destructive",
-          },
-        ],
-      );
-      return;
-    }
-
-    Alert.alert("팩 구매하기:", pack.id);
-    // TODO : 구매 로직 연결
+    // 임시 구매 성공 처리
+    await markPackAsOwned(pack.id);
   };
+
+  //   const requiredCoins = 1000; // TODO: pack price 숫자화
+  //   if (userCoinBalance < requiredCoins) {
+  //     Alert.alert(
+  //       "코인 부족",
+  //       "보유 코인이 부족해요. 충전 화면으로 이동할까요?",
+  //       [
+  //         {
+  //           text: "Cancel",
+  //           onPress: () => {},
+  //           style: "cancel",
+  //         },
+  //         {
+  //           text: "OK",
+  //           onPress: () => router.push("/coin"),
+  //           style: "destructive",
+  //         },
+  //       ],
+  //     );
+  //     return;
+  //   }
+
+  //   Alert.alert("팩 구매하기:", pack.id);
+  //   // TODO : 구매 로직 연결
+  // };
 
   if (!pack) {
     return (
@@ -170,29 +188,38 @@ const PackDetailScreen = () => {
           />
         </View>
 
-        <View style={styles.section}>
-          <AppText variant="title" style={styles.sectionTitle}>
-            포함된 스티커
-          </AppText>
+        {pack.kind === "sticker" ? (
+          <View style={styles.section}>
+            <AppText variant="title" style={styles.sectionTitle}>
+              포함된 스티커
+            </AppText>
 
-          {pack.previewStickers && pack.previewStickers.length > 0 ? (
-            <View style={styles.previewGrid}>
-              {pack.previewStickers.map((sticker) => (
-                <StickerPreviewCard
-                  key={sticker.id}
-                  name={sticker.name}
-                  imageSource={sticker.imageSource}
-                />
-              ))}
-            </View>
-          ) : (
-            <View style={styles.emptyPreview}>
-              <AppText variant="caption">
-                미리보기 스티커가 아직 준비되지 않았어요.
-              </AppText>
-            </View>
-          )}
-        </View>
+            {pack.previewStickers && pack.previewStickers.length > 0 ? (
+              <View style={styles.previewGrid}>
+                {pack.previewStickers.map((sticker) => (
+                  <StickerPreviewCard
+                    key={sticker.id}
+                    name={sticker.name}
+                    imageSource={sticker.imageSource}
+                  />
+                ))}
+              </View>
+            ) : (
+              <View style={styles.emptyPreview}>
+                <AppText variant="caption">
+                  미리보기 스티커가 아직 준비되지 않았어요.
+                </AppText>
+              </View>
+            )}
+          </View>
+        ) : (
+          <View style={styles.section}>
+            <AppText variant="title" style={styles.sectionTitle}>
+              포함된 배경
+            </AppText>
+            // TODO : 배경 미리보기 연결
+          </View>
+        )}
       </ScrollView>
     </Screen>
   );

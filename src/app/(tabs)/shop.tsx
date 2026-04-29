@@ -1,22 +1,23 @@
 import { Alert, FlatList, StyleSheet, Text, View } from "react-native";
-import React, { useMemo, useState } from "react";
+import React, { use, useCallback, useMemo, useState } from "react";
 import { mockCoinBalance, mockPacks } from "../../mocks/shop";
-import { StickerPack } from "../../types/shop";
+import { ShopPack, StickerPack } from "../../types/shop";
 import PackCard from "../../components/shop/PackCard";
 import Screen from "../../components/common/Screen";
 import { AppText } from "../../components/common/AppText";
 import CoinBalanceCard from "../../components/shop/CoinBalanceCard";
 import Chip from "../../components/common/Chip";
 import { spacing } from "../../constants/spacing";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import { usePurchaseStore } from "../../store/purchaseStore";
+import { resolvePacks } from "../../utils/shop";
 
-type CategoryFilter = "all" | "food" | "deco" | "etc";
+type CategoryFilter = "all" | "sticker" | "background";
 
 const categories: { label: string; value: CategoryFilter }[] = [
   { label: "전체", value: "all" },
-  { label: "음식", value: "food" },
-  { label: "데코", value: "deco" },
-  { label: "기타", value: "etc" },
+  { label: "스티커", value: "sticker" },
+  { label: "배경", value: "background" },
 ];
 
 const ShopScreen = () => {
@@ -24,16 +25,29 @@ const ShopScreen = () => {
     useState<CategoryFilter>("all");
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
 
+  const ownedPackIds = usePurchaseStore((state) => state.ownedPackIds);
+  const loadOwnedPackIds = usePurchaseStore((state) => state.loadOwnedPackIds);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadOwnedPackIds();
+    }, [loadOwnedPackIds]),
+  );
+
+  const resolvedPacks = useMemo(() => {
+    return resolvePacks(mockPacks, ownedPackIds);
+  }, [ownedPackIds]);
+
   const filteredPacks = useMemo(() => {
-    if (selectedCategory === "all") return mockPacks;
-    return mockPacks.filter((pack) => pack.category === selectedCategory);
-  }, [selectedCategory]);
+    if (selectedCategory === "all") return resolvedPacks;
+    return resolvedPacks.filter((pack) => pack.kind === selectedCategory);
+  }, [resolvedPacks, selectedCategory]);
 
   const handlePressCharge = () => {
-    router.push('/coin');
+    router.push("/coin");
   };
 
-  const handlePressPack = (pack: StickerPack) => {
+  const handlePressPack = (pack: ShopPack) => {
     setSelectedPackId(pack.id);
     router.push(`/shop/${pack.id}`);
   };
@@ -42,7 +56,7 @@ const ShopScreen = () => {
     item,
     index,
   }: {
-    item: StickerPack;
+    item: ShopPack;
     index: number;
   }) => {
     return (
