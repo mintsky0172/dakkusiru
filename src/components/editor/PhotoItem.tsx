@@ -14,7 +14,7 @@ interface PhotoItemProps {
     height: number,
     options?: ObjectResizeOptions,
   ) => void;
-  onRotateEnd?: (rotation: number) => void;
+  onRotateEnd?: (rotation: number, options?: { commit?: boolean }) => void;
   onDelete?: () => void;
   onEdit?: () => void;
 }
@@ -219,7 +219,7 @@ const PhotoItem = ({
             onResizeEnd={(width, height, options) =>
               onResizeEnd?.(width, height, options)
             }
-            onRotateEnd={(rotation) => onRotateEnd?.(rotation)}
+            onRotateEnd={(rotation, options) => onRotateEnd?.(rotation, options)}
             onDelete={onDelete}
             onEdit={onEdit}
             editIconSource={require("../../../assets/icons/crop.png")}

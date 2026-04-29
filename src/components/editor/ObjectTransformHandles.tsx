@@ -25,7 +25,7 @@ interface ObjectTransformHandlesProps {
     height: number,
     options?: ObjectResizeOptions,
   ) => void;
-  onRotateEnd: (rotation: number) => void;
+  onRotateEnd: (rotation: number, options?: { commit?: boolean }) => void;
   onDelete?: () => void;
   onEdit?: () => void;
   editIconSource?: ImageSourcePropType;
@@ -255,7 +255,7 @@ const ObjectTransformHandles = ({
           const nextRotation =
             startRotationRef.current + (currentAngle - startAngleRef.current);
 
-          onRotateEnd(nextRotation);
+          onRotateEnd(nextRotation, { commit: false });
         },
 
         onPanResponderRelease: (event) => {
@@ -266,7 +266,7 @@ const ObjectTransformHandles = ({
           const nextRotation =
             startRotationRef.current + (currentAngle - startAngleRef.current);
 
-          onRotateEnd(nextRotation);
+          onRotateEnd(nextRotation, { commit: true });
         },
       }),
     [measureParentInWindow, onRotateEnd, rotation],

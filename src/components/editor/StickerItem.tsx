@@ -18,7 +18,7 @@ interface StickerItemProps {
     height: number,
     options?: ObjectResizeOptions,
   ) => void;
-  onRotateEnd?: (rotation: number) => void;
+  onRotateEnd?: (rotation: number, options?: { commit?: boolean }) => void;
   onDragEnd?: (x: number, y: number) => void;
   onDelete?: () => void;
 }
@@ -167,7 +167,7 @@ const StickerItem = ({
             onResizeEnd={(width, height, options) =>
               onResizeEnd?.(width, height, options)
             }
-            onRotateEnd={(rotation) => onRotateEnd?.(rotation)}
+            onRotateEnd={(rotation, options) => onRotateEnd?.(rotation, options)}
             onDelete={onDelete}
           />
         </View>

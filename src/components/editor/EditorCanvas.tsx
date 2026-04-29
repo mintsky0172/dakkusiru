@@ -212,8 +212,8 @@ const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
                   onResizeEnd={(width, height, options) =>
                     updateObjectSize(item.id, width, height, options)
                   }
-                  onRotateEnd={(rotation) =>
-                    updateObjectRotation(item.id, rotation)
+                  onRotateEnd={(rotation, options) =>
+                    updateObjectRotation(item.id, rotation, options)
                   }
                   onDelete={() => removeObject(item.id)}
                 />
@@ -238,8 +238,8 @@ const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
                   onResizeEnd={(width, height, options) =>
                     updateObjectSize(item.id, width, height, options)
                   }
-                  onRotateEnd={(rotation) =>
-                    updateObjectRotation(item.id, rotation)
+                  onRotateEnd={(rotation, options) =>
+                    updateObjectRotation(item.id, rotation, options)
                   }
                   onDelete={() => removeObject(item.id)}
                   onEdit={() => {
@@ -283,8 +283,8 @@ const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
                     options,
                   );
                 }}
-                onRotateEnd={(rotation) =>
-                  updateObjectRotation(item.id, rotation)
+                onRotateEnd={(rotation, options) =>
+                  updateObjectRotation(item.id, rotation, options)
                 }
                 onDelete={() => removeObject(item.id)}
                 onEdit={() => startEditingText(item)}

@@ -62,7 +62,11 @@ interface EditorStore {
     width?: number,
     height?: number,
   ) => void;
-  updateObjectRotation: (id: string, rotation: number) => void;
+  updateObjectRotation: (
+    id: string,
+    rotation: number,
+    options?: { commit?: boolean },
+  ) => void;
 
   setEditorData: (payload: {
     background: CanvasBackground | null;
@@ -585,13 +589,17 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       historyFuture: [],
     })),
 
-  updateObjectRotation: (id, rotation) =>
+  updateObjectRotation: (id, rotation, options) =>
     set((state) => ({
       objects: state.objects.map((item) =>
         item.id === id ? { ...item, rotation } : item,
       ),
-      historyPast: [...state.historyPast, getSnapshot(state)],
-      historyFuture: [],
+      historyPast:
+        options?.commit === false
+          ? state.historyPast
+          : [...state.historyPast, getSnapshot(state)],
+      historyFuture:
+        options?.commit === false ? state.historyFuture : [],
     })),
 
   undo: () => {
