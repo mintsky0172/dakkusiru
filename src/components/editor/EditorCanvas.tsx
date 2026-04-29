@@ -7,6 +7,7 @@ import ViewShot from "react-native-view-shot";
 import TextItem from "./TextItem";
 import { CanvasText, ObjectResizeOptions } from "../../types/editor";
 import PhotoItem from "./PhotoItem";
+import { clampObjectPosition } from "../../utils/clampObjectPosition";
 
 interface EditorCanvasProps {
   hideSelectionUI?: boolean;
@@ -194,7 +195,20 @@ const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
                     finishEditingText(item.id);
                     bringObjectForward(item.id);
                   }}
-                  onDragEnd={(x, y) => updateObjectPosition(item.id, x, y)}
+                  onDragEnd={(x, y) => {
+                    const nextPosition = clampObjectPosition(
+                      item,
+                      x,
+                      y,
+                      canvasSize,
+                    );
+
+                    updateObjectPosition(
+                      item.id,
+                      nextPosition.x,
+                      nextPosition.y,
+                    );
+                  }}
                   onResizeEnd={(width, height, options) =>
                     updateObjectSize(item.id, width, height, options)
                   }
@@ -217,7 +231,10 @@ const EditorCanvas = forwardRef<ViewShot, EditorCanvasProps>(
                     finishEditingText(item.id);
                     bringObjectForward(item.id);
                   }}
-                  onDragEnd={(x, y) => updateObjectPosition(item.id, x, y)}
+                  onDragEnd={(x, y) => {
+                    const nextPosition = clampObjectPosition(item, x, y, canvasSize);
+                    updateObjectPosition(item.id, nextPosition.x, nextPosition.y);
+                  }}
                   onResizeEnd={(width, height, options) =>
                     updateObjectSize(item.id, width, height, options)
                   }

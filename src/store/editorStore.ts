@@ -367,51 +367,59 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
   bringObjectForward: (id) =>
     set((state) => {
-      const current = state.objects.find((item) => item.id === id);
-      if (!current) return state;
+      const orderedObjects = [...state.objects].sort(
+        (a, b) => a.zIndex - b.zIndex,
+      );
+      const currentIndex = orderedObjects.findIndex((item) => item.id === id);
+      if (currentIndex < 0 || currentIndex === orderedObjects.length - 1) {
+        return state;
+      }
 
-      const higherObjects = state.objects
-        .filter((item) => item.zIndex > current.zIndex)
-        .sort((a, b) => a.zIndex - b.zIndex);
+      [orderedObjects[currentIndex], orderedObjects[currentIndex + 1]] = [
+        orderedObjects[currentIndex + 1],
+        orderedObjects[currentIndex],
+      ];
 
-      const nextHigher = higherObjects[0];
-      if (!nextHigher) return state;
+      const nextZIndexById = new Map(
+        orderedObjects.map((item, index) => [item.id, index + 1]),
+      );
 
       return {
-        objects: state.objects.map((item) => {
-          if (item.id === current.id) {
-            return { ...item, zIndex: nextHigher.zIndex };
-          }
-          if (item.id === nextHigher.id) {
-            return { ...item, zIndex: current.zIndex };
-          }
-          return item;
-        }),
+        objects: state.objects.map((item) => ({
+          ...item,
+          zIndex: nextZIndexById.get(item.id) ?? item.zIndex,
+        })),
+        historyPast: [...state.historyPast, getSnapshot(state)],
+        historyFuture: [],
       };
     }),
 
   sendObjectBackward: (id) =>
     set((state) => {
-      const current = state.objects.find((item) => item.id === id);
-      if (!current) return state;
+      const orderedObjects = [...state.objects].sort(
+        (a, b) => a.zIndex - b.zIndex,
+      );
+      const currentIndex = orderedObjects.findIndex((item) => item.id === id);
+      if (currentIndex <= 0) {
+        return state;
+      }
 
-      const lowerObjects = state.objects
-        .filter((item) => item.zIndex < current.zIndex)
-        .sort((a, b) => b.zIndex - a.zIndex);
+      [orderedObjects[currentIndex - 1], orderedObjects[currentIndex]] = [
+        orderedObjects[currentIndex],
+        orderedObjects[currentIndex - 1],
+      ];
 
-      const nextLower = lowerObjects[0];
-      if (!nextLower) return state;
+      const nextZIndexById = new Map(
+        orderedObjects.map((item, index) => [item.id, index + 1]),
+      );
 
       return {
-        objects: state.objects.map((item) => {
-          if (item.id === current.id) {
-            return { ...item, zIndex: nextLower.zIndex };
-          }
-          if (item.id === nextLower.id) {
-            return { ...item, zIndex: current.zIndex };
-          }
-          return item;
-        }),
+        objects: state.objects.map((item) => ({
+          ...item,
+          zIndex: nextZIndexById.get(item.id) ?? item.zIndex,
+        })),
+        historyPast: [...state.historyPast, getSnapshot(state)],
+        historyFuture: [],
       };
     }),
 
