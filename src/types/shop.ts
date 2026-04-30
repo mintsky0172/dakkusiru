@@ -40,3 +40,26 @@ export interface BackgroundPack extends BasePack {
 }
 
 export type ShopPack = StickerPack | BackgroundPack;
+
+export interface RemotePackItem {
+  id: string;
+  pack_id: string;
+  name: string;
+  image_path?: string | null;
+  background_color?: string | null;
+  sort_order: number;
+}
+
+export interface RemoteShopPack {
+  id: string;
+  kind: 'sticker' | 'background';
+  title: string;
+  category: string;
+  status: 'free' | 'priced';
+  coin_price?: number | null;
+  thubmnail_path?: string | null;
+  description: string | null;
+  is_new: boolean;
+  sort_order: number;
+  shop_pack_items?: RemotePackItem[];
+}

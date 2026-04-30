@@ -1,6 +1,5 @@
 import { Alert, FlatList, StyleSheet, Text, View } from "react-native";
 import React, { use, useCallback, useMemo, useState } from "react";
-import { mockCoinBalance, mockPacks } from "../../mocks/shop";
 import { ShopPack, StickerPack } from "../../types/shop";
 import PackCard from "../../components/shop/PackCard";
 import Screen from "../../components/common/Screen";
@@ -12,6 +11,7 @@ import { router, useFocusEffect } from "expo-router";
 import { usePurchaseStore } from "../../store/purchaseStore";
 import { resolvePacks } from "../../utils/shop";
 import { useCoinStore } from "../../store/coinStore";
+import { useShopPackStore } from "../../store/shopPackStore";
 
 type CategoryFilter = "all" | "sticker" | "background";
 
@@ -28,6 +28,9 @@ const ShopScreen = () => {
     useState<CategoryFilter>("all");
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
 
+  const packs = useShopPackStore((state) => state.packs);
+  const loadPacks = useShopPackStore((state) => state.loadPacks);
+
   const ownedPackIds = usePurchaseStore((state) => state.ownedPackIds);
   const loadOwnedPackIds = usePurchaseStore((state) => state.loadOwnedPackIds);
 
@@ -39,7 +42,7 @@ const ShopScreen = () => {
   );
 
   const resolvedPacks = useMemo(() => {
-    return resolvePacks(mockPacks, ownedPackIds);
+    return resolvePacks(packs, ownedPackIds);
   }, [ownedPackIds]);
 
   const filteredPacks = useMemo(() => {
