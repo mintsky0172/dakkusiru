@@ -11,6 +11,7 @@ import { useAuthStore } from "../../store/authStore";
 import Screen from "../../components/common/Screen";
 import { AppText } from "../../components/common/AppText";
 import AppButton from "../../components/common/AppButton";
+import IconButton from "../../components/common/IconButton";
 import { router } from "expo-router";
 import {
   AdminPackKind,
@@ -38,10 +39,15 @@ interface BatchAdminItem {
   localId: string;
   itemId: string;
   name: string;
-  sortOrder: string;
   backgroundColor: string;
   base64: string;
   previewUri: string;
+}
+
+interface SaveProgress {
+  current: number;
+  total: number;
+  label: string;
 }
 
 const AdminScreen = () => {
@@ -65,6 +71,7 @@ const AdminScreen = () => {
     null,
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [saveProgress, setSaveProgress] = useState<SaveProgress | null>(null);
 
   const [itemId, setItemId] = useState("");
   const [itemName, setItemName] = useState("");
@@ -117,7 +124,6 @@ const AdminScreen = () => {
           localId: `${Date.now()}-${index}`,
           itemId,
           name: getDisplayNameFromItemId(itemId),
-          sortOrder: String(batchItems.length + index),
           backgroundColor: "",
           base64: asset.base64!,
           previewUri: asset.uri,
@@ -145,8 +151,11 @@ const AdminScreen = () => {
     setBatchItems((prev) => prev.filter((item) => item.localId !== localId));
   };
 
-  const saveBatchItemsForPack = async (targetPackId: string) => {
-    for (const item of batchItems) {
+  const saveBatchItemsForPack = async (
+    targetPackId: string,
+    updateProgress: (label: string) => void,
+  ) => {
+    for (const [index, item] of batchItems.entries()) {
       const itemId = item.itemId.trim();
 
       if (!itemId) {
@@ -159,12 +168,14 @@ const AdminScreen = () => {
         itemId,
       });
 
+      updateProgress(`${index + 1}번째 아이템 이미지 업로드 중`);
       await uploadAdminAsset({
         path: imagePath,
         base64: item.base64,
         contentType: "image/png",
       });
 
+      updateProgress(`${index + 1}번째 아이템 정보 저장 중`);
       await upsertAdminPackItem({
         id: itemId,
         packId: targetPackId,
@@ -172,7 +183,7 @@ const AdminScreen = () => {
         imagePath,
         backgroundColor:
           kind === "background" ? item.backgroundColor.trim() || null : null,
-        sortOrder: Number(item.sortOrder),
+        sortOrder: index,
       });
     }
   };
@@ -184,8 +195,23 @@ const AdminScreen = () => {
     }
 
     const targetPackId = packId.trim();
+    const totalSteps = (thumbnailBase64 ? 1 : 0) + 1 + batchItems.length * 2;
+    let currentStep = 0;
+    const updateProgress = (label: string) => {
+      currentStep += 1;
+      setSaveProgress({
+        current: currentStep,
+        total: totalSteps,
+        label,
+      });
+    };
 
     setIsSaving(true);
+    setSaveProgress({
+      current: 0,
+      total: totalSteps,
+      label: "저장을 준비하는 중",
+    });
 
     try {
       let thumbnailPath: string | null = null;
@@ -196,6 +222,7 @@ const AdminScreen = () => {
           packId: targetPackId,
         });
 
+        updateProgress("썸네일 업로드 중");
         await uploadAdminAsset({
           path: thumbnailPath,
           base64: thumbnailBase64,
@@ -203,6 +230,7 @@ const AdminScreen = () => {
         });
       }
 
+      updateProgress("팩 정보 저장 중");
       await upsertAdminPack({
         id: targetPackId,
         kind,
@@ -217,7 +245,7 @@ const AdminScreen = () => {
       });
 
       if (batchItems.length > 0) {
-        await saveBatchItemsForPack(targetPackId);
+        await saveBatchItemsForPack(targetPackId, updateProgress);
         Alert.alert(
           "저장 완료",
           `팩과 아이템 ${batchItems.length}개를 저장했어요.`,
@@ -236,6 +264,7 @@ const AdminScreen = () => {
       );
     } finally {
       setIsSaving(false);
+      setSaveProgress(null);
     }
   };
 
@@ -410,77 +439,70 @@ const AdminScreen = () => {
           ) : null}
         </AdminFieldGroup>
 
-        {batchItems.map((item, index) => (
-          <View key={item.localId} style={[styles.batchItemCard, styles.group]}>
-            <AppText variant="bodyStrong">#{index + 1}</AppText>
-
-            {item.previewUri ? (
-              <View style={styles.itemPreviewWrapper}>
-                <AppText variant="caption" style={styles.previewLabel}>
-                  선택된 이미지
-                </AppText>
-                <Image
-                  source={{ uri: item.previewUri }}
-                  style={styles.itemPreviewImage}
+        {batchItems.length > 0 ? (
+          <View style={styles.batchGrid}>
+            {batchItems.map((item, index) => (
+              <View key={item.localId} style={styles.batchItemCard}>
+                <AppText variant="bodyStrong">#{index + 1}</AppText>
+                <IconButton
+                  imageSource={require("../../../assets/icons/x.png")}
+                  size={20}
+                  iconSize={8}
+                  variant="filled"
+                  style={styles.batchRemoveButton}
+                  disabled={isSaving}
+                  onPress={() => removeBatchItem(item.localId)}
                 />
+
+                {item.previewUri ? (
+                  <View style={styles.itemPreviewWrapper}>
+                    <Image
+                      source={{ uri: item.previewUri }}
+                      style={styles.itemPreviewImage}
+                    />
+                  </View>
+                ) : null}
+
+                <AppText variant="caption">아이템 ID</AppText>
+                <TextInput
+                  value={item.itemId}
+                  onChangeText={(value) =>
+                    updateBatchItem(item.localId, { itemId: value })
+                  }
+                  placeholder="아이템 ID"
+                  placeholderTextColor={colors.text.muted}
+                  autoCapitalize="none"
+                  style={styles.input}
+                />
+
+                <AppText variant="caption">아이템 이름</AppText>
+                <TextInput
+                  value={item.name}
+                  onChangeText={(value) =>
+                    updateBatchItem(item.localId, { name: value })
+                  }
+                  placeholder="아이템 이름"
+                  placeholderTextColor={colors.text.muted}
+                  style={styles.input}
+                />
+
+                {kind === "background" ? (
+                  <TextInput
+                    value={item.backgroundColor}
+                    onChangeText={(value) =>
+                      updateBatchItem(item.localId, { backgroundColor: value })
+                    }
+                    placeholder="#FFF5E3"
+                    placeholderTextColor={colors.text.muted}
+                    autoCapitalize="none"
+                    style={styles.input}
+                  />
+                ) : null}
+
               </View>
-            ) : null}
-
-            <AppText variant='caption'>아이템 ID</AppText>
-            <TextInput
-              value={item.itemId}
-              onChangeText={(value) =>
-                updateBatchItem(item.localId, { itemId: value })
-              }
-              placeholder="아이템 ID"
-              placeholderTextColor={colors.text.muted}
-              autoCapitalize="none"
-              style={styles.input}
-            />
-
-             <AppText variant='caption'>아이템 이름</AppText>
-            <TextInput
-              value={item.name}
-              onChangeText={(value) =>
-                updateBatchItem(item.localId, { name: value })
-              }
-              placeholder="아이템 이름"
-              placeholderTextColor={colors.text.muted}
-              style={styles.input}
-            />
-
-              <AppText variant='caption'>정렬 순서</AppText>
-            <TextInput
-              value={item.sortOrder}
-              onChangeText={(value) =>
-                updateBatchItem(item.localId, { sortOrder: value })
-              }
-              placeholder="정렬 순서"
-              keyboardType="number-pad"
-              placeholderTextColor={colors.text.muted}
-              style={styles.input}
-            />
-
-            {kind === "background" ? (
-              <TextInput
-                value={item.backgroundColor}
-                onChangeText={(value) =>
-                  updateBatchItem(item.localId, { backgroundColor: value })
-                }
-                placeholder="#FFF5E3"
-                placeholderTextColor={colors.text.muted}
-                autoCapitalize="none"
-                style={styles.input}
-              />
-            ) : null}
-
-            <AppButton
-              label="이 아이템 제거"
-              variant="secondary"
-              onPress={() => removeBatchItem(item.localId)}
-            />
+            ))}
           </View>
-        ))}
+        ) : null}
 
         <AppButton
           label={
@@ -493,6 +515,33 @@ const AdminScreen = () => {
           onPress={handleSavePack}
           disabled={isSaving}
         />
+        {saveProgress ? (
+          <View style={styles.progressCard}>
+            <View style={styles.progressTextRow}>
+              <AppText variant="caption" style={styles.progressLabel}>
+                {saveProgress.label}
+              </AppText>
+              <AppText variant="caption" style={styles.progressCount}>
+                {saveProgress.current}/{saveProgress.total}
+              </AppText>
+            </View>
+            <View style={styles.progressTrack}>
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: `${Math.min(
+                      100,
+                      Math.round(
+                        (saveProgress.current / saveProgress.total) * 100,
+                      ),
+                    )}%`,
+                  },
+                ]}
+              />
+            </View>
+          </View>
+        ) : null}
       </ScrollView>
     </Screen>
   );
@@ -542,13 +591,28 @@ const styles = StyleSheet.create({
   buttonWrapper: {
     marginTop: spacing.md,
   },
+  batchGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
   batchItemCard: {
+    width: "48%",
+    position: "relative",
     padding: spacing.md,
+    paddingTop: spacing.lg,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border.light,
     backgroundColor: colors.background.base,
     gap: spacing.sm,
+  },
+  batchRemoveButton: {
+    position: "absolute",
+    top: spacing.xs,
+    right: spacing.xs,
+    zIndex: 1,
   },
   thumbnailPreviewCard: {
     padding: spacing.md,
@@ -556,26 +620,57 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border.light,
     gap: spacing.sm,
-    alignItems: 'flex-start',
+    alignItems: "flex-start",
   },
   thumbnailPreviewImage: {
     width: 140,
     height: 140,
     borderRadius: radius.md,
-    resizeMode: 'cover',
+    resizeMode: "cover",
     backgroundColor: colors.background.subtle,
   },
   itemPreviewWrapper: {
     gap: spacing.xs,
-    alignItems: 'flex-start'
+    alignItems: "flex-start",
   },
   itemPreviewImage: {
-    width: 96,
-    height: 96,
+    width: "100%",
+    aspectRatio: 1,
     borderRadius: radius.md,
-    resizeMode: 'contain',
+    resizeMode: "contain",
   },
   previewLabel: {
-    opacity: 0.8
-  }
+    opacity: 0.8,
+  },
+  progressCard: {
+    marginTop: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    backgroundColor: colors.background.surface,
+    gap: spacing.sm,
+  },
+  progressTextRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
+  progressLabel: {
+    flex: 1,
+  },
+  progressCount: {
+    color: colors.text.secondary,
+  },
+  progressTrack: {
+    height: 8,
+    borderRadius: radius.round,
+    backgroundColor: colors.background.subtle,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: radius.round,
+    backgroundColor: colors.accent.main,
+  },
 });
