@@ -1,6 +1,6 @@
-import { Alert, FlatList, StyleSheet, Text, View } from "react-native";
-import React, { use, useCallback, useMemo, useState } from "react";
-import { ShopPack, StickerPack } from "../../types/shop";
+import { FlatList, StyleSheet, View } from "react-native";
+import React, { useCallback, useMemo, useState } from "react";
+import { ShopPack } from "../../types/shop";
 import PackCard from "../../components/shop/PackCard";
 import Screen from "../../components/common/Screen";
 import { AppText } from "../../components/common/AppText";
@@ -36,14 +36,15 @@ const ShopScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
+      void loadPacks();
       void loadOwnedPackIds();
       void loadCoins();
-    }, [loadOwnedPackIds, loadCoins]),
+    }, [loadPacks, loadOwnedPackIds, loadCoins]),
   );
 
   const resolvedPacks = useMemo(() => {
     return resolvePacks(packs, ownedPackIds);
-  }, [ownedPackIds]);
+  }, [packs, ownedPackIds]);
 
   const filteredPacks = useMemo(() => {
     if (selectedCategory === "all") return resolvedPacks;

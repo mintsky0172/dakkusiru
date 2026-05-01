@@ -1,30 +1,37 @@
-import { Alert, StyleSheet, ScrollView, View } from "react-native";
-import React, { useMemo, useState } from "react";
+import { Alert, StyleSheet, ScrollView, View, Image, Pressable } from "react-native";
+import React, { useMemo } from "react";
 import Screen from "../../components/common/Screen";
 import { AppText } from "../../components/common/AppText";
 import ProfileCard from "../../components/mypage/ProfileCard";
 import MenuRow from "../../components/mypage/MenuRow";
 import { spacing } from "../../constants/spacing";
-import { guestUser, signedInUser } from "../../mocks/user";
-import { UserProfile } from "../../types/user";
 import { router } from "expo-router";
-
-const isGuest = true;
+import { useAuthStore } from "../../store/authStore";
 
 const MyPageScreen = () => {
-  // 테스트용 토글
-  const [user, setUser] = useState<UserProfile>(signedInUser);
+  const authUser = useAuthStore((state) => state.user);
+  const profile = useAuthStore((state) => state.profile);
+  const logout = useAuthStore((state) => state.logout);
 
-  const isGuest = user.status === "guest";
+  const isGuest = !authUser;
+  const isAdmin = !!authUser && profile?.role === "admin";
 
   const handleLogin = () => {
     router.push("/login");
-    setUser(signedInUser);
   };
 
-  const handleLogout = () => {
-    Alert.alert("로그아웃");
-    setUser(guestUser);
+  const handleLogout = async () => {
+    try {
+      await logout();
+      Alert.alert("로그아웃", "로그아웃되었어요.");
+    } catch (error) {
+      Alert.alert(
+        "로그아웃 실패",
+        error instanceof Error
+          ? error.message
+          : "로그아웃 중 오류가 발생했어요.",
+      );
+    }
   };
 
   const handleCloudSync = () => {
@@ -61,6 +68,7 @@ const MyPageScreen = () => {
     }
     return "";
   }, [isGuest]);
+  const profileName = isGuest ? "게스트" : isAdmin ? "관리자" : "닉네임입니다";
 
   return (
     <Screen>
@@ -70,12 +78,25 @@ const MyPageScreen = () => {
       >
         <View style={styles.header}>
           <AppText variant="h1">마이페이지</AppText>
+
+          {isAdmin ? (
+            <Pressable
+              style={styles.admin}
+              onPress={() => router.push("/admin")}
+            >
+              <Image
+                source={require("../../../assets/icons/tool.png")}
+                style={styles.adminIcon}
+              />
+              <AppText variant="body">관리자 페이지</AppText>
+            </Pressable>
+          ) : null}
         </View>
 
         <ProfileCard
-          name={isGuest ? "게스트" : "닉네임입니다"}
+          name={profileName}
           description={profileDescription}
-          subDescription={!isGuest ? user.email : undefined}
+          subDescription={!isGuest ? authUser.email : undefined}
           imageSource={require("../../../assets/images/default_profile.png")}
           actionLabel={isGuest ? "로그인" : "계정 정보 보기"}
           onPressAction={isGuest ? handleLogin : handleAccountInfo}
@@ -164,6 +185,16 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: spacing.md,
     marginBottom: spacing.lg,
+    flexDirection: 'row',
+    alignItems:'center',
+    justifyContent: 'space-between'
+  },
+  admin: {
+    flexDirection: "row",
+  },
+  adminIcon: {
+    width: 24,
+    height: 24,
   },
   section: {
     marginTop: spacing.xl,

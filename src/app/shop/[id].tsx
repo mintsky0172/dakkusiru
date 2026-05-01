@@ -1,7 +1,6 @@
 import { Alert, ScrollView, StyleSheet, Image, View } from "react-native";
 import React, { useEffect, useMemo } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { mockPacks } from "../../mocks/shop";
 import Screen from "../../components/common/Screen";
 import { AppText } from "../../components/common/AppText";
 import { radius, spacing } from "../../constants/spacing";
@@ -11,6 +10,8 @@ import StickerPreviewCard from "../../components/shop/StickerPreviewCard";
 import { colors } from "../../constants/colors";
 import { usePurchaseStore } from "../../store/purchaseStore";
 import { useCoinStore } from "../../store/coinStore";
+import { useShopPackStore } from "../../store/shopPackStore";
+import { resolvePack } from "../../utils/shop";
 
 const PackDetailScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -23,19 +24,24 @@ const PackDetailScreen = () => {
   const loadOwnedPackIds = usePurchaseStore((state) => state.loadOwnedPackIds);
   const markPackAsOwned = usePurchaseStore((state) => state.markPackAsOwned);
 
+  const packs = useShopPackStore((state) => state.packs);
+  const isPackLoading = useShopPackStore((state) => state.isLoading);
+  const loadPacks = useShopPackStore((state) => state.loadPacks);
+
   useEffect(() => {
+    void loadPacks();
     void loadOwnedPackIds();
     void loadCoins();
-  }, [loadOwnedPackIds, loadCoins]);
+  }, [loadPacks, loadOwnedPackIds, loadCoins]);
 
   const rawPack = useMemo(() => {
-    return mockPacks.find((item) => item.id === id);
-  }, [id]);
+    return packs.find((item) => item.id === id);
+  }, [id, packs]);
 
   const pack = useMemo(() => {
     if (!rawPack) return null;
-    return mockPacks.find((item) => item.id === id);
-  }, [id]);
+    return resolvePack(rawPack, ownedPackIds);
+  }, [rawPack, ownedPackIds]);
 
   const handleBack = () => {
     router.back();
@@ -50,7 +56,7 @@ const PackDetailScreen = () => {
       return;
     }
 
-    const coinPrice = Number(pack.coinPrice) ?? 0;
+    const coinPrice = Number(String(pack.coinPrice ?? 0).replace(/,/g, ""));
 
     if(balance < coinPrice) {
       Alert.alert(
@@ -81,6 +87,16 @@ const PackDetailScreen = () => {
 
     Alert.alert('구매 완료', `${pack.title}을 사용할 수 있어요!`);
   };
+
+  if (!pack && isPackLoading) {
+    return (
+      <Screen>
+        <View style={styles.notFoundContainer}>
+          <AppText variant="body">팩 정보를 불러오는 중...</AppText>
+        </View>
+      </Screen>
+    );
+  }
 
   if (!pack) {
     return (
@@ -224,7 +240,23 @@ const PackDetailScreen = () => {
             <AppText variant="title" style={styles.sectionTitle}>
               포함된 배경
             </AppText>
-            // TODO : 배경 미리보기 연결
+            {pack.previewBackgrounds && pack.previewBackgrounds.length > 0 ? (
+              <View style={styles.previewGrid}>
+                {pack.previewBackgrounds.map((background) => (
+                  <StickerPreviewCard
+                    key={background.id}
+                    name={background.name}
+                    imageSource={background.imageSource}
+                  />
+                ))}
+              </View>
+            ) : (
+              <View style={styles.emptyPreview}>
+                <AppText variant="caption">
+                  미리보기 배경이 아직 준비되지 않았어요.
+                </AppText>
+              </View>
+            )}
           </View>
         )}
       </ScrollView>

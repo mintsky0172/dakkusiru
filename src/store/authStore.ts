@@ -25,7 +25,10 @@ interface AuthStore {
 
   initializeAuth: () => Promise<() => void>;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string) => Promise<void>;
+  signup: (
+    email: string,
+    password: string,
+  ) => Promise<{ needsEmailConfirmation: boolean }>;
   logout: () => Promise<void>;
   loadProfile: () => Promise<void>;
   isAdmin: () => boolean;
@@ -95,13 +98,21 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
     try {
       const data = await signUpWithEmail(email, password);
+      const signedInUser = data.session?.user ?? null;
 
       set({
         session: data.session,
-        user: data.user,
+        user: signedInUser,
+        profile: null,
       });
 
-      await get().loadProfile();
+      if (signedInUser) {
+        await get().loadProfile();
+      }
+
+      return {
+        needsEmailConfirmation: !data.session,
+      };
     } finally {
       set({ isLoading: false });
     }

@@ -30,7 +30,16 @@ const LoginScreen = () => {
 
   const handleSignup = async () => {
     try {
-      await signup(email.trim(), password);
+      const result = await signup(email.trim(), password);
+
+      if (result.needsEmailConfirmation) {
+        Alert.alert(
+          "가입 완료",
+          "이메일 확인 후 로그인해 주세요.",
+        );
+        return;
+      }
+
       Alert.alert("가입 완료", "이제 관리자 권한을 확인할 수 있어요.");
       router.back();
     } catch (error) {

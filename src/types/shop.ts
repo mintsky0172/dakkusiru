@@ -57,7 +57,7 @@ export interface RemoteShopPack {
   category: string;
   status: 'free' | 'priced';
   coin_price?: number | null;
-  thubmnail_path?: string | null;
+  thumbnail_path?: string | null;
   description: string | null;
   is_new: boolean;
   sort_order: number;

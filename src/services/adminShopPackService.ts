@@ -1,0 +1,62 @@
+import { supabase } from "../lib/supabase";
+
+export type AdminPackKind = "sticker" | "background";
+export type AdminPackStatus = "free" | "priced";
+
+export interface UpsertAdminPackParams {
+  id: string;
+  kind: AdminPackKind;
+  title: string;
+  category: string;
+  status: AdminPackStatus;
+  coinPrice?: number | null;
+  thumbnailPath?: string | null;
+  description?: string | null;
+  isNew?: boolean;
+  sortOrder?: number;
+}
+
+export interface UpsertAdminPackItemParams {
+  id: string;
+  packId: string;
+  name: string;
+  imagePath?: string | null;
+  backgroundColor: string | null;
+  sortOrder?: number;
+}
+
+export async function upsertAdminPack(params: UpsertAdminPackParams) {
+  const { error } = await supabase.from("shop_packs").upsert({
+    id: params.id,
+    kind: params.kind,
+    title: params.title,
+    category: params.category,
+    status: params.status,
+    coin_price: params.status === "priced" ? (params.coinPrice ?? 0) : null,
+    thumbnail_path: params.thumbnailPath ?? null,
+    description: params.description ?? null,
+    is_new: params.isNew ?? false,
+    sort_order: params.sortOrder ?? 0,
+    is_active: true,
+    updated_at: new Date().toISOString(),
+  });
+
+  if (error) {
+    throw new Error(`[shop_packs 저장 실패] ${error.message}`);
+  }
+}
+
+export async function upsertAdminPackItem(params: UpsertAdminPackItemParams) {
+  const { error } = await supabase.from("shop_pack_items").upsert({
+    id: params.id,
+    pack_id: params.packId,
+    name: params.name,
+    image_path: params.imagePath ?? null,
+    background_color: params.backgroundColor ?? null,
+    sort_order: params.sortOrder ?? 0,
+  });
+
+  if (error) {
+    throw new Error(`[shop_pack_items 저장 실패] ${error.message}`);
+  }
+}
