@@ -20,8 +20,12 @@ const categories: { label: string; value: CategoryFilter }[] = [
   { label: "전체", value: "all" },
   { label: "모눈", value: "grid" },
   { label: "체크", value: "check" },
-  { label: "데코", value: "deco" },
+  { label: "도트/패턴", value: "dot" },
+  { label: "종이/노트", value: "paper" },
+  { label: "컬러/그라데이션", value: "color" },
+  { label: "공간", value: "room" },
   { label: "풍경", value: "landscape" },
+  { label: "데코", value: "deco" },
 ];
 
 interface BackgroundPanelSheetProps {

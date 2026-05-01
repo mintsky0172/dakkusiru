@@ -7,7 +7,16 @@ export interface StickerPanelItem {
 export interface StickerPanelPack {
     id: string;
     title: string;
-    category: 'food' | 'deco' | 'etc';
+    category:
+        | 'food'
+        | 'character'
+        | 'deco'
+        | 'memo'
+        | 'chat'
+        | 'object'
+        | 'nature'
+        | 'masking_tape'
+        | 'etc';
     thumbnailSource?: any;
     stickers: StickerPanelItem[];
 }

@@ -2,6 +2,18 @@ import { supabase } from "../../../lib/supabase";
 import { ShopPack } from "../../../types/shop";
 import { getAssetPublicUrl } from "../../../utils/getAssetPublicUrl";
 
+const NEW_PACK_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000;
+
+function isPackCreatedRecently(createdAt?: string | null) {
+  if (!createdAt) return false;
+
+  const createdTime = new Date(createdAt).getTime();
+
+  if (Number.isNaN(createdTime)) return false;
+
+  return Date.now() - createdTime <= NEW_PACK_THRESHOLD_MS;
+}
+
 export async function fetchShopPacksFromSupabase(): Promise<ShopPack[]> {
   const { data, error } = await supabase
     .from("shop_packs")
@@ -12,7 +24,7 @@ export async function fetchShopPacksFromSupabase(): Promise<ShopPack[]> {
             `,
     )
     .eq("is_active", true)
-    .order("sort_order", { ascending: true })
+    .order("updated_at", { ascending: false })
     .order("sort_order", {
       referencedTable: "shop_pack_items",
       ascending: true,
@@ -32,8 +44,9 @@ export async function fetchShopPacksFromSupabase(): Promise<ShopPack[]> {
       thumbnailSource: pack.thumbnail_path
         ? { uri: getAssetPublicUrl(pack.thumbnail_path) }
         : undefined,
-      isNew: pack.is_new,
+      isNew: isPackCreatedRecently(pack.created_at ?? pack.updated_at),
       description: pack.description ?? undefined,
+      tags: pack.tags ?? [],
     };
 
     if (pack.kind === "sticker") {

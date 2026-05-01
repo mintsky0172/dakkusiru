@@ -18,8 +18,13 @@ type CategoryFilter = "all" | StickerPack["category"];
 const categories: { label: string; value: CategoryFilter }[] = [
   { label: "전체", value: "all" },
   { label: "음식", value: "food" },
+  { label: '캐릭터', value: 'character'},
   { label: "데코", value: "deco" },
-  { label: "메모", value: "memo" },
+  { label: "메모/라벨", value: "memo" },
+  { label: '말풍선/문구', value: 'chat'},
+  { label: '소품', value: 'object'},
+  { label: '자연/계절', value: 'nature'},
+  { label: "마스킹테이프", value: "masking_tape" },
   { label: "기타", value: "etc" },
 ];
 

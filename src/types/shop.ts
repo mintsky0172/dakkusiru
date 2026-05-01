@@ -1,6 +1,6 @@
 export type PackStatus = "free" | "priced";
 export type PackOwnStatus = "not_owned" | "owned";
-export type PackKind = 'sticker' | 'background';
+export type PackKind = "sticker" | "background";
 
 export interface PackPreviewSticker {
   id: string;
@@ -25,17 +25,27 @@ interface BasePack {
   thumbnailSource?: any;
   isNew?: boolean;
   description?: string;
+  tags?: string[];
 }
 
 export interface StickerPack extends BasePack {
-  kind: 'sticker';
-  category: 'food' | 'deco' | 'memo' | 'etc';
+  kind: "sticker";
+  category:
+    | "food"
+    | "character"
+    | "deco"
+    | "memo"
+    | "chat"
+    | "object"
+    | "nature"
+    | "masking_tape"
+    | "etc";
   previewStickers: PackPreviewSticker[];
 }
 
 export interface BackgroundPack extends BasePack {
-  kind: 'background';
-  category: 'grid' | 'check' | 'deco' | 'landscape';
+  kind: "background";
+  category: "grid" | "check" | 'dot' | 'paper' | 'color' | 'room' | "deco" | "landscape";
   previewBackgrounds?: PackPreviewBackground[];
 }
 
@@ -52,14 +62,15 @@ export interface RemotePackItem {
 
 export interface RemoteShopPack {
   id: string;
-  kind: 'sticker' | 'background';
+  kind: "sticker" | "background";
   title: string;
   category: string;
-  status: 'free' | 'priced';
+  status: "free" | "priced";
   coin_price?: number | null;
   thumbnail_path?: string | null;
   description: string | null;
   is_new: boolean;
   sort_order: number;
   shop_pack_items?: RemotePackItem[];
+  tags?: string[] | null;
 }

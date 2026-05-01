@@ -1,7 +1,9 @@
+import { BackgroundPack } from "./shop";
+
 export interface BackgroundItem {
     id: string;
     name: string;
-    category: 'grid' | 'check' | 'deco' | 'landscape';
+    category: BackgroundPack["category"];
     imageSource?: any;
     backgroundColor?: string;
 }

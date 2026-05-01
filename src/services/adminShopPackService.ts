@@ -14,6 +14,7 @@ export interface UpsertAdminPackParams {
   description?: string | null;
   isNew?: boolean;
   sortOrder?: number;
+  tags?: string[];
 }
 
 export interface UpsertAdminPackItemParams {
@@ -39,6 +40,7 @@ export async function upsertAdminPack(params: UpsertAdminPackParams) {
     sort_order: params.sortOrder ?? 0,
     is_active: true,
     updated_at: new Date().toISOString(),
+    tags: params.tags ?? [],
   });
 
   if (error) {
