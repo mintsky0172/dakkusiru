@@ -43,7 +43,8 @@ const AdminPackItemsScreen = () => {
 
   const handlePickImage = async () => {
     try {
-      const asset = await pickAdminAssetImage();
+      const assets = await pickAdminAssetImage();
+      const asset = assets[0];
 
       if (!asset) return;
 

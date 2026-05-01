@@ -2,8 +2,8 @@ import {
   Alert,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
+  Image,
   View,
 } from "react-native";
 import React, { useMemo, useState } from "react";
@@ -28,6 +28,21 @@ import { colors } from "../../constants/colors";
 import { radius, spacing } from "../../constants/spacing";
 import AdminFieldGroup from "../../components/admin/AdminFieldGroup";
 import { AdminSegmentedButtons } from "../../components/admin/AdminSegmentedButtons";
+import {
+  getBaseNameFromFileName,
+  getDisplayNameFromItemId,
+  normalizeItemId,
+} from "../../utils/adminItemName";
+
+interface BatchAdminItem {
+  localId: string;
+  itemId: string;
+  name: string;
+  sortOrder: string;
+  backgroundColor: string;
+  base64: string;
+  previewUri: string;
+}
 
 const AdminScreen = () => {
   const user = useAuthStore((state) => state.user);
@@ -61,6 +76,9 @@ const AdminScreen = () => {
   );
   const [isSavingItem, setIsSavingItem] = useState(false);
 
+  const [batchItems, setBatchItems] = useState<BatchAdminItem[]>([]);
+  const [isSavingBatchItems, setIsSavingBatchItems] = useState(false);
+
   const categoryOptions = useMemo(() => {
     return kind === "sticker"
       ? ["food", "deco", "etc"]
@@ -69,7 +87,8 @@ const AdminScreen = () => {
 
   const handlePickThumbnail = async () => {
     try {
-      const asset = await pickAdminAssetImage();
+      const assets = await pickAdminAssetImage();
+      const asset = assets[0];
 
       if (!asset) return;
 
@@ -83,14 +102,29 @@ const AdminScreen = () => {
     }
   };
 
-  const handlePickItemImage = async () => {
+  const handlePickBatchImages = async () => {
     try {
-      const asset = await pickAdminAssetImage();
+      const assets = await pickAdminAssetImage();
 
-      if (!asset) return;
+      if (!assets.length) return;
 
-      setItemImageBase64(asset.base64 ?? null);
-      setItemImagePreviewUri(asset.uri);
+      const nextItems: BatchAdminItem[] = assets.map((asset, index) => {
+        const baseName = getBaseNameFromFileName(asset.fileName);
+        const fallbackId = `item-${batchItems.length + index + 1}`;
+        const itemId = normalizeItemId(baseName, fallbackId);
+
+        return {
+          localId: `${Date.now()}-${index}`,
+          itemId,
+          name: getDisplayNameFromItemId(itemId),
+          sortOrder: String(batchItems.length + index),
+          backgroundColor: "",
+          base64: asset.base64!,
+          previewUri: asset.uri,
+        };
+      });
+
+      setBatchItems((prev) => [...prev, ...nextItems]);
     } catch (error) {
       Alert.alert(
         "이미지 선택 실패",
@@ -99,62 +133,47 @@ const AdminScreen = () => {
     }
   };
 
-  const handleSaveItem = async () => {
-    if (!packId.trim()) {
-      Alert.alert("팩 ID 필요", "먼저 팩 ID를 입력해주세요.");
-      return;
-    }
+  const updateBatchItem = (localId: string, patch: Partial<BatchAdminItem>) => {
+    setBatchItems((prev) =>
+      prev.map((item) =>
+        item.localId === localId ? { ...item, ...patch } : item,
+      ),
+    );
+  };
 
-    if (!itemId.trim() || !itemName.trim()) {
-      Alert.alert("입력 필요", "아이템 ID와 이름은 꼭 입력해주세요.");
-      return;
-    }
+  const removeBatchItem = (localId: string) => {
+    setBatchItems((prev) => prev.filter((item) => item.localId !== localId));
+  };
 
-    setIsSavingItem(true);
+  const saveBatchItemsForPack = async (targetPackId: string) => {
+    for (const item of batchItems) {
+      const itemId = item.itemId.trim();
 
-    try {
-      let imagePath: string | null = null;
-
-      if (itemImageBase64) {
-        imagePath = getPackItemImagePath({
-          kind,
-          packId: packId.trim(),
-          itemId: itemId.trim(),
-        });
-
-        await uploadAdminAsset({
-          path: imagePath,
-          base64: itemImageBase64,
-          contentType: "image/png",
-        });
+      if (!itemId) {
+        throw new Error("아이템 ID가 비어 있는 항목이 있어요.");
       }
 
-      await upsertAdminPackItem({
-        id: itemId.trim(),
-        packId: packId.trim(),
-        name: itemName.trim(),
-        imagePath,
-        backgroundColor: itemBackgroundColor.trim() || null,
-        sortOrder: Number(itemSortOrder),
+      const imagePath = getPackItemImagePath({
+        kind,
+        packId: targetPackId,
+        itemId,
       });
 
-      Alert.alert("저장 완료", "아이템이 저장되었어요.");
+      await uploadAdminAsset({
+        path: imagePath,
+        base64: item.base64,
+        contentType: "image/png",
+      });
 
-      setItemId("");
-      setItemName("");
-      setItemSortOrder("0");
-      setItemBackgroundColor("");
-      setItemImageBase64(null);
-      setItemImagePreviewUri(null);
-    } catch (error) {
-      Alert.alert(
-        "저장 실패",
-        error instanceof Error
-          ? error.message
-          : "아이템 저장 중 오류가 발생했어요.",
-      );
-    } finally {
-      setIsSavingItem(false);
+      await upsertAdminPackItem({
+        id: itemId,
+        packId: targetPackId,
+        name: item.name.trim() || itemId,
+        imagePath,
+        backgroundColor:
+          kind === "background" ? item.backgroundColor.trim() || null : null,
+        sortOrder: Number(item.sortOrder),
+      });
     }
   };
 
@@ -164,6 +183,8 @@ const AdminScreen = () => {
       return;
     }
 
+    const targetPackId = packId.trim();
+
     setIsSaving(true);
 
     try {
@@ -172,7 +193,7 @@ const AdminScreen = () => {
       if (thumbnailBase64) {
         thumbnailPath = getPackThumbnailPath({
           kind,
-          packId: packId.trim(),
+          packId: targetPackId,
         });
 
         await uploadAdminAsset({
@@ -183,7 +204,7 @@ const AdminScreen = () => {
       }
 
       await upsertAdminPack({
-        id: packId.trim(),
+        id: targetPackId,
         kind,
         title: title.trim(),
         category,
@@ -194,6 +215,16 @@ const AdminScreen = () => {
         isNew,
         sortOrder: Number(sortOrder),
       });
+
+      if (batchItems.length > 0) {
+        await saveBatchItemsForPack(targetPackId);
+        Alert.alert(
+          "저장 완료",
+          `팩과 아이템 ${batchItems.length}개를 저장했어요.`,
+        );
+        setBatchItems([]);
+        return;
+      }
 
       Alert.alert("저장 완료", "팩이 저장되었어요.");
     } catch (error) {
@@ -347,6 +378,18 @@ const AdminScreen = () => {
             variant="secondary"
             onPress={handlePickThumbnail}
           />
+
+          {thumbnailPreviewUri ? (
+            <View style={styles.thumbnailPreviewCard}>
+              <AppText variant="caption" style={styles.previewLabel}>
+                선택된 썸네일
+              </AppText>
+              <Image
+                source={{ uri: thumbnailPreviewUri }}
+                style={styles.thumbnailPreviewImage}
+              />
+            </View>
+          ) : null}
         </AdminFieldGroup>
 
         <AdminFieldGroup
@@ -354,64 +397,99 @@ const AdminScreen = () => {
           description=" 현재 등록할 팩을 구성하는 아이템을 추가해 주세요."
           style={styles.group}
         >
-          <TextInput
-            value={itemId}
-            onChangeText={setItemId}
-            placeholder="아이템 ID 예: toast"
-            placeholderTextColor={colors.text.muted}
-            autoCapitalize="none"
-            style={styles.input}
+          <AppButton
+            label="이미지 여러 장 선택"
+            variant="secondary"
+            onPress={handlePickBatchImages}
           />
 
-          <TextInput
-            value={itemName}
-            onChangeText={setItemName}
-            placeholder="아이템 이름"
-            placeholderTextColor={colors.text.muted}
-            style={styles.input}
-          />
-
-          <TextInput
-            value={itemSortOrder}
-            onChangeText={setItemSortOrder}
-            placeholder="정렬 순서"
-            keyboardType="number-pad"
-            placeholderTextColor={colors.text.muted}
-            style={styles.input}
-          />
+          {batchItems.length > 0 ? (
+            <AppText variant="caption">
+              선택된 아이템 {batchItems.length}개
+            </AppText>
+          ) : null}
         </AdminFieldGroup>
 
-        {kind === "background" ? (
-          <AdminFieldGroup
-            label="배경 색상"
-            description="단색 배경 아이템이면 입력해요.(예: #FFF5E3)"
-          >
+        {batchItems.map((item, index) => (
+          <View key={item.localId} style={[styles.batchItemCard, styles.group]}>
+            <AppText variant="bodyStrong">#{index + 1}</AppText>
+
+            {item.previewUri ? (
+              <View style={styles.itemPreviewWrapper}>
+                <AppText variant="caption" style={styles.previewLabel}>
+                  선택된 이미지
+                </AppText>
+                <Image
+                  source={{ uri: item.previewUri }}
+                  style={styles.itemPreviewImage}
+                />
+              </View>
+            ) : null}
+
+            <AppText variant='caption'>아이템 ID</AppText>
             <TextInput
-              value={itemBackgroundColor}
-              onChangeText={setItemBackgroundColor}
-              placeholder="#FFF5E3"
+              value={item.itemId}
+              onChangeText={(value) =>
+                updateBatchItem(item.localId, { itemId: value })
+              }
+              placeholder="아이템 ID"
               placeholderTextColor={colors.text.muted}
               autoCapitalize="none"
               style={styles.input}
             />
-          </AdminFieldGroup>
-        ) : null}
 
-        <AdminFieldGroup label="아이템 이미지" style={styles.group}>
-          <AppButton
-            label={itemImagePreviewUri ? "이미지 다시 선택" : "이미지 선택"}
-            variant="secondary"
-            onPress={handlePickItemImage}
-          />
-          <AppButton
-            label={isSavingItem ? "아이템 저장 중..." : "아이템 저장"}
-            onPress={handleSaveItem}
-            disabled={isSavingItem}
-          />
-        </AdminFieldGroup>
+             <AppText variant='caption'>아이템 이름</AppText>
+            <TextInput
+              value={item.name}
+              onChangeText={(value) =>
+                updateBatchItem(item.localId, { name: value })
+              }
+              placeholder="아이템 이름"
+              placeholderTextColor={colors.text.muted}
+              style={styles.input}
+            />
+
+              <AppText variant='caption'>정렬 순서</AppText>
+            <TextInput
+              value={item.sortOrder}
+              onChangeText={(value) =>
+                updateBatchItem(item.localId, { sortOrder: value })
+              }
+              placeholder="정렬 순서"
+              keyboardType="number-pad"
+              placeholderTextColor={colors.text.muted}
+              style={styles.input}
+            />
+
+            {kind === "background" ? (
+              <TextInput
+                value={item.backgroundColor}
+                onChangeText={(value) =>
+                  updateBatchItem(item.localId, { backgroundColor: value })
+                }
+                placeholder="#FFF5E3"
+                placeholderTextColor={colors.text.muted}
+                autoCapitalize="none"
+                style={styles.input}
+              />
+            ) : null}
+
+            <AppButton
+              label="이 아이템 제거"
+              variant="secondary"
+              onPress={() => removeBatchItem(item.localId)}
+            />
+          </View>
+        ))}
 
         <AppButton
-          label={isSaving ? "팩 저장 중..." : "팩 저장"}
+          label={
+            isSaving
+              ? "저장 중..."
+              : batchItems.length > 0
+                ? `팩과 아이템 ${batchItems.length}개 저장`
+                : "팩 저장"
+          }
           onPress={handleSavePack}
           disabled={isSaving}
         />
@@ -464,4 +542,40 @@ const styles = StyleSheet.create({
   buttonWrapper: {
     marginTop: spacing.md,
   },
+  batchItemCard: {
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    backgroundColor: colors.background.base,
+    gap: spacing.sm,
+  },
+  thumbnailPreviewCard: {
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    gap: spacing.sm,
+    alignItems: 'flex-start',
+  },
+  thumbnailPreviewImage: {
+    width: 140,
+    height: 140,
+    borderRadius: radius.md,
+    resizeMode: 'cover',
+    backgroundColor: colors.background.subtle,
+  },
+  itemPreviewWrapper: {
+    gap: spacing.xs,
+    alignItems: 'flex-start'
+  },
+  itemPreviewImage: {
+    width: 96,
+    height: 96,
+    borderRadius: radius.md,
+    resizeMode: 'contain',
+  },
+  previewLabel: {
+    opacity: 0.8
+  }
 });
