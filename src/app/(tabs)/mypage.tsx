@@ -7,6 +7,7 @@ import MenuRow from "../../components/mypage/MenuRow";
 import { spacing } from "../../constants/spacing";
 import { guestUser, signedInUser } from "../../mocks/user";
 import { UserProfile } from "../../types/user";
+import { router } from "expo-router";
 
 const isGuest = true;
 
@@ -17,7 +18,7 @@ const MyPageScreen = () => {
   const isGuest = user.status === "guest";
 
   const handleLogin = () => {
-    Alert.alert("로그인/계정 연결");
+    router.push("/login");
     setUser(signedInUser);
   };
 

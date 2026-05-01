@@ -1,4 +1,4 @@
-import { supabase } from "../client";
+import { supabase } from "../../../lib/supabase";
 import { ShopPack } from "../../../types/shop";
 import { getAssetPublicUrl } from "../../../utils/getAssetPublicUrl";
 

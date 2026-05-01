@@ -1,4 +1,4 @@
-import { supabase } from "../services/supabase/client";
+import { supabase } from "../lib/supabase";
 
 const ASSET_BUCKET = "dakku-assets";
 
