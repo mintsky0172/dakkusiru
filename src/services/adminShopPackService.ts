@@ -142,10 +142,26 @@ export async function deleteAdminPack(packId: string) {
 }
 
 export async function deleteAdminPackItem(itemId: string) {
+  const { data: item, error: itemFetchError } = await supabase
+    .from("shop_pack_items")
+    .select("image_path")
+    .eq("id", itemId)
+    .maybeSingle();
+
+  if (itemFetchError) {
+    throw new Error(`[shop_pack_items 조회 실패] ${itemFetchError.message}`);
+  }
+
+  if (item?.image_path) {
+    await deleteAdminAssets([item.image_path]);
+  }
+
   const { error } = await supabase
     .from("shop_pack_items")
     .delete()
     .eq("id", itemId);
 
-  if (error) throw error;
+  if (error) {
+    throw new Error(`[shop_pack_items 삭제 실패] ${error.message}`);
+  }
 }

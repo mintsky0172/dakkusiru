@@ -30,6 +30,11 @@ import {
   uploadAdminAsset,
 } from "../../services/adminAssetUploadService";
 import { colors } from "../../constants/colors";
+import {
+  backgroundCategoryOptions,
+  packCategoryLabelMap,
+  stickerCategoryOptions,
+} from "../../constants/packCategories";
 import { radius, spacing } from "../../constants/spacing";
 import AdminFieldGroup from "../../components/admin/AdminFieldGroup";
 import { AdminSegmentedButtons } from "../../components/admin/AdminSegmentedButtons";
@@ -62,48 +67,6 @@ interface ExistingPackItem {
   imageSource?: any;
   backgroundColor?: string;
 }
-
-const categoryLabelMap: Record<string, string> = {
-  food: "음식",
-  character: "캐릭터",
-  deco: "데코",
-  memo: "메모",
-  chat: "말풍선/문구",
-  object: "소품",
-  nature: "자연/계절",
-  masking_tape: "마스킹테이프",
-  etc: "기타",
-  grid: "모눈",
-  check: "체크",
-  dot: "도트/패턴",
-  paper: "종이/노트",
-  color: "컬러/그라데이션",
-  room: "공간",
-  landscape: "풍경",
-};
-
-const stickerCategoryOptions = [
-  "food",
-  "character",
-  "deco",
-  "memo",
-  "chat",
-  "object",
-  "nature",
-  "masking_tape",
-  "etc",
-];
-
-const backgroundCategoryOptions = [
-  "grid",
-  "check",
-  "dot",
-  "paper",
-  "color",
-  "room",
-  "deco",
-  "landscape",
-];
 
 const AdminPackFormScreen = () => {
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -513,18 +476,40 @@ const AdminPackFormScreen = () => {
       if (batchItems.length > 0) {
         await saveBatchItemsForPack(targetPackId, updateProgress);
         Alert.alert(
-          "저장 완료",
-          `팩과 아이템 ${batchItems.length}개를 저장했어요.`,
+          isEditMode ? "수정 완료" : "저장 완료",
+          isEditMode
+            ? `팩 정보와 새 아이템 ${batchItems.length}개를 저장했어요.`
+            : `팩과 아이템 ${batchItems.length}개를 저장했어요.`,
+          isEditMode
+            ? [
+                {
+                  text: "확인",
+                  onPress: () => router.replace("/admin/packs"),
+                },
+              ]
+            : undefined,
         );
-        resetPackForm();
+        if (!isEditMode) {
+          router.push('/admin/packs')
+        }
         return;
       }
 
       Alert.alert(
         isEditMode ? "수정 완료" : "저장 완료",
         isEditMode ? "팩 정보가 수정되었어요." : "팩이 저장되었어요.",
+        isEditMode
+          ? [
+              {
+                text: "확인",
+                onPress: () => router.replace("/admin/packs"),
+              },
+            ]
+          : undefined,
       );
-      resetPackForm();
+      if (!isEditMode) {
+        resetPackForm();
+      }
     } catch (error) {
       Alert.alert(
         "저장 실패",
@@ -714,7 +699,7 @@ const AdminPackFormScreen = () => {
             ]}
           >
             <AppText variant="bodyStrong">
-              {categoryLabelMap[category] ?? category}
+              {packCategoryLabelMap[category] ?? category}
             </AppText>
             <Ionicons
               name={isCategoryDropdownOpen ? "chevron-up" : "chevron-down"}
@@ -745,7 +730,7 @@ const AdminPackFormScreen = () => {
                         selected && styles.dropdownItemTextSelected,
                       ]}
                     >
-                      {categoryLabelMap[item] ?? item}
+                      {packCategoryLabelMap[item] ?? item}
                     </AppText>
                     {selected ? (
                       <Ionicons
