@@ -1,4 +1,4 @@
-import { FlatList, Image, StyleSheet, View } from "react-native";
+import { Alert, FlatList, Image, StyleSheet, View } from "react-native";
 import React, { useCallback, useMemo, useState } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { useShopPackStore } from "../../store/shopPackStore";
@@ -11,6 +11,7 @@ import Chip from "../../components/common/Chip";
 import { ShopPack } from "../../types/shop";
 import { radius, spacing } from "../../constants/spacing";
 import { colors } from "../../constants/colors";
+import { deleteAdminPack } from "../../services/adminShopPackService";
 
 type PackKindFilter = "all" | "sticker" | "background";
 
@@ -64,6 +65,38 @@ const AdminPacksScreen = () => {
       }
     }, [user, isAdmin, loadPacks]),
   );
+
+  const handleDeletePack = (pack: ShopPack) => {
+    Alert.alert(
+      "팩 삭제",
+      `${pack.title} 팩을 삭제할까요?\n\n등록된 아이템도 함께 삭제돼요.`,
+      [
+        {
+          text: "취소",
+          style: "cancel",
+        },
+        {
+          text: "삭제",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteAdminPack(pack.id);
+              await loadPacks();
+
+              Alert.alert("삭제 완료", "팩이 삭제되었어요.");
+            } catch (error) {
+              Alert.alert(
+                "삭제 실패",
+                error instanceof Error
+                  ? error.message
+                  : "팩 삭제 중 오류가 발생했어요.",
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
 
   if (!isLoaded) {
     return (
@@ -131,7 +164,12 @@ const AdminPacksScreen = () => {
         <FlatList
           data={filteredPacks}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <AdminPackListItem pack={item} />}
+          renderItem={({ item }) => (
+            <AdminPackListItem
+              pack={item}
+              onDelete={() => handleDeletePack(item)}
+            />
+          )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
@@ -152,7 +190,13 @@ const AdminPacksScreen = () => {
 
 export default AdminPacksScreen;
 
-function AdminPackListItem({ pack }: { pack: ShopPack }) {
+function AdminPackListItem({
+  pack,
+  onDelete,
+}: {
+  pack: ShopPack;
+  onDelete: () => void;
+}) {
   const kindLabel = pack.kind === "sticker" ? "스티커" : "배경";
   const categoryLabel = categoryLabelMap[pack.category] ?? pack.category;
   const statusLabel =
@@ -161,6 +205,14 @@ function AdminPackListItem({ pack }: { pack: ShopPack }) {
   return (
     <View style={styles.packCard}>
       <IconButton
+        imageSource={require("../../../assets/icons/x.png")}
+        size={32}
+        iconSize={16}
+        variant="filled"
+        style={styles.deleteIconButton}
+        onPress={onDelete}
+      />
+      <IconButton
         imageSource={require("../../../assets/icons/pencil.png")}
         size={32}
         iconSize={16}
@@ -168,6 +220,7 @@ function AdminPackListItem({ pack }: { pack: ShopPack }) {
         style={styles.editIconButton}
         onPress={() => router.push(`/admin/pack-form?id=${pack.id}`)}
       />
+
       <View style={styles.packContentRow}>
         <View style={styles.thumbnailBox}>
           {pack.thumbnailSource ? (
@@ -287,6 +340,12 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   editIconButton: {
+    position: "absolute",
+    right: 50,
+    bottom: spacing.md,
+    zIndex: 1,
+  },
+  deleteIconButton: {
     position: "absolute",
     right: spacing.md,
     bottom: spacing.md,

@@ -1,4 +1,9 @@
 import { supabase } from "../lib/supabase";
+import {
+  deleteAdminAssets,
+  getPackAssetFolderPath,
+  listAdminAssetPaths,
+} from "./adminAssetUploadService";
 
 export type AdminPackKind = "sticker" | "background";
 export type AdminPackStatus = "free" | "priced";
@@ -83,6 +88,55 @@ export async function upsertAdminPackItem(params: UpsertAdminPackItemParams) {
 
   if (error) {
     throw new Error(`[shop_pack_items 저장 실패] ${error.message}`);
+  }
+}
+
+export async function deleteAdminPack(packId: string) {
+  const { data: pack, error: packFetchError } = await supabase
+    .from("shop_packs")
+    .select("kind, thumbnail_path")
+    .eq("id", packId)
+    .maybeSingle();
+
+  if (packFetchError) {
+    throw new Error(`[shop_packs 조회 실패] ${packFetchError.message}`);
+  }
+
+  const items = await fetchAdminPackItems(packId);
+  const packKind =
+    pack?.kind === "background" || pack?.kind === "sticker"
+      ? pack.kind
+      : null;
+  const storageFolderPaths = packKind
+    ? [
+        getPackAssetFolderPath({ kind: packKind, packId }),
+        `${getPackAssetFolderPath({ kind: packKind, packId })}/items`,
+      ]
+    : [];
+  const storagePaths = (
+    await Promise.all(storageFolderPaths.map((path) => listAdminAssetPaths(path)))
+  ).flat();
+  const assetPaths = [
+    pack?.thumbnail_path,
+    ...items.map((item) => item.image_path),
+    ...storagePaths,
+  ].filter((path): path is string => !!path);
+
+  await deleteAdminAssets(assetPaths);
+
+  const { error: itemsDeleteError } = await supabase
+    .from("shop_pack_items")
+    .delete()
+    .eq("pack_id", packId);
+
+  if (itemsDeleteError) {
+    throw new Error(`[shop_pack_items 삭제 실패] ${itemsDeleteError.message}`);
+  }
+
+  const { error } = await supabase.from("shop_packs").delete().eq("id", packId);
+
+  if (error) {
+    throw new Error(`[shop_packs 삭제 실패] ${error.message}`);
   }
 }
 

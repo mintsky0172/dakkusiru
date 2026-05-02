@@ -29,12 +29,50 @@ export async function uploadAdminAsset({
   return data.path;
 }
 
-export function getPackThumbnailPath(params: {
+export async function deleteAdminAssets(paths: string[]) {
+  const uniquePaths = [...new Set(paths.filter(Boolean))];
+
+  if (!uniquePaths.length) return;
+
+  const { error } = await supabase.storage
+    .from(ASSET_BUCKET)
+    .remove(uniquePaths);
+
+  if (error) {
+    throw new Error(`[dakku-assets 삭제 실패] ${error.message}`);
+  }
+}
+
+export async function listAdminAssetPaths(folderPath: string) {
+  const { data, error } = await supabase.storage
+    .from(ASSET_BUCKET)
+    .list(folderPath, {
+      limit: 1000,
+      offset: 0,
+    });
+
+  if (error) {
+    throw new Error(`[dakku-assets 목록 조회 실패] ${error.message}`);
+  }
+
+  return (data ?? [])
+    .filter((item) => item.id)
+    .map((item) => `${folderPath}/${item.name}`);
+}
+
+export function getPackAssetFolderPath(params: {
   kind: "sticker" | "background";
   packId: string;
 }) {
   const folder = params.kind === "sticker" ? "stickers" : "backgrounds";
-  return `packs/${folder}/${params.packId}/thumbnail.png`;
+  return `packs/${folder}/${params.packId}`;
+}
+
+export function getPackThumbnailPath(params: {
+  kind: "sticker" | "background";
+  packId: string;
+}) {
+  return `${getPackAssetFolderPath(params)}/thumbnail.png`;
 }
 
 export function getPackItemImagePath(params: {
@@ -42,6 +80,5 @@ export function getPackItemImagePath(params: {
   packId: string;
   itemId: string;
 }) {
-  const folder = params.kind === "sticker" ? "stickers" : "backgrounds";
-  return `packs/${folder}/${params.packId}/items/${params.itemId}.png`;
+  return `${getPackAssetFolderPath(params)}/items/${params.itemId}.png`;
 }
