@@ -13,10 +13,16 @@ import { usePurchaseStore } from "../../store/purchaseStore";
 import { resolvePacks } from "../../utils/shop";
 import { useCoinStore } from "../../store/coinStore";
 import { useShopPackStore } from "../../store/shopPackStore";
+import {
+  backgroundCategoryOptions,
+  packCategoryLabelMap,
+  stickerCategoryOptions,
+} from "../../constants/packCategories";
 
-type CategoryFilter = "all" | "sticker" | "background";
+type PackKindFilter = "all" | "sticker" | "background";
+type PackCategoryFilter = "all" | string;
 
-const categories: { label: string; value: CategoryFilter }[] = [
+const kindFilters: { label: string; value: PackKindFilter }[] = [
   { label: "전체", value: "all" },
   { label: "스티커", value: "sticker" },
   { label: "배경", value: "background" },
@@ -25,8 +31,9 @@ const categories: { label: string; value: CategoryFilter }[] = [
 const ShopScreen = () => {
   const balance = useCoinStore((state) => state.balance);
   const loadCoins = useCoinStore((state) => state.loadCoins);
+  const [selectedKind, setSelectedKind] = useState<PackKindFilter>("all");
   const [selectedCategory, setSelectedCategory] =
-    useState<CategoryFilter>("all");
+    useState<PackCategoryFilter>("all");
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
 
   const packs = useShopPackStore((state) => state.packs);
@@ -48,10 +55,25 @@ const ShopScreen = () => {
     return resolvePacks(packs, ownedPackIds);
   }, [packs, ownedPackIds]);
 
+  const categoryFilters = useMemo(() => {
+    if (selectedKind === "sticker") return stickerCategoryOptions;
+    if (selectedKind === "background") return backgroundCategoryOptions;
+    return [];
+  }, [selectedKind]);
+
   const filteredPacks = useMemo(() => {
-    if (selectedCategory === "all") return resolvedPacks;
-    return resolvedPacks.filter((pack) => pack.kind === selectedCategory);
-  }, [resolvedPacks, selectedCategory]);
+    return resolvedPacks.filter((pack) => {
+      if (selectedKind !== "all" && pack.kind !== selectedKind) return false;
+      if (
+        selectedKind !== "all" &&
+        selectedCategory !== "all" &&
+        pack.category !== selectedCategory
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [resolvedPacks, selectedCategory, selectedKind]);
 
   const handlePressCharge = () => {
     router.push("/coin");
@@ -110,16 +132,46 @@ const ShopScreen = () => {
             />
 
             <View style={styles.categoryRow}>
-              {categories.map((category) => (
+              {kindFilters.map((category) => (
                 <Chip
                   key={category.value}
                   label={category.label}
-                  selected={selectedCategory === category.value}
-                  onPress={() => setSelectedCategory(category.value)}
+                  selected={selectedKind === category.value}
+                  onPress={() => {
+                    setSelectedKind(category.value);
+                    setSelectedCategory("all");
+                  }}
                   style={styles.chip}
                 />
               ))}
             </View>
+
+            {selectedKind !== "all" ? (
+              <View style={styles.categoryFilterBox}>
+                <AppText variant="caption" style={styles.categoryFilterLabel}>
+                  카테고리
+                </AppText>
+                <View style={styles.categoryFilterRow}>
+                  <Chip
+                    label="전체 카테고리"
+                    selected={selectedCategory === "all"}
+                    onPress={() => setSelectedCategory("all")}
+                  />
+                  {categoryFilters.map((category) => (
+                    <Chip
+                      key={category}
+                      label={packCategoryLabelMap[category] ?? category}
+                      selected={selectedCategory === category}
+                      onPress={() => setSelectedCategory(category)}
+                    />
+                  ))}
+                </View>
+              </View>
+            ) : null}
+
+            <AppText variant="body" style={styles.packCountText}>
+              총 {filteredPacks.length}개의 팩
+            </AppText>
           </View>
         }
         ListEmptyComponent={
@@ -159,10 +211,25 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: spacing.sm,
     marginTop: spacing.lg,
-    marginBottom: spacing.lg,
   },
   chip: {
     marginRight: 0,
+  },
+  categoryFilterBox: {
+    marginTop: spacing.md,
+    gap: spacing.xs,
+  },
+  categoryFilterLabel: {
+    opacity: 0.8,
+  },
+  categoryFilterRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  packCountText: {
+    marginTop: spacing.lg,
+    marginBottom: spacing.lg,
   },
   cardWrapper: {
     width: "50%",
