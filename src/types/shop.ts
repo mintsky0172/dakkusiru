@@ -27,6 +27,7 @@ interface BasePack {
   thumbnailPath?: string;
   thumbnailSource?: any;
   isNew?: boolean;
+  isActive?: boolean;
   description?: string;
   tags?: string[];
 }
@@ -72,6 +73,7 @@ export interface RemoteShopPack {
   thumbnail_path?: string | null;
   description: string | null;
   is_new: boolean;
+  is_active?: boolean | null;
   shop_pack_items?: RemotePackItem[];
   tags?: string[] | null;
 }

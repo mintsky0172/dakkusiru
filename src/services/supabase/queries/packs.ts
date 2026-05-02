@@ -14,7 +14,10 @@ function isPackCreatedRecently(createdAt?: string | null) {
   return Date.now() - createdTime <= NEW_PACK_THRESHOLD_MS;
 }
 
-async function fetchShopPackRows(orderByLatest: boolean) {
+async function fetchShopPackRows(params: {
+  orderByLatest: boolean;
+  includeInactive?: boolean;
+}) {
   let query = supabase
     .from("shop_packs")
     .select(
@@ -22,10 +25,13 @@ async function fetchShopPackRows(orderByLatest: boolean) {
             *,
             shop_pack_items (*)
             `,
-    )
-    .eq("is_active", true);
+    );
 
-  query = orderByLatest
+  if (!params.includeInactive) {
+    query = query.eq("is_active", true);
+  }
+
+  query = params.orderByLatest
     ? query.order("updated_at", { ascending: false })
     : query.order("sort_order", { ascending: true });
 
@@ -35,11 +41,19 @@ async function fetchShopPackRows(orderByLatest: boolean) {
     });
 }
 
-export async function fetchShopPacksFromSupabase(): Promise<ShopPack[]> {
-  let { data, error } = await fetchShopPackRows(true);
+export async function fetchShopPacksFromSupabase(params?: {
+  includeInactive?: boolean;
+}): Promise<ShopPack[]> {
+  let { data, error } = await fetchShopPackRows({
+    orderByLatest: true,
+    includeInactive: params?.includeInactive,
+  });
 
   if (error) {
-    const fallbackResult = await fetchShopPackRows(false);
+    const fallbackResult = await fetchShopPackRows({
+      orderByLatest: false,
+      includeInactive: params?.includeInactive,
+    });
     data = fallbackResult.data;
     error = fallbackResult.error;
   }
@@ -60,6 +74,7 @@ export async function fetchShopPacksFromSupabase(): Promise<ShopPack[]> {
         ? { uri: getAssetPublicUrl(pack.thumbnail_path) }
         : undefined,
       isNew: isPackCreatedRecently(pack.created_at ?? pack.updated_at),
+      isActive: pack.is_active ?? true,
       description: pack.description ?? undefined,
       tags: pack.tags ?? [],
     };

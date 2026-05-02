@@ -27,6 +27,7 @@ export interface UpsertAdminPackParams {
   thumbnailPath?: string | null;
   description?: string | null;
   isNew?: boolean;
+  isActive?: boolean;
   sortOrder?: number;
   tags?: string[];
 }
@@ -66,7 +67,7 @@ export async function upsertAdminPack(params: UpsertAdminPackParams) {
     description: params.description ?? null,
     is_new: params.isNew ?? false,
     sort_order: params.sortOrder ?? 0,
-    is_active: true,
+    is_active: params.isActive ?? true,
     updated_at: new Date().toISOString(),
     tags: params.tags ?? [],
   });

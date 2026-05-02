@@ -5,6 +5,7 @@ import {
   TextInput,
   Image,
   Pressable,
+  Switch,
   View,
 } from "react-native";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -128,6 +129,7 @@ const AdminPackFormScreen = () => {
   const [category, setCategory] = useState("food");
   const [coinPrice, setCoinPrice] = useState("1000");
   const [description, setDescription] = useState("");
+  const [isActive, setIsActive] = useState(true);
   const [thumbnailBase64, setThumbnailBase64] = useState<string | null>(null);
   const [thumbnailPreviewUri, setThumbnailPreviewUri] = useState<string | null>(
     null,
@@ -182,7 +184,7 @@ const AdminPackFormScreen = () => {
 
   useEffect(() => {
     if (isEditMode) {
-      void loadPacks();
+      void loadPacks({ includeInactive: true });
     }
   }, [isEditMode, loadPacks]);
 
@@ -196,6 +198,7 @@ const AdminPackFormScreen = () => {
     setStatus(editingPack.status);
     setCoinPrice(String(editingPack.coinPrice ?? 1000));
     setDescription(editingPack.description ?? "");
+    setIsActive(editingPack.isActive ?? true);
     setTags(editingPack.tags ?? []);
     setExistingItems(editingPackItems);
     setExpandedExistingItemIds([]);
@@ -301,7 +304,7 @@ const AdminPackFormScreen = () => {
             setExpandedExistingItemIds((prev) =>
               prev.filter((id) => id !== item.id),
             );
-            await loadPacks();
+            await loadPacks({ includeInactive: true });
           } catch (error) {
             Alert.alert(
               "삭제 실패",
@@ -376,6 +379,7 @@ const AdminPackFormScreen = () => {
     setCategory("food");
     setCoinPrice("1000");
     setDescription("");
+    setIsActive(true);
     setThumbnailBase64(null);
     setThumbnailPreviewUri(null);
     setBatchItems([]);
@@ -498,6 +502,7 @@ const AdminPackFormScreen = () => {
         coinPrice: Number(coinPrice),
         thumbnailPath,
         description: description.trim() || null,
+        isActive,
         tags,
       });
 
@@ -779,6 +784,33 @@ const AdminPackFormScreen = () => {
             />
           </AdminFieldGroup>
         ) : null}
+
+        <AdminFieldGroup
+          label="활성화 여부"
+          description="비활성화하면 상점과 편집기 팩 목록에 노출되지 않아요."
+          style={styles.group}
+        >
+          <View style={styles.switchRow}>
+            <View style={styles.switchTextArea}>
+              <AppText variant="bodyStrong">
+                {isActive ? "활성화됨" : "비활성화됨"}
+              </AppText>
+              <AppText variant="caption" style={styles.switchDescription}>
+                기간 한정 팩을 내릴 때 비활성화하세요.
+              </AppText>
+            </View>
+            <Switch
+              value={isActive}
+              onValueChange={setIsActive}
+              disabled={isSaving}
+              trackColor={{
+                false: colors.background.subtle,
+                true: colors.accent.soft,
+              }}
+              thumbColor={isActive ? colors.accent.main : colors.border.light}
+            />
+          </View>
+        </AdminFieldGroup>
 
         <AdminFieldGroup
           label="썸네일"
@@ -1191,6 +1223,26 @@ const styles = StyleSheet.create({
   },
   dropdownItemTextSelected: {
     color: colors.accent.main,
+  },
+  switchRow: {
+    minHeight: 56,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.background.surface,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.md,
+  },
+  switchTextArea: {
+    flex: 1,
+    gap: 2,
+  },
+  switchDescription: {
+    color: colors.text.muted,
   },
   textarea: {
     minHeight: 96,

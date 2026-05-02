@@ -6,7 +6,7 @@ interface ShopPackStore {
   packs: ShopPack[];
   isLoading: boolean;
   errorMessage: string | null;
-  loadPacks: () => Promise<void>;
+  loadPacks: (params?: { includeInactive?: boolean }) => Promise<void>;
 }
 
 export const useShopPackStore = create<ShopPackStore>((set) => ({
@@ -14,11 +14,11 @@ export const useShopPackStore = create<ShopPackStore>((set) => ({
   isLoading: false,
   errorMessage: null,
 
-  loadPacks: async () => {
+  loadPacks: async (params) => {
     set({ isLoading: true, errorMessage: null });
 
     try {
-      const packs = await fetchShopPacksFromSupabase();
+      const packs = await fetchShopPacksFromSupabase(params);
       set({ packs, isLoading: false });
     } catch (error) {
       set({

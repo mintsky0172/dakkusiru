@@ -61,7 +61,7 @@ const AdminPacksScreen = () => {
   useFocusEffect(
     useCallback(() => {
       if (user && isAdmin) {
-        void loadPacks();
+        void loadPacks({ includeInactive: true });
       }
     }, [user, isAdmin, loadPacks]),
   );
@@ -81,7 +81,7 @@ const AdminPacksScreen = () => {
           onPress: async () => {
             try {
               await deleteAdminPack(pack.id);
-              await loadPacks();
+              await loadPacks({ includeInactive: true });
 
               Alert.alert("삭제 완료", "팩이 삭제되었어요.");
             } catch (error) {
@@ -155,7 +155,10 @@ const AdminPacksScreen = () => {
             {errorMessage}
           </AppText>
           <View style={styles.buttonWrapper}>
-            <AppButton label="다시 시도" onPress={() => void loadPacks()} />
+            <AppButton
+              label="다시 시도"
+              onPress={() => void loadPacks({ includeInactive: true })}
+            />
           </View>
         </View>
       ) : isLoading ? (
@@ -201,6 +204,7 @@ function AdminPackListItem({
   const categoryLabel = categoryLabelMap[pack.category] ?? pack.category;
   const statusLabel =
     pack.status === "free" ? "무료" : `${pack.coinPrice ?? 0}코인`;
+  const isInactive = pack.isActive === false;
 
   return (
     <View style={styles.packCard}>
@@ -246,6 +250,13 @@ function AdminPackListItem({
                 {kindLabel}
               </AppText>
             </View>
+            {isInactive ? (
+              <View style={[styles.badge, styles.inactiveBadge]}>
+                <AppText variant="small" style={styles.inactiveBadgeText}>
+                  비활성
+                </AppText>
+              </View>
+            ) : null}
           </View>
 
           <AppText variant="caption" style={styles.packMeta}>
@@ -335,6 +346,14 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     color: colors.text.secondary,
+  },
+  inactiveBadge: {
+    backgroundColor: colors.background.subtle,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+  },
+  inactiveBadgeText: {
+    color: colors.text.muted,
   },
   packMeta: {
     opacity: 0.8,
