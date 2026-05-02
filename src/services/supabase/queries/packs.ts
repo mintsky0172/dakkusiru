@@ -14,8 +14,8 @@ function isPackCreatedRecently(createdAt?: string | null) {
   return Date.now() - createdTime <= NEW_PACK_THRESHOLD_MS;
 }
 
-export async function fetchShopPacksFromSupabase(): Promise<ShopPack[]> {
-  const { data, error } = await supabase
+async function fetchShopPackRows(orderByLatest: boolean) {
+  let query = supabase
     .from("shop_packs")
     .select(
       `
@@ -23,12 +23,26 @@ export async function fetchShopPacksFromSupabase(): Promise<ShopPack[]> {
             shop_pack_items (*)
             `,
     )
-    .eq("is_active", true)
-    .order("updated_at", { ascending: false })
-    .order("sort_order", {
+    .eq("is_active", true);
+
+  query = orderByLatest
+    ? query.order("updated_at", { ascending: false })
+    : query.order("sort_order", { ascending: true });
+
+  return query.order("sort_order", {
       referencedTable: "shop_pack_items",
       ascending: true,
     });
+}
+
+export async function fetchShopPacksFromSupabase(): Promise<ShopPack[]> {
+  let { data, error } = await fetchShopPackRows(true);
+
+  if (error) {
+    const fallbackResult = await fetchShopPackRows(false);
+    data = fallbackResult.data;
+    error = fallbackResult.error;
+  }
 
   if (error) throw error;
 
@@ -41,6 +55,7 @@ export async function fetchShopPacksFromSupabase(): Promise<ShopPack[]> {
       status: pack.status,
       ownStatus: "not_owned" as const,
       coinPrice: pack.coin_price ?? undefined,
+      thumbnailPath: pack.thumbnail_path ?? undefined,
       thumbnailSource: pack.thumbnail_path
         ? { uri: getAssetPublicUrl(pack.thumbnail_path) }
         : undefined,
@@ -56,6 +71,7 @@ export async function fetchShopPacksFromSupabase(): Promise<ShopPack[]> {
         previewStickers: (pack.shop_pack_items ?? []).map((item: any) => ({
           id: item.id,
           name: item.name,
+          imagePath: item.image_path ?? null,
           imageSource: item.image_path
             ? { uri: getAssetPublicUrl(item.image_path) }
             : undefined,
@@ -69,6 +85,7 @@ export async function fetchShopPacksFromSupabase(): Promise<ShopPack[]> {
       previewBackgrounds: (pack.shop_pack_items ?? []).map((item: any) => ({
         id: item.id,
         name: item.name,
+        imagePath: item.image_path ?? null,
         imageSource: item.image_path
           ? { uri: getAssetPublicUrl(item.image_path) }
           : undefined,

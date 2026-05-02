@@ -1,14 +1,43 @@
-import { FlatList, StyleSheet, Text, View } from "react-native";
-import React, { use, useCallback } from "react";
+import { FlatList, Image, StyleSheet, View } from "react-native";
+import React, { useCallback, useMemo, useState } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { useShopPackStore } from "../../store/shopPackStore";
 import { router, useFocusEffect } from "expo-router";
 import { AppText } from "../../components/common/AppText";
 import Screen from "../../components/common/Screen";
 import AppButton from "../../components/common/AppButton";
+import IconButton from "../../components/common/IconButton";
+import Chip from "../../components/common/Chip";
 import { ShopPack } from "../../types/shop";
 import { radius, spacing } from "../../constants/spacing";
 import { colors } from "../../constants/colors";
+
+type PackKindFilter = "all" | "sticker" | "background";
+
+const kindFilters: { label: string; value: PackKindFilter }[] = [
+  { label: "전체", value: "all" },
+  { label: "스티커", value: "sticker" },
+  { label: "배경", value: "background" },
+];
+
+const categoryLabelMap: Record<string, string> = {
+  food: "음식",
+  character: "캐릭터",
+  deco: "데코",
+  memo: "메모",
+  chat: "말풍선/문구",
+  object: "소품",
+  nature: "자연/계절",
+  masking_tape: "마스킹테이프",
+  etc: "기타",
+  grid: "모눈",
+  check: "체크",
+  dot: "도트/패턴",
+  paper: "종이/노트",
+  color: "컬러/그라데이션",
+  room: "공간",
+  landscape: "풍경",
+};
 
 const AdminPacksScreen = () => {
   const user = useAuthStore((state) => state.user);
@@ -17,9 +46,16 @@ const AdminPacksScreen = () => {
 
   const packs = useShopPackStore((state) => state.packs);
   const isLoading = useShopPackStore((state) => state.isLoading);
+  const errorMessage = useShopPackStore((state) => state.errorMessage);
   const loadPacks = useShopPackStore((state) => state.loadPacks);
 
   const isAdmin = profile?.role === "admin";
+  const [selectedKind, setSelectedKind] = useState<PackKindFilter>("all");
+
+  const filteredPacks = useMemo(() => {
+    if (selectedKind === "all") return packs;
+    return packs.filter((pack) => pack.kind === selectedKind);
+  }, [packs, selectedKind]);
 
   useFocusEffect(
     useCallback(() => {
@@ -66,13 +102,34 @@ const AdminPacksScreen = () => {
             onPress={() => router.push("/admin/pack-form")}
           />
         </View>
+
+        <View style={styles.filterRow}>
+          {kindFilters.map((filter) => (
+            <Chip
+              key={filter.value}
+              label={filter.label}
+              selected={selectedKind === filter.value}
+              onPress={() => setSelectedKind(filter.value)}
+            />
+          ))}
+        </View>
       </View>
 
-      {isLoading ? (
+      {errorMessage ? (
+        <View style={styles.empty}>
+          <AppText variant="h3">팩 목록을 불러오지 못했어요</AppText>
+          <AppText variant="caption" style={styles.description}>
+            {errorMessage}
+          </AppText>
+          <View style={styles.buttonWrapper}>
+            <AppButton label="다시 시도" onPress={() => void loadPacks()} />
+          </View>
+        </View>
+      ) : isLoading ? (
         <AppText variant="body">팩 목록을 불러오는 중...</AppText>
       ) : (
         <FlatList
-          data={packs}
+          data={filteredPacks}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <AdminPackListItem pack={item} />}
           contentContainerStyle={styles.listContent}
@@ -81,7 +138,9 @@ const AdminPacksScreen = () => {
             <View style={styles.empty}>
               <AppText variant="h3">등록된 팩이 없어요</AppText>
               <AppText variant="caption" style={styles.description}>
-                새 팩을 먼저 등록해 보세요.
+                {selectedKind === "all"
+                  ? "새 팩을 먼저 등록해 보세요."
+                  : "선택한 종류의 팩이 없어요."}
               </AppText>
             </View>
           }
@@ -95,37 +154,55 @@ export default AdminPacksScreen;
 
 function AdminPackListItem({ pack }: { pack: ShopPack }) {
   const kindLabel = pack.kind === "sticker" ? "스티커" : "배경";
+  const categoryLabel = categoryLabelMap[pack.category] ?? pack.category;
   const statusLabel =
     pack.status === "free" ? "무료" : `${pack.coinPrice ?? 0}코인`;
 
   return (
     <View style={styles.packCard}>
-      <View style={styles.packHeader}>
-        <AppText variant="title" style={styles.packTitle}>
-          {pack.title}
-        </AppText>
+      <IconButton
+        imageSource={require("../../../assets/icons/pencil.png")}
+        size={32}
+        iconSize={16}
+        variant="filled"
+        style={styles.editIconButton}
+        onPress={() => router.push(`/admin/pack-form?id=${pack.id}`)}
+      />
+      <View style={styles.packContentRow}>
+        <View style={styles.thumbnailBox}>
+          {pack.thumbnailSource ? (
+            <Image
+              source={pack.thumbnailSource}
+              style={styles.thumbnailImage}
+            />
+          ) : (
+            <AppText variant="small" style={styles.thumbnailPlaceholderText}>
+              이미지 없음
+            </AppText>
+          )}
+        </View>
 
-        <View style={styles.badge}>
-          <AppText variant="small" style={styles.badgeText}>
-            {kindLabel}
+        <View style={styles.packInfo}>
+          <View style={styles.packHeader}>
+            <AppText variant="title" style={styles.packTitle}>
+              {pack.title}
+            </AppText>
+
+            <View style={styles.badge}>
+              <AppText variant="small" style={styles.badgeText}>
+                {kindLabel}
+              </AppText>
+            </View>
+          </View>
+
+          <AppText variant="caption" style={styles.packMeta}>
+            ID: {pack.id}
+          </AppText>
+
+          <AppText variant="caption" style={styles.packMeta}>
+            {categoryLabel} / {statusLabel}
           </AppText>
         </View>
-      </View>
-
-      <AppText variant="caption" style={styles.packMeta}>
-        ID: {pack.id}
-      </AppText>
-
-      <AppText variant="caption" style={styles.packMeta}>
-        {pack.category} / {statusLabel}
-      </AppText>
-
-      <View style={styles.cardButtonRow}>
-        <AppButton
-          label="수정"
-          variant="secondary"
-          onPress={() => router.push(`/admin/pack-form?id=${pack.id}`)}
-        />
       </View>
     </View>
   );
@@ -143,16 +220,50 @@ const styles = StyleSheet.create({
   buttonWrapper: {
     marginTop: spacing.md,
   },
+  filterRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+  },
   listContent: {
     paddingBottom: spacing.xxxl,
     gap: spacing.md,
   },
   packCard: {
+    position: "relative",
     padding: spacing.md,
+    paddingBottom: spacing.xl,
     borderRadius: radius.xl,
     backgroundColor: colors.card.background,
     borderWidth: 1,
     borderColor: colors.card.border,
+    gap: spacing.xs,
+  },
+  packContentRow: {
+    flexDirection: "row",
+    gap: spacing.md,
+  },
+  thumbnailBox: {
+    width: 88,
+    height: 88,
+    borderRadius: radius.lg,
+    backgroundColor: colors.background.subtle,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  thumbnailImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
+  thumbnailPlaceholderText: {
+    color: colors.text.muted,
+    textAlign: "center",
+  },
+  packInfo: {
+    flex: 1,
     gap: spacing.xs,
   },
   packHeader: {
@@ -175,10 +286,11 @@ const styles = StyleSheet.create({
   packMeta: {
     opacity: 0.8,
   },
-  cardButtonRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    marginTop: spacing.md,
+  editIconButton: {
+    position: "absolute",
+    right: spacing.md,
+    bottom: spacing.md,
+    zIndex: 1,
   },
   empty: {
     paddingVertical: spacing.xxxl,

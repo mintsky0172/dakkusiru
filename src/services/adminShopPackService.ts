@@ -3,6 +3,15 @@ import { supabase } from "../lib/supabase";
 export type AdminPackKind = "sticker" | "background";
 export type AdminPackStatus = "free" | "priced";
 
+export interface AdminPackItem {
+  id: string;
+  pack_id: string;
+  name: string;
+  image_path?: string | null;
+  background_color?: string | null;
+  sort_order: number;
+}
+
 export interface UpsertAdminPackParams {
   id: string;
   kind: AdminPackKind;
@@ -24,6 +33,20 @@ export interface UpsertAdminPackItemParams {
   imagePath?: string | null;
   backgroundColor: string | null;
   sortOrder?: number;
+}
+
+export async function fetchAdminPackItems(
+  packId: string,
+): Promise<AdminPackItem[]> {
+  const { data, error } = await supabase
+    .from("shop_pack_items")
+    .select("id, pack_id, name, image_path, background_color, sort_order")
+    .eq("pack_id", packId)
+    .order("sort_order", { ascending: true });
+
+  if (error) throw error;
+
+  return data ?? [];
 }
 
 export async function upsertAdminPack(params: UpsertAdminPackParams) {
@@ -61,4 +84,13 @@ export async function upsertAdminPackItem(params: UpsertAdminPackItemParams) {
   if (error) {
     throw new Error(`[shop_pack_items 저장 실패] ${error.message}`);
   }
+}
+
+export async function deleteAdminPackItem(itemId: string) {
+  const { error } = await supabase
+    .from("shop_pack_items")
+    .delete()
+    .eq("id", itemId);
+
+  if (error) throw error;
 }

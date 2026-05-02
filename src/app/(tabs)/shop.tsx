@@ -4,6 +4,7 @@ import { ShopPack } from "../../types/shop";
 import PackCard from "../../components/shop/PackCard";
 import Screen from "../../components/common/Screen";
 import { AppText } from "../../components/common/AppText";
+import AppButton from "../../components/common/AppButton";
 import CoinBalanceCard from "../../components/shop/CoinBalanceCard";
 import Chip from "../../components/common/Chip";
 import { spacing } from "../../constants/spacing";
@@ -29,6 +30,7 @@ const ShopScreen = () => {
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
 
   const packs = useShopPackStore((state) => state.packs);
+  const errorMessage = useShopPackStore((state) => state.errorMessage);
   const loadPacks = useShopPackStore((state) => state.loadPacks);
 
   const ownedPackIds = usePurchaseStore((state) => state.ownedPackIds);
@@ -122,10 +124,19 @@ const ShopScreen = () => {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <AppText variant="h3">조건에 맞는 팩이 없어요.</AppText>
-            <AppText variant="caption" style={styles.emptyDescription}>
-              다른 카테고리를 선택해 보세요.
+            <AppText variant="h3">
+              {errorMessage
+                ? "팩 목록을 불러오지 못했어요."
+                : "조건에 맞는 팩이 없어요."}
             </AppText>
+            <AppText variant="caption" style={styles.emptyDescription}>
+              {errorMessage ?? "다른 카테고리를 선택해 보세요."}
+            </AppText>
+            {errorMessage ? (
+              <View style={styles.retryButtonWrapper}>
+                <AppButton label="다시 시도" onPress={() => void loadPacks()} />
+              </View>
+            ) : null}
           </View>
         }
       />
@@ -170,5 +181,8 @@ const styles = StyleSheet.create({
   },
   emptyDescription: {
     marginTop: spacing.xs,
+  },
+  retryButtonWrapper: {
+    marginTop: spacing.md,
   },
 });

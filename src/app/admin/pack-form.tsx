@@ -7,17 +7,18 @@ import {
   Pressable,
   View,
 } from "react-native";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../../store/authStore";
 import Screen from "../../components/common/Screen";
 import { AppText } from "../../components/common/AppText";
 import AppButton from "../../components/common/AppButton";
 import IconButton from "../../components/common/IconButton";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import {
   AdminPackKind,
   AdminPackStatus,
+  deleteAdminPackItem,
   upsertAdminPack,
   upsertAdminPackItem,
 } from "../../services/adminShopPackService";
@@ -36,6 +37,7 @@ import {
   getDisplayNameFromItemId,
   normalizeItemId,
 } from "../../utils/adminItemName";
+import { useShopPackStore } from "../../store/shopPackStore";
 
 interface BatchAdminItem {
   localId: string;
@@ -50,6 +52,14 @@ interface SaveProgress {
   current: number;
   total: number;
   label: string;
+}
+
+interface ExistingPackItem {
+  id: string;
+  name: string;
+  imagePath?: string | null;
+  imageSource?: any;
+  backgroundColor?: string;
 }
 
 const categoryLabelMap: Record<string, string> = {
@@ -95,6 +105,10 @@ const backgroundCategoryOptions = [
 ];
 
 const AdminPackFormScreen = () => {
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const editPackId = typeof id === "string" ? id : undefined;
+  const isEditMode = !!editPackId;
+
   const tagInputRef = useRef<TextInput>(null);
 
   const user = useAuthStore((state) => state.user);
@@ -102,6 +116,10 @@ const AdminPackFormScreen = () => {
   const isLoaded = useAuthStore((state) => state.isLoaded);
 
   const isAdmin = profile?.role === "admin";
+
+  const packs = useShopPackStore((state) => state.packs);
+  const loadPacks = useShopPackStore((state) => state.loadPacks);
+  const isLoadingPacks = useShopPackStore((state) => state.isLoading);
 
   const [packId, setPackId] = useState("");
   const [title, setTitle] = useState("");
@@ -117,21 +135,14 @@ const AdminPackFormScreen = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [saveProgress, setSaveProgress] = useState<SaveProgress | null>(null);
 
-  const [itemId, setItemId] = useState("");
-  const [itemName, setItemName] = useState("");
-  const [itemSortOrder, setItemSortOrder] = useState("0");
-  const [itemBackgroundColor, setItemBackgroundColor] = useState("");
-  const [itemImageBase64, setItemImageBase64] = useState<string | null>(null);
-  const [itemImagePreviewUri, setItemImagePreviewUri] = useState<string | null>(
-    null,
-  );
-  const [isSavingItem, setIsSavingItem] = useState(false);
-
   const [batchItems, setBatchItems] = useState<BatchAdminItem[]>([]);
-  const [isSavingBatchItems, setIsSavingBatchItems] = useState(false);
   const [expandedBatchItemIds, setExpandedBatchItemIds] = useState<string[]>(
     [],
   );
+  const [existingItems, setExistingItems] = useState<ExistingPackItem[]>([]);
+  const [expandedExistingItemIds, setExpandedExistingItemIds] = useState<
+    string[]
+  >([]);
 
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
@@ -142,6 +153,53 @@ const AdminPackFormScreen = () => {
       ? stickerCategoryOptions
       : backgroundCategoryOptions;
   }, [kind]);
+
+  const editingPack = useMemo(() => {
+    if (!editPackId) return null;
+    return packs.find((pack) => pack.id === editPackId) ?? null;
+  }, [editPackId, packs]);
+
+  const editingPackItems = useMemo<ExistingPackItem[]>(() => {
+    if (!editingPack) return [];
+
+    if (editingPack.kind === "sticker") {
+      return editingPack.previewStickers.map((item) => ({
+        id: item.id,
+        name: item.name,
+        imagePath: item.imagePath,
+        imageSource: item.imageSource,
+      }));
+    }
+
+    return (editingPack.previewBackgrounds ?? []).map((item) => ({
+      id: item.id,
+      name: item.name,
+      imagePath: item.imagePath,
+      imageSource: item.imageSource,
+      backgroundColor: item.backgroundColor,
+    }));
+  }, [editingPack]);
+
+  useEffect(() => {
+    if (isEditMode) {
+      void loadPacks();
+    }
+  }, [isEditMode, loadPacks]);
+
+  useEffect(() => {
+    if (!editingPack) return;
+
+    setPackId(editingPack.id);
+    setTitle(editingPack.title);
+    setKind(editingPack.kind);
+    setCategory(editingPack.category);
+    setStatus(editingPack.status);
+    setCoinPrice(String(editingPack.coinPrice ?? 1000));
+    setDescription(editingPack.description ?? "");
+    setTags(editingPack.tags ?? []);
+    setExistingItems(editingPackItems);
+    setExpandedExistingItemIds([]);
+  }, [editingPack, editingPackItems]);
 
   const handlePickThumbnail = async () => {
     try {
@@ -211,6 +269,60 @@ const AdminPackFormScreen = () => {
     );
   };
 
+  const updateExistingItem = (
+    itemId: string,
+    patch: Partial<ExistingPackItem>,
+  ) => {
+    setExistingItems((prev) =>
+      prev.map((item) => (item.id === itemId ? { ...item, ...patch } : item)),
+    );
+  };
+
+  const toggleExistingItemDetail = (itemId: string) => {
+    setExpandedExistingItemIds((prev) =>
+      prev.includes(itemId)
+        ? prev.filter((id) => id !== itemId)
+        : [...prev, itemId],
+    );
+  };
+
+  const handleDeleteExistingItem = (item: ExistingPackItem) => {
+    Alert.alert("아이템 삭제", `${item.name} 아이템을 삭제할까요?`, [
+      { text: "취소", style: "cancel" },
+      {
+        text: "삭제",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteAdminPackItem(item.id);
+            setExistingItems((prev) =>
+              prev.filter((current) => current.id !== item.id),
+            );
+            setExpandedExistingItemIds((prev) =>
+              prev.filter((id) => id !== item.id),
+            );
+            await loadPacks();
+          } catch (error) {
+            Alert.alert(
+              "삭제 실패",
+              error instanceof Error
+                ? error.message
+                : "아이템 삭제 중 오류가 발생했어요.",
+            );
+          }
+        },
+      },
+    ]);
+  };
+
+  const currentThumbnailUri =
+    thumbnailPreviewUri ??
+    (editingPack?.thumbnailSource &&
+    typeof editingPack.thumbnailSource === "object" &&
+    "uri" in editingPack.thumbnailSource
+      ? editingPack.thumbnailSource.uri
+      : null);
+
   const handleAddTag = () => {
     const nextTags = tagInput
       .split(",")
@@ -268,6 +380,8 @@ const AdminPackFormScreen = () => {
     setThumbnailPreviewUri(null);
     setBatchItems([]);
     setExpandedBatchItemIds([]);
+    setExistingItems([]);
+    setExpandedExistingItemIds([]);
     setTagInput("");
     setTags([]);
     setIsCategoryDropdownOpen(false);
@@ -310,6 +424,24 @@ const AdminPackFormScreen = () => {
     }
   };
 
+  const saveExistingItemsForPack = async (
+    targetPackId: string,
+    updateProgress: (label: string) => void,
+  ) => {
+    for (const [index, item] of existingItems.entries()) {
+      updateProgress(`${index + 1}번째 기존 아이템 정보 저장 중`);
+      await upsertAdminPackItem({
+        id: item.id,
+        packId: targetPackId,
+        name: item.name.trim() || item.id,
+        imagePath: item.imagePath ?? null,
+        backgroundColor:
+          kind === "background" ? item.backgroundColor?.trim() || null : null,
+        sortOrder: index,
+      });
+    }
+  };
+
   const handleSavePack = async () => {
     if (!packId.trim() || !title.trim()) {
       Alert.alert("입력 필요", "팩 ID와 제목은 꼭 입력해 주세요.");
@@ -317,7 +449,11 @@ const AdminPackFormScreen = () => {
     }
 
     const targetPackId = packId.trim();
-    const totalSteps = (thumbnailBase64 ? 1 : 0) + 1 + batchItems.length * 2;
+    const totalSteps =
+      (thumbnailBase64 ? 1 : 0) +
+      1 +
+      (isEditMode ? existingItems.length : 0) +
+      batchItems.length * 2;
     let currentStep = 0;
     const updateProgress = (label: string) => {
       currentStep += 1;
@@ -336,7 +472,7 @@ const AdminPackFormScreen = () => {
     });
 
     try {
-      let thumbnailPath: string | null = null;
+      let thumbnailPath: string | null = editingPack?.thumbnailPath ?? null;
 
       if (thumbnailBase64) {
         thumbnailPath = getPackThumbnailPath({
@@ -365,6 +501,10 @@ const AdminPackFormScreen = () => {
         tags,
       });
 
+      if (isEditMode && existingItems.length > 0) {
+        await saveExistingItemsForPack(targetPackId, updateProgress);
+      }
+
       if (batchItems.length > 0) {
         await saveBatchItemsForPack(targetPackId, updateProgress);
         Alert.alert(
@@ -375,7 +515,10 @@ const AdminPackFormScreen = () => {
         return;
       }
 
-      Alert.alert("저장 완료", "팩이 저장되었어요.");
+      Alert.alert(
+        isEditMode ? "수정 완료" : "저장 완료",
+        isEditMode ? "팩 정보가 수정되었어요." : "팩이 저장되었어요.",
+      );
       resetPackForm();
     } catch (error) {
       Alert.alert(
@@ -419,6 +562,30 @@ const AdminPackFormScreen = () => {
     );
   }
 
+  if (isEditMode && isLoadingPacks) {
+    return (
+      <Screen>
+        <AppText variant="body">팩 정보를 불러오는 중...</AppText>
+      </Screen>
+    );
+  }
+
+  if (isEditMode && !isLoadingPacks && !editingPack) {
+    return (
+      <Screen>
+        <View style={styles.center}>
+          <AppText variant="h2">팩을 찾을 수 없어요</AppText>
+          <View style={styles.buttonWrapper}>
+            <AppButton
+              label="팩 관리로 돌아가기"
+              onPress={() => router.replace("/admin/packs")}
+            />
+          </View>
+        </View>
+      </Screen>
+    );
+  }
+
   return (
     <Screen>
       <ScrollView
@@ -440,18 +607,20 @@ const AdminPackFormScreen = () => {
               color={colors.text.primary}
             />
           </Pressable>
-          <AppText variant="h1">팩 등록</AppText>
+          <AppText variant="h1">{isEditMode ? "팩 수정" : "팩 등록"} </AppText>
         </View>
 
         <AdminFieldGroup label="기본 정보" style={styles.group}>
+          <AppText variant="caption">ID</AppText>
           <TextInput
             value={packId}
             onChangeText={setPackId}
             placeholder="팩 ID(예: breakfast-pack)"
             placeholderTextColor={colors.text.muted}
             autoCapitalize="none"
-            style={styles.input}
+            style={[styles.input, isEditMode && styles.disabledInput]}
           />
+          <AppText variant="caption">제목</AppText>
           <TextInput
             value={title}
             onChangeText={setTitle}
@@ -459,6 +628,7 @@ const AdminPackFormScreen = () => {
             placeholderTextColor={colors.text.muted}
             style={styles.input}
           />
+          <AppText variant="caption">설명</AppText>
           <TextInput
             value={description}
             onChangeText={setDescription}
@@ -616,18 +786,18 @@ const AdminPackFormScreen = () => {
           style={styles.group}
         >
           <AppButton
-            label={thumbnailPreviewUri ? "썸네일 다시 선택" : "썸네일 선택"}
+            label={currentThumbnailUri ? "썸네일 다시 선택" : "썸네일 선택"}
             variant="secondary"
             onPress={handlePickThumbnail}
           />
 
-          {thumbnailPreviewUri ? (
+          {currentThumbnailUri ? (
             <View style={styles.thumbnailPreviewCard}>
               <AppText variant="caption" style={styles.previewLabel}>
                 선택된 썸네일
               </AppText>
               <Image
-                source={{ uri: thumbnailPreviewUri }}
+                source={{ uri: currentThumbnailUri }}
                 style={styles.thumbnailPreviewImage}
               />
             </View>
@@ -636,7 +806,11 @@ const AdminPackFormScreen = () => {
 
         <AdminFieldGroup
           label="아이템 등록"
-          description=" 현재 등록할 팩을 구성하는 아이템을 추가해 주세요."
+          description={
+            isEditMode
+              ? "기존 아이템을 확인하고, 필요한 이미지를 추가로 등록해 주세요."
+              : "현재 등록할 팩을 구성하는 아이템을 추가해 주세요."
+          }
           style={styles.group}
         >
           <AppButton
@@ -651,6 +825,124 @@ const AdminPackFormScreen = () => {
             </AppText>
           ) : null}
         </AdminFieldGroup>
+
+        {isEditMode ? (
+          <AdminFieldGroup
+            label="포함된 아이템"
+            description="현재 이 팩에 등록된 아이템이에요."
+            style={styles.group}
+          >
+            {existingItems.length > 0 ? (
+              <View style={styles.batchGrid}>
+                {existingItems.map((item, index) => {
+                  const isDetailExpanded = expandedExistingItemIds.includes(
+                    item.id,
+                  );
+
+                  return (
+                    <View key={item.id} style={styles.batchItemCard}>
+                      <AppText variant="bodyStrong">#{index + 1}</AppText>
+
+                      <IconButton
+                        imageSource={require("../../../assets/icons/pencil.png")}
+                        size={20}
+                        iconSize={10}
+                        variant={isDetailExpanded ? "filledPinkSoft" : "filled"}
+                        style={styles.batchEditButton}
+                        disabled={isSaving}
+                        onPress={() => toggleExistingItemDetail(item.id)}
+                      />
+                      <IconButton
+                        imageSource={require("../../../assets/icons/x.png")}
+                        size={20}
+                        iconSize={8}
+                        variant="filled"
+                        style={styles.batchRemoveButton}
+                        disabled={isSaving}
+                        onPress={() => handleDeleteExistingItem(item)}
+                      />
+
+                      <View style={styles.itemPreviewWrapper}>
+                        {item.imageSource ? (
+                          <Image
+                            source={item.imageSource}
+                            style={styles.itemPreviewImage}
+                          />
+                        ) : (
+                          <View
+                            style={[
+                              styles.itemPreviewImage,
+                              styles.existingItemFallback,
+                              item.backgroundColor
+                                ? { backgroundColor: item.backgroundColor }
+                                : null,
+                            ]}
+                          >
+                            <AppText
+                              variant="small"
+                              style={styles.existingItemFallbackText}
+                            >
+                              이미지 없음
+                            </AppText>
+                          </View>
+                        )}
+                      </View>
+
+                      <AppText variant="caption">아이템 이름</AppText>
+                      {isDetailExpanded ? (
+                        <TextInput
+                          value={item.name}
+                          onChangeText={(value) =>
+                            updateExistingItem(item.id, { name: value })
+                          }
+                          placeholder="아이템 이름"
+                          placeholderTextColor={colors.text.muted}
+                          style={styles.input}
+                        />
+                      ) : (
+                        <AppText
+                          variant="bodyStrong"
+                          style={styles.existingItemName}
+                        >
+                          {item.name}
+                        </AppText>
+                      )}
+
+                      <View style={styles.batchDetailArea}>
+                        <AppText variant="caption">아이템 ID</AppText>
+                        <AppText variant="caption" style={styles.existingItemId}>
+                          {item.id}
+                        </AppText>
+
+                        {isDetailExpanded && kind === "background" ? (
+                          <>
+                            <AppText variant="caption">배경색</AppText>
+                            <TextInput
+                              value={item.backgroundColor ?? ""}
+                              onChangeText={(value) =>
+                                updateExistingItem(item.id, {
+                                  backgroundColor: value,
+                                })
+                              }
+                              placeholder="#FFF5E3"
+                              placeholderTextColor={colors.text.muted}
+                              autoCapitalize="none"
+                              style={styles.input}
+                            />
+                          </>
+                        ) : null}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            ) : (
+              <AppText variant="caption" style={styles.emptyTagText}>
+                아직 등록된 아이템이 없어요.
+              </AppText>
+            )}
+          </AdminFieldGroup>
+        ) : null}
 
         {batchItems.length > 0 ? (
           <View style={styles.batchGrid}>
@@ -974,6 +1266,21 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     resizeMode: "contain",
   },
+  existingItemFallback: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.background.subtle,
+  },
+  existingItemFallbackText: {
+    color: colors.text.muted,
+    textAlign: "center",
+  },
+  existingItemName: {
+    color: colors.text.primary,
+  },
+  existingItemId: {
+    color: colors.text.secondary,
+  },
   previewLabel: {
     opacity: 0.8,
   },
@@ -1007,5 +1314,12 @@ const styles = StyleSheet.create({
     height: "100%",
     borderRadius: radius.round,
     backgroundColor: colors.accent.main,
+  },
+  disabledInput: {
+    opacity: 0.6,
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
   },
 });

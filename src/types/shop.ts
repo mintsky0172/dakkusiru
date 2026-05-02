@@ -5,12 +5,14 @@ export type PackKind = "sticker" | "background";
 export interface PackPreviewSticker {
   id: string;
   name: string;
+  imagePath?: string | null;
   imageSource?: any;
 }
 
 export interface PackPreviewBackground {
   id: string;
   name: string;
+  imagePath?: string | null;
   imageSource?: any;
   backgroundColor?: string;
 }
@@ -22,6 +24,7 @@ interface BasePack {
   status: PackStatus;
   ownStatus: PackOwnStatus;
   coinPrice?: string;
+  thumbnailPath?: string;
   thumbnailSource?: any;
   isNew?: boolean;
   description?: string;
@@ -57,7 +60,6 @@ export interface RemotePackItem {
   name: string;
   image_path?: string | null;
   background_color?: string | null;
-  sort_order: number;
 }
 
 export interface RemoteShopPack {
@@ -70,7 +72,6 @@ export interface RemoteShopPack {
   thumbnail_path?: string | null;
   description: string | null;
   is_new: boolean;
-  sort_order: number;
   shop_pack_items?: RemotePackItem[];
   tags?: string[] | null;
 }

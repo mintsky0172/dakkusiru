@@ -374,7 +374,8 @@ const styles = StyleSheet.create({
   previewGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
+    gap: spacing.sm
   },
   emptyPreview: {
     backgroundColor: colors.card.background,
