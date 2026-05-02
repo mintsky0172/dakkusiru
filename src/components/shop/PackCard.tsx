@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   },
   thumbnailWrapper: {
     width: "100%",
-    aspectRatio: 1.18,
+    aspectRatio: 1,
     borderRadius: radius.lg,
     overflow: "hidden",
     backgroundColor: colors.background.subtle,
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   },
   ownedBadge: {
     backgroundColor: "#E7F1E1",
-    paddingHorizontal: 7 
+    paddingHorizontal: 7,
   },
   ownedBadgeText: {
     color: colors.state.success,
