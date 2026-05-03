@@ -24,6 +24,7 @@ import {
   stickerCategoryOptions,
 } from "../../constants/packCategories";
 import { deleteAdminPack } from "../../services/adminShopPackService";
+import { Ionicons } from "@expo/vector-icons";
 
 type PackKindFilter = "all" | "sticker" | "background";
 type PackActiveFilter = "all" | "active" | "inactive";
@@ -151,10 +152,26 @@ const AdminPacksScreen = () => {
   return (
     <Screen>
       <View style={styles.header}>
-        <AppText variant="h1">팩 관리</AppText>
-        <AppText variant="caption" style={styles.description}>
-          등록된 스티커팩/배경팩을 확인해요.
-        </AppText>
+        <View style={styles.headerRow}>
+          <Pressable
+            onPress={() => router.replace('/admin')}
+            style={({ pressed }) => [
+              styles.backButton,
+              pressed && styles.backButtonPressed,
+            ]}
+            hitSlop={8}
+          >
+            <Ionicons
+              name="chevron-back"
+              size={24}
+              color={colors.text.primary}
+            />
+          </Pressable>
+          <AppText variant="h1">팩 관리</AppText>
+          <AppText variant="caption" style={styles.description}>
+            등록된 스티커팩/배경팩을 확인해요.
+          </AppText>
+        </View>
 
         <View style={styles.buttonWrapper}>
           <AppButton
@@ -251,7 +268,9 @@ const AdminPacksScreen = () => {
         <AppText variant="body">팩 목록을 불러오는 중...</AppText>
       ) : (
         <>
-          <AppText variant="body" style={{marginBottom: spacing.sm}}>총 {filteredPacks.length}개의 팩</AppText>
+          <AppText variant="body" style={{ marginBottom: spacing.sm }}>
+            총 {filteredPacks.length}개의 팩
+          </AppText>
           <FlatList
             data={filteredPacks}
             keyExtractor={(item) => item.id}
@@ -370,6 +389,22 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: spacing.md,
     marginBottom: spacing.lg,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  backButtonPressed: {
+    opacity: 0.7,
   },
   description: {
     marginTop: spacing.xs,

@@ -1,4 +1,4 @@
-import { StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import React from "react";
 import { useAuthStore } from "../../store/authStore";
 import Screen from "../../components/common/Screen";
@@ -7,6 +7,7 @@ import AppButton from "../../components/common/AppButton";
 import { router } from "expo-router";
 import { radius, spacing } from "../../constants/spacing";
 import { colors } from "../../constants/colors";
+import { Ionicons } from "@expo/vector-icons";
 
 const AdminHomeScreen = () => {
   const user = useAuthStore((state) => state.user);
@@ -58,10 +59,23 @@ const AdminHomeScreen = () => {
   return (
     <Screen>
       <View style={styles.header}>
-        <AppText variant="h1">관리자</AppText>
-        <AppText variant="caption" style={styles.description}>
-          다꾸시루 팩과 에셋을 관리해요.
-        </AppText>
+        <View style={styles.headerRow}>
+          <Pressable
+            onPress={() => router.replace("/mypage")}
+            style={({ pressed }) => [
+              styles.backButton,
+              pressed && styles.backButtonPressed,
+            ]}
+            hitSlop={8}
+          >
+            <Ionicons
+              name="chevron-back"
+              size={24}
+              color={colors.text.primary}
+            />
+          </Pressable>
+          <AppText variant="h1">관리자</AppText>
+        </View>
       </View>
 
       <View style={styles.menuList}>
@@ -115,6 +129,22 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: spacing.md,
     marginBottom: spacing.xl,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  backButtonPressed: {
+    opacity: 0.7,
   },
   description: {
     marginTop: spacing.xs,
