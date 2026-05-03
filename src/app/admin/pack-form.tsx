@@ -318,9 +318,6 @@ const AdminPackFormScreen = () => {
       return mergedTags;
     });
     setTagInput("");
-    requestAnimationFrame(() => {
-      tagInputRef.current?.focus();
-    });
   };
 
   const handleRemoveTag = (targetTag: string) => {
@@ -668,6 +665,7 @@ const AdminPackFormScreen = () => {
             placeholder="팩 ID(예: breakfast-pack)"
             placeholderTextColor={colors.text.muted}
             autoCapitalize="none"
+            blurOnSubmit={false}
             style={[styles.input, isEditMode && styles.disabledInput]}
           />
           <AppText variant="caption">제목</AppText>
@@ -676,6 +674,7 @@ const AdminPackFormScreen = () => {
             onChangeText={setTitle}
             placeholder="팩 제목(예: 아침식사팩)"
             placeholderTextColor={colors.text.muted}
+            blurOnSubmit={false}
             style={styles.input}
           />
           <AppText variant="caption">설명</AppText>
@@ -974,6 +973,7 @@ const AdminPackFormScreen = () => {
                           }
                           placeholder="아이템 이름"
                           placeholderTextColor={colors.text.muted}
+                          blurOnSubmit={false}
                           onFocus={scrollToItemInputs}
                           style={styles.input}
                         />
@@ -1005,6 +1005,7 @@ const AdminPackFormScreen = () => {
                               placeholder="#FFF5E3"
                               placeholderTextColor={colors.text.muted}
                               autoCapitalize="none"
+                              blurOnSubmit={false}
                               onFocus={scrollToItemInputs}
                               style={styles.input}
                             />
@@ -1070,6 +1071,7 @@ const AdminPackFormScreen = () => {
                     }
                     placeholder="아이템 이름"
                     placeholderTextColor={colors.text.muted}
+                    blurOnSubmit={false}
                     onFocus={scrollToItemInputs}
                     style={styles.input}
                   />
@@ -1085,6 +1087,7 @@ const AdminPackFormScreen = () => {
                         placeholder="아이템 ID"
                         placeholderTextColor={colors.text.muted}
                         autoCapitalize="none"
+                        blurOnSubmit={false}
                         onFocus={scrollToItemInputs}
                         style={styles.input}
                       />
@@ -1102,6 +1105,7 @@ const AdminPackFormScreen = () => {
                             placeholder="#FFF5E3"
                             placeholderTextColor={colors.text.muted}
                             autoCapitalize="none"
+                            blurOnSubmit={false}
                             onFocus={scrollToItemInputs}
                             style={styles.input}
                           />
