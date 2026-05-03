@@ -1,9 +1,12 @@
 import {
   Alert,
+  findNodeHandle,
+  KeyboardAvoidingView,
   ScrollView,
   StyleSheet,
   TextInput,
   Image,
+  Platform,
   Pressable,
   Switch,
   View,
@@ -74,6 +77,7 @@ const AdminPackFormScreen = () => {
   const isEditMode = !!editPackId;
 
   const tagInputRef = useRef<TextInput>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const user = useAuthStore((state) => state.user);
   const profile = useAuthStore((state) => state.profile);
@@ -334,6 +338,50 @@ const AdminPackFormScreen = () => {
     setIsCategoryDropdownOpen(false);
   };
 
+  const scrollFocusedInputAboveKeyboard = () => {
+    const scrollResponder = (
+      scrollViewRef.current as unknown as {
+        getScrollResponder?: () => {
+          scrollResponderScrollNativeHandleToKeyboard?: (
+            nodeHandle: number,
+            extraHeight: number,
+            preventNegativeScrollOffset: boolean,
+          ) => void;
+        };
+      }
+    )?.getScrollResponder?.();
+    const focusedInput = (
+      TextInput as unknown as {
+        State?: {
+          currentlyFocusedInput?: () => unknown;
+          currentlyFocusedField?: () => number | null;
+        };
+      }
+    ).State;
+    const focusedNode =
+      focusedInput?.currentlyFocusedInput?.() ??
+      focusedInput?.currentlyFocusedField?.();
+    const nodeHandle =
+      typeof focusedNode === "number"
+        ? focusedNode
+        : findNodeHandle(focusedNode as React.Component | null);
+
+    if (!nodeHandle) return;
+
+    scrollResponder?.scrollResponderScrollNativeHandleToKeyboard?.(
+      nodeHandle,
+      120,
+      true,
+    );
+  };
+
+  const scrollToItemInputs = () => {
+    setTimeout(scrollFocusedInputAboveKeyboard, 80);
+    setTimeout(() => {
+      scrollFocusedInputAboveKeyboard();
+    }, 320);
+  };
+
   const resetPackForm = () => {
     setPackId("");
     setTitle("");
@@ -578,29 +626,41 @@ const AdminPackFormScreen = () => {
 
   return (
     <Screen>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.content}
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoiding}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.headerRow}>
-          <Pressable
-            onPress={() => router.back()}
-            style={({ pressed }) => [
-              styles.backButton,
-              pressed && styles.backButtonPressed,
-            ]}
-            hitSlop={8}
-          >
-            <Ionicons
-              name="chevron-back"
-              size={24}
-              color={colors.text.primary}
-            />
-          </Pressable>
-          <AppText variant="h1">{isEditMode ? "팩 수정" : "팩 등록"} </AppText>
-        </View>
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.content}
+          contentInsetAdjustmentBehavior="automatic"
+          keyboardDismissMode="interactive"
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+        >
+          <View style={styles.headerRow}>
+            <Pressable
+              onPress={() => router.back()}
+              style={({ pressed }) => [
+                styles.backButton,
+                pressed && styles.backButtonPressed,
+              ]}
+              hitSlop={8}
+            >
+              <Ionicons
+                name="chevron-back"
+                size={24}
+                color={colors.text.primary}
+              />
+            </Pressable>
+            <AppText variant="h1">
+              {isEditMode ? "팩 수정" : "팩 등록"}{" "}
+            </AppText>
+          </View>
 
-        <AdminFieldGroup label="기본 정보" style={styles.group}>
+          <AdminFieldGroup label="기본 정보" style={styles.group}>
           <AppText variant="caption">ID</AppText>
           <TextInput
             value={packId}
@@ -914,6 +974,7 @@ const AdminPackFormScreen = () => {
                           }
                           placeholder="아이템 이름"
                           placeholderTextColor={colors.text.muted}
+                          onFocus={scrollToItemInputs}
                           style={styles.input}
                         />
                       ) : (
@@ -944,6 +1005,7 @@ const AdminPackFormScreen = () => {
                               placeholder="#FFF5E3"
                               placeholderTextColor={colors.text.muted}
                               autoCapitalize="none"
+                              onFocus={scrollToItemInputs}
                               style={styles.input}
                             />
                           </>
@@ -1008,6 +1070,7 @@ const AdminPackFormScreen = () => {
                     }
                     placeholder="아이템 이름"
                     placeholderTextColor={colors.text.muted}
+                    onFocus={scrollToItemInputs}
                     style={styles.input}
                   />
 
@@ -1022,6 +1085,7 @@ const AdminPackFormScreen = () => {
                         placeholder="아이템 ID"
                         placeholderTextColor={colors.text.muted}
                         autoCapitalize="none"
+                        onFocus={scrollToItemInputs}
                         style={styles.input}
                       />
 
@@ -1038,6 +1102,7 @@ const AdminPackFormScreen = () => {
                             placeholder="#FFF5E3"
                             placeholderTextColor={colors.text.muted}
                             autoCapitalize="none"
+                            onFocus={scrollToItemInputs}
                             style={styles.input}
                           />
                         </>
@@ -1088,7 +1153,8 @@ const AdminPackFormScreen = () => {
             </View>
           </View>
         ) : null}
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Screen>
   );
 };
@@ -1096,8 +1162,14 @@ const AdminPackFormScreen = () => {
 export default AdminPackFormScreen;
 
 const styles = StyleSheet.create({
+  keyboardAvoiding: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
   content: {
-    paddingBottom: spacing.xxxl,
+    paddingBottom: spacing.xxxl + 360,
   },
   headerRow: {
     flexDirection: "row",
