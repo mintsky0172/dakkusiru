@@ -1,6 +1,5 @@
 import { ScrollView, StyleSheet, View } from "react-native";
 import React, { useEffect, useMemo, useState } from "react";
-import { mockPacks } from "../../mocks/shop";
 import SimpleBottomSheet from "../common/SimpleBottomSheet";
 import BottomSheetHeader from "../common/BottomSheetHeader";
 import IconButton from "../common/IconButton";
@@ -12,6 +11,7 @@ import { spacing } from "../../constants/spacing";
 import { resolvePacks } from "../../utils/shop";
 import { StickerPack } from "../../types/shop";
 import { usePurchaseStore } from "../../store/purchaseStore";
+import { useShopPackStore } from "../../store/shopPackStore";
 
 type CategoryFilter = "all" | StickerPack["category"];
 
@@ -50,20 +50,25 @@ const StickerPanelSheet = ({
   const ownedPackIds = usePurchaseStore((state) => state.ownedPackIds);
   const isLoaded = usePurchaseStore((state) => state.isLoaded);
   const loadOwnedPackIds = usePurchaseStore((state) => state.loadOwnedPackIds);
+  const packs = useShopPackStore((state) => state.packs);
+  const loadPacks = useShopPackStore((state) => state.loadPacks);
 
   useEffect(() => {
-    if (!visible || isLoaded) return;
+    if (!visible) return;
 
-    void loadOwnedPackIds();
-  }, [isLoaded, loadOwnedPackIds, visible]);
+    if (!isLoaded) {
+      void loadOwnedPackIds();
+    }
+    void loadPacks();
+  }, [isLoaded, loadOwnedPackIds, loadPacks, visible]);
 
   const ownedStickerPacks = useMemo(
     () =>
-      resolvePacks(mockPacks, ownedPackIds).filter(
+      resolvePacks(packs, ownedPackIds).filter(
         (pack): pack is StickerPack =>
           pack.kind === "sticker" && pack.ownStatus === "owned",
       ),
-    [ownedPackIds],
+    [ownedPackIds, packs],
   );
 
   const filteredPacks = useMemo(() => {

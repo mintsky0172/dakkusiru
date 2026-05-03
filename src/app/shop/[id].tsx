@@ -50,9 +50,15 @@ const PackDetailScreen = () => {
   const handlePrimaryAction = async () => {
     if (!pack) return;
 
-    if (pack.ownStatus === "owned" || pack.status === "free") {
+    if (pack.ownStatus === "owned") {
       Alert.alert("이 팩 사용하기:", pack.id);
       // TODO: 나중엔 editor 쪽으로 연결
+      return;
+    }
+
+    if (pack.status === "free") {
+      await markPackAsOwned(pack.id);
+      Alert.alert("다운로드 완료", `${pack.title}을 사용할 수 있어요!`);
       return;
     }
 
@@ -115,7 +121,7 @@ const PackDetailScreen = () => {
     pack.ownStatus === "owned"
       ? "사용하기"
       : pack.status === "free"
-        ? "무료로 받기"
+        ? "다운받기"
         : `${pack.coinPrice?.toLocaleString() ?? 0}코인으로 구매하기`;
 
   return (

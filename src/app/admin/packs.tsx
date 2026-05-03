@@ -159,7 +159,7 @@ const AdminPacksScreen = () => {
         <View style={styles.buttonWrapper}>
           <AppButton
             label="새 팩 등록"
-            onPress={() => router.push("/admin/pack-form")}
+            onPress={() => router.replace("/admin/pack-form")}
           />
         </View>
 

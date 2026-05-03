@@ -4,7 +4,6 @@ export function resolvePackOwnStatus(
   pack: ShopPack,
   ownedPackIds: string[],
 ): PackOwnStatus {
-  if (pack.status === "free") return "owned";
   return ownedPackIds.includes(pack.id) ? "owned" : "not_owned";
 }
 
@@ -29,7 +28,7 @@ export function getPackBadgeLabel(pack: ShopPack) {
 }
 
 export function getPackActionLabel(pack: ShopPack) {
-  if (pack.status === "free") return "사용하기";
   if (pack.ownStatus === "owned") return "사용하기";
+  if (pack.status === "free") return "다운받기";
   return `${pack.coinPrice?.toLocaleString() ?? 0}코인으로 구매하기`;
 }

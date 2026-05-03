@@ -1,7 +1,6 @@
 import { ScrollView, StyleSheet, View } from "react-native";
 import React, { useEffect, useMemo, useState } from "react";
 import { BackgroundItem } from "../../types/backgroundPanel";
-import { mockPacks } from "../../mocks/shop";
 import SimpleBottomSheet from "../common/SimpleBottomSheet";
 import BottomSheetHeader from "../common/BottomSheetHeader";
 import IconButton from "../common/IconButton";
@@ -13,6 +12,7 @@ import { resolvePacks } from "../../utils/shop";
 import { BackgroundPack } from "../../types/shop";
 import StickerPackCard from "./StickerPackCard";
 import { AppText } from "../common/AppText";
+import { useShopPackStore } from "../../store/shopPackStore";
 
 type CategoryFilter = "all" | BackgroundPack["category"];
 
@@ -47,20 +47,25 @@ const BackgroundPanelSheet = ({
   const ownedPackIds = usePurchaseStore((state) => state.ownedPackIds);
   const isLoaded = usePurchaseStore((state) => state.isLoaded);
   const loadOwnedPackIds = usePurchaseStore((state) => state.loadOwnedPackIds);
+  const packs = useShopPackStore((state) => state.packs);
+  const loadPacks = useShopPackStore((state) => state.loadPacks);
 
   useEffect(() => {
-    if (!visible || isLoaded) return;
+    if (!visible) return;
 
-    void loadOwnedPackIds();
-  }, [isLoaded, loadOwnedPackIds, visible]);
+    if (!isLoaded) {
+      void loadOwnedPackIds();
+    }
+    void loadPacks();
+  }, [isLoaded, loadOwnedPackIds, loadPacks, visible]);
 
   const ownedBackgroundPacks = useMemo(
     () =>
-      resolvePacks(mockPacks, ownedPackIds).filter(
+      resolvePacks(packs, ownedPackIds).filter(
         (pack): pack is BackgroundPack =>
           pack.kind === "background" && pack.ownStatus === "owned",
       ),
-    [ownedPackIds],
+    [ownedPackIds, packs],
   );
 
   const filteredPacks = useMemo(() => {
