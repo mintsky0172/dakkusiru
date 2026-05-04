@@ -1,4 +1,5 @@
 import { Alert, ScrollView, StyleSheet, Image, View } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import React, { useEffect, useMemo } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import Screen from "../../components/common/Screen";
@@ -12,6 +13,7 @@ import { usePurchaseStore } from "../../store/purchaseStore";
 import { useCoinStore } from "../../store/coinStore";
 import { useShopPackStore } from "../../store/shopPackStore";
 import { resolvePack } from "../../utils/shop";
+import { prefetchImageSources } from "../../utils/prefetchImageSources";
 
 const PackDetailScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -42,6 +44,19 @@ const PackDetailScreen = () => {
     if (!rawPack) return null;
     return resolvePack(rawPack, ownedPackIds);
   }, [rawPack, ownedPackIds]);
+
+  useEffect(() => {
+    if (!pack) return;
+
+    prefetchImageSources([
+      pack.thumbnailSource,
+      ...(pack.kind === "sticker"
+        ? pack.previewStickers.map((sticker) => sticker.imageSource)
+        : (pack.previewBackgrounds ?? []).map(
+            (background) => background.imageSource,
+          )),
+    ]);
+  }, [pack]);
 
   const handleBack = () => {
     router.back();
@@ -143,7 +158,13 @@ const PackDetailScreen = () => {
         <View style={styles.heroCard}>
           <View style={styles.heroImageWrapper}>
             {pack.thumbnailSource ? (
-              <Image source={pack.thumbnailSource} style={styles.heroImage} />
+              <ExpoImage
+                source={pack.thumbnailSource}
+                style={styles.heroImage}
+                contentFit="contain"
+                cachePolicy="disk"
+                transition={160}
+              />
             ) : (
               <View style={styles.heroPlaceholder} />
             )}
@@ -299,7 +320,6 @@ const styles = StyleSheet.create({
   heroImage: {
     width: "84%",
     height: "84%",
-    resizeMode: "contain",
   },
   heroPlaceholder: {
     width: "84%",

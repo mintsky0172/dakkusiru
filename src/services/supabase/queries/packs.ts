@@ -15,7 +15,7 @@ function isPackCreatedRecently(createdAt?: string | null) {
 }
 
 async function fetchShopPackRows(params: {
-  orderByLatest: boolean;
+  orderByCreatedAt: boolean;
   includeInactive?: boolean;
 }) {
   let query = supabase
@@ -31,8 +31,8 @@ async function fetchShopPackRows(params: {
     query = query.eq("is_active", true);
   }
 
-  query = params.orderByLatest
-    ? query.order("updated_at", { ascending: false })
+  query = params.orderByCreatedAt
+    ? query.order("created_at", { ascending: false })
     : query.order("sort_order", { ascending: true });
 
   return query.order("sort_order", {
@@ -45,13 +45,13 @@ export async function fetchShopPacksFromSupabase(params?: {
   includeInactive?: boolean;
 }): Promise<ShopPack[]> {
   let { data, error } = await fetchShopPackRows({
-    orderByLatest: true,
+    orderByCreatedAt: true,
     includeInactive: params?.includeInactive,
   });
 
   if (error) {
     const fallbackResult = await fetchShopPackRows({
-      orderByLatest: false,
+      orderByCreatedAt: false,
       includeInactive: params?.includeInactive,
     });
     data = fallbackResult.data;

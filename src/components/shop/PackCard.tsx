@@ -7,6 +7,7 @@ import {
   ViewStyle,
   Image,
 } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import React from "react";
 import { AppText } from "../common/AppText";
 import { colors } from "../../constants/colors";
@@ -52,7 +53,13 @@ const PackCard = ({
     >
       <View style={styles.thumbnailWrapper}>
         {thumbnailSource ? (
-          <Image source={thumbnailSource} style={styles.thumbnail} />
+          <ExpoImage
+            source={thumbnailSource}
+            style={styles.thumbnail}
+            contentFit="cover"
+            cachePolicy="disk"
+            transition={120}
+          />
         ) : (
           <View style={styles.thumbnailPlaceholder} />
         )}

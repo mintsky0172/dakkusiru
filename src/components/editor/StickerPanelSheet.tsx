@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View } from "react-native";
+import { FlatList, StyleSheet, View } from "react-native";
 import React, { useEffect, useMemo, useState } from "react";
 import SimpleBottomSheet from "../common/SimpleBottomSheet";
 import BottomSheetHeader from "../common/BottomSheetHeader";
@@ -12,6 +12,7 @@ import { resolvePacks } from "../../utils/shop";
 import { StickerPack } from "../../types/shop";
 import { usePurchaseStore } from "../../store/purchaseStore";
 import { useShopPackStore } from "../../store/shopPackStore";
+import { prefetchImageSources } from "../../utils/prefetchImageSources";
 
 type CategoryFilter = "all" | StickerPack["category"];
 
@@ -78,6 +79,17 @@ const StickerPanelSheet = ({
     );
   }, [ownedStickerPacks, selectedCategory]);
 
+  useEffect(() => {
+    prefetchImageSources(filteredPacks.map((pack) => pack.thumbnailSource));
+  }, [filteredPacks]);
+
+  useEffect(() => {
+    if (!selectedPack) return;
+    prefetchImageSources(
+      selectedPack.previewStickers.map((sticker) => sticker.imageSource),
+    );
+  }, [selectedPack]);
+
   const handleClose = () => {
     setSelectedPack(null);
     onClose();
@@ -129,21 +141,24 @@ const StickerPanelSheet = ({
               ))}
             </View>
 
-            <ScrollView
+            <FlatList
+              data={filteredPacks}
+              keyExtractor={(pack) => pack.id}
+              numColumns={2}
+              renderItem={({ item: pack }) => (
+                <StickerPackCard
+                  title={pack.title}
+                  thumbnailSource={pack.thumbnailSource}
+                  onPress={() => setSelectedPack(pack)}
+                />
+              )}
+              columnWrapperStyle={styles.grid}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollContent}
-            >
-              <View style={styles.grid}>
-                {filteredPacks.map((pack) => (
-                  <StickerPackCard
-                    key={pack.id}
-                    title={pack.title}
-                    thumbnailSource={pack.thumbnailSource}
-                    onPress={() => setSelectedPack(pack)}
-                  />
-                ))}
-              </View>
-            </ScrollView>
+              initialNumToRender={6}
+              maxToRenderPerBatch={6}
+              windowSize={5}
+            />
           </>
         ) : (
           <>
@@ -154,28 +169,32 @@ const StickerPanelSheet = ({
               </AppText>
             </View>
 
-            <ScrollView
+            <FlatList
+              data={selectedPack.previewStickers}
+              keyExtractor={(sticker) => sticker.id}
+              numColumns={2}
+              renderItem={({ item: sticker }) => (
+                <StickerThumb
+                  name={sticker.name}
+                  imageSource={sticker.imageSource}
+                  added={recentlyAddedStickerId === sticker.id}
+                  onPress={() => {
+                    setRecentlyAddedStickerId(sticker.id);
+                    onSelectSticker({
+                      stickerId: sticker.id,
+                      imageSource: sticker.imageSource,
+                    });
+                  }}
+                />
+              )}
+              columnWrapperStyle={styles.grid}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollContent}
-            >
-              <View style={styles.grid}>
-                {selectedPack.previewStickers.map((sticker) => (
-                  <StickerThumb
-                    key={sticker.id}
-                    name={sticker.name}
-                    imageSource={sticker.imageSource}
-                    added={recentlyAddedStickerId === sticker.id}
-                    onPress={() => {
-                      setRecentlyAddedStickerId(sticker.id);
-                      onSelectSticker({
-                        stickerId: sticker.id,
-                        imageSource: sticker.imageSource,
-                      });
-                    }}
-                  />
-                ))}
-              </View>
-            </ScrollView>
+              extraData={recentlyAddedStickerId}
+              initialNumToRender={8}
+              maxToRenderPerBatch={8}
+              windowSize={5}
+            />
           </>
         )}
       </View>
@@ -205,8 +224,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl,
   },
   grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
     justifyContent: "space-between",
   },
 });

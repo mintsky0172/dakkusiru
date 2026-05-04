@@ -2,9 +2,9 @@ import {
   ImageSourcePropType,
   Pressable,
   StyleSheet,
-  Image,
   View,
 } from "react-native";
+import { Image } from "expo-image";
 import React from "react";
 import { AppText } from "../common/AppText";
 import { radius, spacing } from "../../constants/spacing";
@@ -28,7 +28,13 @@ const StickerPackCard = ({
     >
       <View style={styles.imageWrapper}>
         {thumbnailSource ? (
-          <Image source={thumbnailSource} style={styles.image} />
+          <Image
+            source={thumbnailSource}
+            style={styles.image}
+            contentFit="contain"
+            cachePolicy="disk"
+            transition={120}
+          />
         ) : (
           <View style={styles.placeholder} />
         )}
@@ -64,7 +70,6 @@ const styles = StyleSheet.create({
   image: {
     width: "84%",
     height: "84%",
-    resizeMode: "contain",
   },
   placeholder: {
     width: "84%",

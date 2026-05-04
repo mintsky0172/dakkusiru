@@ -19,7 +19,7 @@ export async function uploadAdminAsset({
     .upload(path, decode(base64), {
       contentType,
       upsert: true,
-      cacheControl: "3600",
+      cacheControl: "31536000",
     });
 
   if (error) {

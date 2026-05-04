@@ -1,11 +1,10 @@
 import {
-  Image,
   ImageSourcePropType,
   Pressable,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
+import { Image } from "expo-image";
 import React from "react";
 import { AppText } from "../common/AppText";
 import { radius, spacing } from "../../constants/spacing";
@@ -30,7 +29,13 @@ const StickerThumb = ({ name, imageSource, onPress, added = false }: StikerThumb
     >
       <View style={[styles.imageWrapper, added && styles.addedImageWrapper]}>
         {imageSource ? (
-          <Image source={imageSource} style={styles.image} />
+          <Image
+            source={imageSource}
+            style={styles.image}
+            contentFit="contain"
+            cachePolicy="disk"
+            transition={100}
+          />
         ) : (
           <View style={styles.placeholder} />
         )}
@@ -73,7 +78,6 @@ const styles = StyleSheet.create({
   image: {
     width: "76%",
     height: "76%",
-    resizeMode: "contain",
     borderRadius: radius.md,
     backgroundColor: "transparent",
   },

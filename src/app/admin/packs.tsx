@@ -1,12 +1,12 @@
 import {
   Alert,
   FlatList,
-  Image,
   Pressable,
   StyleSheet,
   View,
 } from "react-native";
-import React, { useCallback, useMemo, useState } from "react";
+import { Image as ExpoImage } from "expo-image";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { useShopPackStore } from "../../store/shopPackStore";
 import { router, useFocusEffect } from "expo-router";
@@ -25,6 +25,7 @@ import {
 } from "../../constants/packCategories";
 import { deleteAdminPack } from "../../services/adminShopPackService";
 import { Ionicons } from "@expo/vector-icons";
+import { prefetchImageSources } from "../../utils/prefetchImageSources";
 
 type PackKindFilter = "all" | "sticker" | "background";
 type PackActiveFilter = "all" | "active" | "inactive";
@@ -80,6 +81,10 @@ const AdminPacksScreen = () => {
       return true;
     });
   }, [packs, selectedActive, selectedCategory, selectedKind]);
+
+  useEffect(() => {
+    prefetchImageSources(filteredPacks.map((pack) => pack.thumbnailSource));
+  }, [filteredPacks]);
 
   useFocusEffect(
     useCallback(() => {
@@ -341,9 +346,12 @@ function AdminPackListItem({
       <View style={styles.packContentRow}>
         <View style={styles.thumbnailBox}>
           {pack.thumbnailSource ? (
-            <Image
+            <ExpoImage
               source={pack.thumbnailSource}
               style={styles.thumbnailImage}
+              contentFit="cover"
+              cachePolicy="disk"
+              transition={120}
             />
           ) : (
             <AppText variant="small" style={styles.thumbnailPlaceholderText}>
@@ -494,7 +502,6 @@ const styles = StyleSheet.create({
   thumbnailImage: {
     width: "100%",
     height: "100%",
-    resizeMode: "cover",
   },
   thumbnailPlaceholderText: {
     color: colors.text.muted,

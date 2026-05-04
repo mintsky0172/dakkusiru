@@ -2,9 +2,9 @@ import {
   ImageSourcePropType,
   Pressable,
   StyleSheet,
-  Image,
   View,
 } from "react-native";
+import { Image } from "expo-image";
 import React from "react";
 import { AppText } from "../common/AppText";
 import { radius, spacing } from "../../constants/spacing";
@@ -38,7 +38,13 @@ const BackgroundThumb = ({
         ]}
       >
         {imageSource ? (
-          <Image source={imageSource} style={styles.image} />
+          <Image
+            source={imageSource}
+            style={styles.image}
+            contentFit="cover"
+            cachePolicy="disk"
+            transition={100}
+          />
         ) : null}
       </View>
 
@@ -75,7 +81,6 @@ const styles = StyleSheet.create({
   image: {
     width: "100%",
     height: "100%",
-    resizeMode: "cover",
   },
   label: {
     marginTop: spacing.xs,

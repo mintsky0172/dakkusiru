@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View } from "react-native";
+import { FlatList, StyleSheet, View } from "react-native";
 import React, { useEffect, useMemo, useState } from "react";
 import { BackgroundItem } from "../../types/backgroundPanel";
 import SimpleBottomSheet from "../common/SimpleBottomSheet";
@@ -13,6 +13,7 @@ import { BackgroundPack } from "../../types/shop";
 import StickerPackCard from "./StickerPackCard";
 import { AppText } from "../common/AppText";
 import { useShopPackStore } from "../../store/shopPackStore";
+import { prefetchImageSources } from "../../utils/prefetchImageSources";
 
 type CategoryFilter = "all" | BackgroundPack["category"];
 
@@ -87,6 +88,16 @@ const BackgroundPanelSheet = ({
     [selectedPack],
   );
 
+  useEffect(() => {
+    prefetchImageSources(filteredPacks.map((pack) => pack.thumbnailSource));
+  }, [filteredPacks]);
+
+  useEffect(() => {
+    prefetchImageSources(
+      selectedPackBackgrounds.map((background) => background.imageSource),
+    );
+  }, [selectedPackBackgrounds]);
+
   const handleClose = () => {
     setSelectedPack(null);
     onClose();
@@ -128,21 +139,24 @@ const BackgroundPanelSheet = ({
               ))}
             </View>
 
-            <ScrollView
+            <FlatList
+              data={filteredPacks}
+              keyExtractor={(pack) => pack.id}
+              numColumns={2}
+              renderItem={({ item: pack }) => (
+                <StickerPackCard
+                  title={pack.title}
+                  thumbnailSource={pack.thumbnailSource}
+                  onPress={() => setSelectedPack(pack)}
+                />
+              )}
+              columnWrapperStyle={styles.grid}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollContent}
-            >
-              <View style={styles.grid}>
-                {filteredPacks.map((pack) => (
-                  <StickerPackCard
-                    key={pack.id}
-                    title={pack.title}
-                    thumbnailSource={pack.thumbnailSource}
-                    onPress={() => setSelectedPack(pack)}
-                  />
-                ))}
-              </View>
-            </ScrollView>
+              initialNumToRender={6}
+              maxToRenderPerBatch={6}
+              windowSize={5}
+            />
           </>
         ) : (
           <>
@@ -153,23 +167,27 @@ const BackgroundPanelSheet = ({
               </AppText>
             </View>
 
-            <ScrollView
+            <FlatList
+              data={selectedPackBackgrounds}
+              keyExtractor={(item) => item.id}
+              numColumns={3}
+              renderItem={({ item }) => (
+                <BackgroundThumb
+                  name={item.name}
+                  imageSource={item.imageSource}
+                  backgroundColor={item.backgroundColor}
+                  selected={selectedBackgroundId === item.id}
+                  onPress={() => onSelectBackground(item)}
+                />
+              )}
+              columnWrapperStyle={styles.grid}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollContent}
-            >
-              <View style={styles.grid}>
-                {selectedPackBackgrounds.map((item) => (
-                  <BackgroundThumb
-                    key={item.id}
-                    name={item.name}
-                    imageSource={item.imageSource}
-                    backgroundColor={item.backgroundColor}
-                    selected={selectedBackgroundId === item.id}
-                    onPress={() => onSelectBackground(item)}
-                  />
-                ))}
-              </View>
-            </ScrollView>
+              extraData={selectedBackgroundId}
+              initialNumToRender={9}
+              maxToRenderPerBatch={9}
+              windowSize={5}
+            />
           </>
         )}
       </View>
@@ -199,8 +217,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl,
   },
   grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
     justifyContent: "space-between",
   },
 });

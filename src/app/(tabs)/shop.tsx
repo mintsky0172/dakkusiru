@@ -1,5 +1,6 @@
 import { FlatList, StyleSheet, View } from "react-native";
 import React, { useCallback, useMemo, useState } from "react";
+import { useEffect } from "react";
 import { ShopPack } from "../../types/shop";
 import PackCard from "../../components/shop/PackCard";
 import Screen from "../../components/common/Screen";
@@ -18,6 +19,7 @@ import {
   packCategoryLabelMap,
   stickerCategoryOptions,
 } from "../../constants/packCategories";
+import { prefetchImageSources } from "../../utils/prefetchImageSources";
 
 type PackKindFilter = "all" | "sticker" | "background";
 type PackCategoryFilter = "all" | string;
@@ -74,6 +76,10 @@ const ShopScreen = () => {
       return true;
     });
   }, [resolvedPacks, selectedCategory, selectedKind]);
+
+  useEffect(() => {
+    prefetchImageSources(filteredPacks.map((pack) => pack.thumbnailSource));
+  }, [filteredPacks]);
 
   const handlePressCharge = () => {
     router.push("/coin");
