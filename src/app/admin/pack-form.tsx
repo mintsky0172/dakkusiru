@@ -71,6 +71,19 @@ interface ExistingPackItem {
   backgroundColor?: string;
 }
 
+function makeUniqueItemId(baseId: string, usedIds: Set<string>) {
+  let nextId = baseId;
+  let suffix = 2;
+
+  while (usedIds.has(nextId)) {
+    nextId = `${baseId}-${suffix}`;
+    suffix += 1;
+  }
+
+  usedIds.add(nextId);
+  return nextId;
+}
+
 const AdminPackFormScreen = () => {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const editPackId = typeof id === "string" ? id : undefined;
@@ -194,10 +207,18 @@ const AdminPackFormScreen = () => {
 
       if (!assets.length) return;
 
+      const usedItemIds = new Set([
+        ...existingItems.map((item) => item.id),
+        ...batchItems.map((item) => item.itemId.trim()).filter(Boolean),
+      ]);
+
       const nextItems: BatchAdminItem[] = assets.map((asset, index) => {
         const baseName = getBaseNameFromFileName(asset.fileName);
         const fallbackId = `item-${batchItems.length + index + 1}`;
-        const itemId = normalizeItemId(baseName, fallbackId);
+        const itemId = makeUniqueItemId(
+          normalizeItemId(baseName, fallbackId),
+          usedItemIds,
+        );
 
         return {
           localId: `${Date.now()}-${index}`,
@@ -403,12 +424,22 @@ const AdminPackFormScreen = () => {
     targetPackId: string,
     updateProgress: (label: string) => void,
   ) => {
+    const usedItemIds = new Set(existingItems.map((item) => item.id));
+
     for (const [index, item] of batchItems.entries()) {
       const itemId = item.itemId.trim();
 
       if (!itemId) {
         throw new Error("아이템 ID가 비어 있는 항목이 있어요.");
       }
+
+      if (usedItemIds.has(itemId)) {
+        throw new Error(
+          `아이템 ID가 중복된 항목이 있어요: ${itemId}\n상세 수정에서 ID를 다르게 바꿔 주세요.`,
+        );
+      }
+
+      usedItemIds.add(itemId);
 
       const imagePath = getPackItemImagePath({
         kind,
