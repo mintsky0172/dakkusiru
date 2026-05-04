@@ -84,6 +84,15 @@ function makeUniqueItemId(baseId: string, usedIds: Set<string>) {
   return nextId;
 }
 
+function getPackScopedItemId(packId: string, itemId: string) {
+  return itemId.startsWith(`${packId}-`) ? itemId : `${packId}-${itemId}`;
+}
+
+function getPackLocalItemId(packId: string, itemId: string) {
+  const prefix = `${packId}-`;
+  return itemId.startsWith(prefix) ? itemId.slice(prefix.length) : itemId;
+}
+
 const AdminPackFormScreen = () => {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const editPackId = typeof id === "string" ? id : undefined;
@@ -207,8 +216,12 @@ const AdminPackFormScreen = () => {
 
       if (!assets.length) return;
 
+      const currentPackId = packId.trim();
       const usedItemIds = new Set([
-        ...existingItems.map((item) => item.id),
+        ...existingItems.flatMap((item) => [
+          item.id,
+          currentPackId ? getPackLocalItemId(currentPackId, item.id) : item.id,
+        ]),
         ...batchItems.map((item) => item.itemId.trim()).filter(Boolean),
       ]);
 
@@ -428,18 +441,19 @@ const AdminPackFormScreen = () => {
 
     for (const [index, item] of batchItems.entries()) {
       const itemId = item.itemId.trim();
+      const dbItemId = getPackScopedItemId(targetPackId, itemId);
 
       if (!itemId) {
         throw new Error("아이템 ID가 비어 있는 항목이 있어요.");
       }
 
-      if (usedItemIds.has(itemId)) {
+      if (usedItemIds.has(dbItemId)) {
         throw new Error(
           `아이템 ID가 중복된 항목이 있어요: ${itemId}\n상세 수정에서 ID를 다르게 바꿔 주세요.`,
         );
       }
 
-      usedItemIds.add(itemId);
+      usedItemIds.add(dbItemId);
 
       const imagePath = getPackItemImagePath({
         kind,
@@ -456,7 +470,7 @@ const AdminPackFormScreen = () => {
 
       updateProgress(`${index + 1}번째 아이템 정보 저장 중`);
       await upsertAdminPackItem({
-        id: itemId,
+        id: dbItemId,
         packId: targetPackId,
         name: item.name.trim() || itemId,
         imagePath,
