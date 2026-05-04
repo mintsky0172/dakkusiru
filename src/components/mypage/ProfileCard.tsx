@@ -24,7 +24,7 @@ const ProfileCard = ({
   actionLabel,
   secondaryActionLabel,
   onPressAction,
-  onPressSecondaryAction
+  onPressSecondaryAction,
 }: ProfileCardProps) => {
   return (
     <View style={styles.card}>
@@ -39,40 +39,42 @@ const ProfileCard = ({
 
         <View style={styles.textBlock}>
           <AppText variant="h3">{name}</AppText>
-          <AppText variant="caption" style={styles.description}>
-            {description}
-          </AppText>
-          {subDescription ? (
-            <AppText variant='small' style={styles.subDescription}>
-                {subDescription}
+          {description ? (
+            <AppText variant="caption" style={styles.description}>
+              {description}
             </AppText>
-          ) : null}  
+          ) : null}
+          {subDescription ? (
+            <AppText variant="small" style={styles.subDescription}>
+              {subDescription}
+            </AppText>
+          ) : null}
         </View>
       </View>
 
       {(actionLabel || secondaryActionLabel) && (
         <View style={styles.actions}>
-            {actionLabel ? (
-                <View style={styles.actionButton}>
-                    <AppButton
-                        label={actionLabel}
-                        onPress={onPressAction}
-                        variant='secondary'
-                    />
-                </View>
-            ): null}
+          {actionLabel ? (
+            <View style={styles.actionButton}>
+              <AppButton
+                label={actionLabel}
+                onPress={onPressAction}
+                variant="secondary"
+              />
+            </View>
+          ) : null}
 
-            {secondaryActionLabel ? (
-                <View style={styles.actionButton}>
-                    <AppButton
-                        label={secondaryActionLabel}
-                        onPress={onPressSecondaryAction}
-                        variant='ghost'
-                    />
-                </View>
-            ): null}
+          {secondaryActionLabel ? (
+            <View style={styles.actionButton}>
+              <AppButton
+                label={secondaryActionLabel}
+                onPress={onPressSecondaryAction}
+                variant="ghost"
+              />
+            </View>
+          ) : null}
         </View>
-      ) }
+      )}
     </View>
   );
 };
@@ -88,31 +90,31 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.md,
   },
   avatarWrapper: {
     width: 64,
     height: 64,
     borderRadius: radius.round,
-    overflow: 'hidden',
+    overflow: "hidden",
     backgroundColor: colors.background.subtle,
   },
   avatar: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover'
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
   },
   avatarPlaceholder: {
     flex: 1,
-    backgroundColor: colors.background.subtle
+    backgroundColor: colors.background.subtle,
   },
   textBlock: {
     flex: 1,
   },
   description: {
-    marginTop: 4,
+    marginTop: 0,
   },
   subDescription: {
     marginTop: 2,
@@ -122,7 +124,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   actionButton: {
-    width: '100%' 
-  }
-  
+    width: "100%",
+  },
 });
