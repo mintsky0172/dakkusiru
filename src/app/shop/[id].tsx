@@ -14,6 +14,7 @@ import { useCoinStore } from "../../store/coinStore";
 import { useShopPackStore } from "../../store/shopPackStore";
 import { resolvePack } from "../../utils/shop";
 import { prefetchImageSources } from "../../utils/prefetchImageSources";
+import { G } from "react-native-svg";
 
 const PackDetailScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -79,34 +80,30 @@ const PackDetailScreen = () => {
 
     const coinPrice = Number(String(pack.coinPrice ?? 0).replace(/,/g, ""));
 
-    if(balance < coinPrice) {
-      Alert.alert(
-        '코인이 부족해요',
-        '코인을 충전한 뒤 다시 구매해 주세요.',
-        [
-          { text: '취소', style: 'cancel' },
-          {
-            text: '코인 충전하기',
-            onPress: () => router.push('/coin'),
-          }
-        ]
-      )
+    if (balance < coinPrice) {
+      Alert.alert("코인이 부족해요", "코인을 충전한 뒤 다시 구매해 주세요.", [
+        { text: "취소", style: "cancel" },
+        {
+          text: "코인 충전하기",
+          onPress: () => router.push("/coin"),
+        },
+      ]);
       return;
     }
 
     const success = await spendCoins({
-       amount: coinPrice,
-       description: `${pack.title} 구매`,
+      amount: coinPrice,
+      description: `${pack.title} 구매`,
     });
 
-    if(!success) {
-      Alert.alert('구매 실패', '코인이 부족해요.');
+    if (!success) {
+      Alert.alert("구매 실패", "코인이 부족해요.");
       return;
     }
 
     await markPackAsOwned(pack.id);
 
-    Alert.alert('구매 완료', `${pack.title}을 사용할 수 있어요!`);
+    Alert.alert("구매 완료", `${pack.title}을 사용할 수 있어요!`);
   };
 
   if (!pack && isPackLoading) {
@@ -240,9 +237,10 @@ const PackDetailScreen = () => {
 
         {pack.kind === "sticker" ? (
           <View style={styles.section}>
-            <AppText variant="title" style={styles.sectionTitle}>
-              포함된 스티커
-            </AppText>
+            <View style={styles.lengthRow}>
+              <AppText variant="title">포함된 스티커</AppText>
+              <AppText>{pack.previewStickers.length}개</AppText>
+            </View>
 
             {pack.previewStickers && pack.previewStickers.length > 0 ? (
               <View style={styles.previewGrid}>
@@ -264,9 +262,14 @@ const PackDetailScreen = () => {
           </View>
         ) : (
           <View style={styles.section}>
-            <AppText variant="title" style={styles.sectionTitle}>
-              포함된 배경
-            </AppText>
+            <View style={styles.lengthRow}>
+              <AppText variant="title">포함된 배경</AppText>
+
+              {pack.previewBackgrounds && (
+                <AppText>{pack.previewBackgrounds.length}개</AppText>
+              )}
+            </View>
+
             {pack.previewBackgrounds && pack.previewBackgrounds.length > 0 ? (
               <View style={styles.previewGrid}>
                 {pack.previewBackgrounds.map((background) => (
@@ -394,14 +397,11 @@ const styles = StyleSheet.create({
   section: {
     marginTop: spacing.xxl,
   },
-  sectionTitle: {
-    marginBottom: spacing.md,
-  },
   previewGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "flex-start",
-    gap: spacing.sm
+    gap: spacing.sm,
   },
   emptyPreview: {
     backgroundColor: colors.card.background,
@@ -415,5 +415,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  lengthRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.md,
   },
 });
