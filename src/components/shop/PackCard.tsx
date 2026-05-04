@@ -2,7 +2,9 @@ import {
   ImageSourcePropType,
   Pressable,
   StyleSheet,
+  StyleProp,
   View,
+  ViewStyle,
   Image,
 } from "react-native";
 import React from "react";
@@ -19,6 +21,7 @@ interface PackCardProps {
   ownStatus?: PackOwnStatus;
   selected?: boolean;
   isNew?: boolean;
+  style?: StyleProp<ViewStyle>;
   onPress?: () => void;
 }
 
@@ -30,6 +33,7 @@ const PackCard = ({
   ownStatus = "not_owned",
   selected = false,
   isNew = false,
+  style,
   onPress,
 }: PackCardProps) => {
   const statusText = status === "free" ? "무료" : (priceLabel ?? "");
@@ -41,6 +45,7 @@ const PackCard = ({
       onPress={onPress}
       style={({ pressed }) => [
         styles.card,
+        style,
         selected && styles.selectedCard,
         pressed && styles.pressed,
       ]}
@@ -62,7 +67,7 @@ const PackCard = ({
       </View>
 
       <View style={styles.content}>
-        <AppText variant="title" numberOfLines={1}>
+        <AppText variant="title" numberOfLines={2}>
           {title}
         </AppText>
 
@@ -157,6 +162,7 @@ const styles = StyleSheet.create({
     lineHeight: 12,
   },
   content: {
+    flex: 1,
     marginTop: spacing.sm,
     gap: spacing.xs,
   },
@@ -191,6 +197,7 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
   },
   badgeRow: {
+    marginTop: "auto",
     flexDirection: "row",
     justifyContent: "space-between",
   },

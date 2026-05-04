@@ -106,6 +106,7 @@ const ShopScreen = () => {
           ownStatus={item.ownStatus}
           isNew={item.isNew}
           selected={selectedPackId === item.id}
+          style={styles.packCard}
           onPress={() => handlePressPack(item)}
         />
       </View>
@@ -118,6 +119,7 @@ const ShopScreen = () => {
         keyExtractor={(item) => item.id}
         numColumns={2}
         renderItem={renderPackItem}
+        columnWrapperStyle={styles.packRow}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
@@ -231,9 +233,16 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     marginBottom: spacing.lg,
   },
+  packRow: {
+    alignItems: "stretch",
+  },
   cardWrapper: {
     width: "50%",
     marginBottom: spacing.md,
+    alignSelf: "stretch",
+  },
+  packCard: {
+    flex: 1,
   },
   leftCard: {
     paddingRight: spacing.xs,
