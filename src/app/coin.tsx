@@ -91,6 +91,9 @@ const CoinScreen = () => {
     () => new Map(products.map((product) => [product.id, product])),
     [products],
   );
+  const selectedStoreProduct = selectedProduct
+    ? storeProductsById.get(selectedProduct.productId)
+    : null;
 
   useEffect(() => {
     if (!connected) return;
@@ -110,6 +113,25 @@ const CoinScreen = () => {
 
     if (!connected) {
       Alert.alert("결제 준비 중", "스토어 연결 후 다시 시도해 주세요.");
+      return;
+    }
+
+    if (!selectedStoreProduct) {
+      const loadedProductIds = products.map((product) => product.id);
+
+      Alert.alert(
+        "상품 설정 확인 필요",
+        [
+          `스토어에서 ${selectedProduct.productId} 상품을 찾지 못했어요.`,
+          "",
+          "App Store Connect 또는 StoreKit Configuration에 아래 상품 ID가 모두 등록되어 있어야 해요.",
+          coinProductIds.join("\n"),
+          "",
+          loadedProductIds.length
+            ? `현재 불러온 상품:\n${loadedProductIds.join("\n")}`
+            : "현재 불러온 상품이 없어요.",
+        ].join("\n"),
+      );
       return;
     }
 
@@ -199,12 +221,13 @@ const CoinScreen = () => {
         <View style={styles.bottomAction}>
           <AppButton
             label={
-              selectedProduct
-                ? `${
-                    storeProductsById.get(selectedProduct.productId)
-                      ?.displayPrice ?? selectedProduct.priceLabel
-                  } 결제하기`
-                : "상품을 선택해 주세요"
+              !selectedProduct
+                ? "상품을 선택해 주세요"
+                : !connected
+                  ? "결제 준비 중..."
+                  : !selectedStoreProduct
+                    ? "상품 설정 확인 필요"
+                    : `${selectedStoreProduct.displayPrice} 결제하기`
             }
             onPress={handlePurchase}
             disabled={!selectedProduct || !connected || isPurchasing}
