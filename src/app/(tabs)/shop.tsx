@@ -128,9 +128,6 @@ const ShopScreen = () => {
         renderItem={renderPackItem}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
-        onLoad={({elapsedTimeInMs}) => {
-          console.log('FlashList load time: ', elapsedTimeInMs)
-        }}
         ListHeaderComponent={
           <View>
             <View style={styles.header}>

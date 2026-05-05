@@ -60,7 +60,7 @@ const PackDetailScreen = () => {
     prefetchImageSources([pack.thumbnailSource]);
     setTimeout(() => {
       prefetchImageSources(previewItems.map((item) => item.imageSource));
-    }, 600);
+    });
   }, [pack, previewItems]);
 
   const handleBack = () => {
@@ -139,7 +139,8 @@ const PackDetailScreen = () => {
       : pack.status === "free"
         ? "다운받기"
         : `${pack.coinPrice?.toLocaleString() ?? 0}코인으로 구매하기`;
-  const previewTitle = pack.kind === "sticker" ? "포함된 스티커" : "포함된 배경";
+  const previewTitle =
+    pack.kind === "sticker" ? "포함된 스티커" : "포함된 배경";
   const renderPreviewItem = ({
     item,
   }: {
