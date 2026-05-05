@@ -1,6 +1,7 @@
-import { Alert, ScrollView, StyleSheet, Image, View } from "react-native";
+import { Alert, StyleSheet, Image, View } from "react-native";
 import { Image as ExpoImage } from "expo-image";
 import React, { useEffect, useMemo } from "react";
+import { FlashList } from "@shopify/flash-list";
 import { router, useLocalSearchParams } from "expo-router";
 import Screen from "../../components/common/Screen";
 import { AppText } from "../../components/common/AppText";
@@ -14,7 +15,7 @@ import { useCoinStore } from "../../store/coinStore";
 import { useShopPackStore } from "../../store/shopPackStore";
 import { resolvePack } from "../../utils/shop";
 import { prefetchImageSources } from "../../utils/prefetchImageSources";
-import { G } from "react-native-svg";
+import { PackPreviewBackground, PackPreviewSticker } from "../../types/shop";
 
 const PackDetailScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -46,18 +47,21 @@ const PackDetailScreen = () => {
     return resolvePack(rawPack, ownedPackIds);
   }, [rawPack, ownedPackIds]);
 
+  const previewItems = useMemo(() => {
+    if (!pack) return [];
+    return pack.kind === "sticker"
+      ? pack.previewStickers
+      : (pack.previewBackgrounds ?? []);
+  }, [pack]);
+
   useEffect(() => {
     if (!pack) return;
 
-    prefetchImageSources([
-      pack.thumbnailSource,
-      ...(pack.kind === "sticker"
-        ? pack.previewStickers.map((sticker) => sticker.imageSource)
-        : (pack.previewBackgrounds ?? []).map(
-            (background) => background.imageSource,
-          )),
-    ]);
-  }, [pack]);
+    prefetchImageSources([pack.thumbnailSource]);
+    setTimeout(() => {
+      prefetchImageSources(previewItems.map((item) => item.imageSource));
+    }, 600);
+  }, [pack, previewItems]);
 
   const handleBack = () => {
     router.back();
@@ -135,161 +139,137 @@ const PackDetailScreen = () => {
       : pack.status === "free"
         ? "다운받기"
         : `${pack.coinPrice?.toLocaleString() ?? 0}코인으로 구매하기`;
+  const previewTitle = pack.kind === "sticker" ? "포함된 스티커" : "포함된 배경";
+  const renderPreviewItem = ({
+    item,
+  }: {
+    item: PackPreviewSticker | PackPreviewBackground;
+  }) => (
+    <StickerPreviewCard
+      name={item.name}
+      imageSource={item.imageSource}
+      style={styles.previewCard}
+    />
+  );
 
   return (
     <Screen>
-      <ScrollView
+      <FlashList
+        data={previewItems}
+        keyExtractor={(item) => item.id}
+        numColumns={3}
+        renderItem={renderPreviewItem}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
-      >
-        <View style={styles.topBar}>
-          <IconButton
-            imageSource={require("../../../assets/icons/back.png")}
-            onPress={handleBack}
-            variant="ghost"
-            size={40}
-            iconSize={20}
-          />
-        </View>
-
-        <View style={styles.heroCard}>
-          <View style={styles.heroImageWrapper}>
-            {pack.thumbnailSource ? (
-              <ExpoImage
-                source={pack.thumbnailSource}
-                style={styles.heroImage}
-                contentFit="contain"
-                cachePolicy="disk"
-                transition={160}
+        ListHeaderComponent={
+          <>
+            <View style={styles.topBar}>
+              <IconButton
+                imageSource={require("../../../assets/icons/back.png")}
+                onPress={handleBack}
+                variant="ghost"
+                size={40}
+                iconSize={20}
               />
-            ) : (
-              <View style={styles.heroPlaceholder} />
-            )}
-          </View>
-
-          <View style={styles.heroTextArea}>
-            <View style={styles.titleRow}>
-              <AppText variant="h2" style={styles.packTitle}>
-                {pack.title}
-              </AppText>
-
-              {pack.isNew ? (
-                <View style={styles.newBadge}>
-                  <AppText variant="small" style={styles.newBadgeText}>
-                    신규
-                  </AppText>
-                </View>
-              ) : null}
             </View>
 
-            {!!pack.description && (
-              <AppText variant="caption" style={styles.description}>
-                {pack.description}
-              </AppText>
-            )}
-
-            <View style={styles.statusRow}>
-              {pack.ownStatus === "owned" ? (
-                <View style={[styles.statusBadge, styles.ownedBadge]}>
-                  <AppText variant="small" style={styles.ownedBadgeText}>
-                    보유중
-                  </AppText>
-                </View>
-              ) : null}
-
-              {pack.status === "free" ? (
-                <View style={[styles.statusBadge, styles.freeBadge]}>
-                  <AppText variant="small" style={styles.freeBadgeText}>
-                    무료
-                  </AppText>
-                </View>
-              ) : null}
-
-              {pack.status === "priced" ? (
-                <View style={[styles.statusBadge, styles.priceBadge]}>
-                  <Image
-                    source={require("../../../assets/icons/coin.png")}
-                    style={{ width: 20, height: 20 }}
+            <View style={styles.heroCard}>
+              <View style={styles.heroImageWrapper}>
+                {pack.thumbnailSource ? (
+                  <ExpoImage
+                    source={pack.thumbnailSource}
+                    style={styles.heroImage}
+                    contentFit="contain"
+                    cachePolicy="disk"
+                    transition={160}
                   />
-                  <AppText variant="small" style={styles.priceBadgeText}>
-                    {pack.coinPrice?.toLocaleString() ?? 0}코인
+                ) : (
+                  <View style={styles.heroPlaceholder} />
+                )}
+              </View>
+
+              <View style={styles.heroTextArea}>
+                <View style={styles.titleRow}>
+                  <AppText variant="h2" style={styles.packTitle}>
+                    {pack.title}
                   </AppText>
+
+                  {pack.isNew ? (
+                    <View style={styles.newBadge}>
+                      <AppText variant="small" style={styles.newBadgeText}>
+                        신규
+                      </AppText>
+                    </View>
+                  ) : null}
                 </View>
-              ) : null}
+
+                {!!pack.description && (
+                  <AppText variant="caption" style={styles.description}>
+                    {pack.description}
+                  </AppText>
+                )}
+
+                <View style={styles.statusRow}>
+                  {pack.ownStatus === "owned" ? (
+                    <View style={[styles.statusBadge, styles.ownedBadge]}>
+                      <AppText variant="small" style={styles.ownedBadgeText}>
+                        보유중
+                      </AppText>
+                    </View>
+                  ) : null}
+
+                  {pack.status === "free" ? (
+                    <View style={[styles.statusBadge, styles.freeBadge]}>
+                      <AppText variant="small" style={styles.freeBadgeText}>
+                        무료
+                      </AppText>
+                    </View>
+                  ) : null}
+
+                  {pack.status === "priced" ? (
+                    <View style={[styles.statusBadge, styles.priceBadge]}>
+                      <Image
+                        source={require("../../../assets/icons/coin.png")}
+                        style={{ width: 20, height: 20 }}
+                      />
+                      <AppText variant="small" style={styles.priceBadgeText}>
+                        {pack.coinPrice?.toLocaleString() ?? 0}코인
+                      </AppText>
+                    </View>
+                  ) : null}
+                </View>
+              </View>
             </View>
-          </View>
-        </View>
 
-        <View style={styles.actionSection}>
-          <AppButton
-            label={primaryLabel}
-            onPress={handlePrimaryAction}
-            leftIcon={
-              pack.status === "priced" && pack.ownStatus !== "owned" ? (
-                <Image
-                  source={require("../../../assets/icons/coin.png")}
-                  style={styles.primaryButtonCoin}
-                />
-              ) : undefined
-            }
-          />
-        </View>
+            <View style={styles.actionSection}>
+              <AppButton
+                label={primaryLabel}
+                onPress={handlePrimaryAction}
+                leftIcon={
+                  pack.status === "priced" && pack.ownStatus !== "owned" ? (
+                    <Image
+                      source={require("../../../assets/icons/coin.png")}
+                      style={styles.primaryButtonCoin}
+                    />
+                  ) : undefined
+                }
+              />
+            </View>
 
-        {pack.kind === "sticker" ? (
-          <View style={styles.section}>
             <View style={styles.lengthRow}>
-              <AppText variant="title">포함된 스티커</AppText>
-              <AppText>{pack.previewStickers.length}개</AppText>
+              <AppText variant="title">{previewTitle}</AppText>
+              <AppText>{previewItems.length}개</AppText>
             </View>
-
-            {pack.previewStickers && pack.previewStickers.length > 0 ? (
-              <View style={styles.previewGrid}>
-                {pack.previewStickers.map((sticker) => (
-                  <StickerPreviewCard
-                    key={sticker.id}
-                    name={sticker.name}
-                    imageSource={sticker.imageSource}
-                  />
-                ))}
-              </View>
-            ) : (
-              <View style={styles.emptyPreview}>
-                <AppText variant="caption">
-                  미리보기 스티커가 아직 준비되지 않았어요.
-                </AppText>
-              </View>
-            )}
+          </>
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyPreview}>
+            <AppText variant="caption">
+              미리보기 아이템이 아직 준비되지 않았어요.
+            </AppText>
           </View>
-        ) : (
-          <View style={styles.section}>
-            <View style={styles.lengthRow}>
-              <AppText variant="title">포함된 배경</AppText>
-
-              {pack.previewBackgrounds && (
-                <AppText>{pack.previewBackgrounds.length}개</AppText>
-              )}
-            </View>
-
-            {pack.previewBackgrounds && pack.previewBackgrounds.length > 0 ? (
-              <View style={styles.previewGrid}>
-                {pack.previewBackgrounds.map((background) => (
-                  <StickerPreviewCard
-                    key={background.id}
-                    name={background.name}
-                    imageSource={background.imageSource}
-                  />
-                ))}
-              </View>
-            ) : (
-              <View style={styles.emptyPreview}>
-                <AppText variant="caption">
-                  미리보기 배경이 아직 준비되지 않았어요.
-                </AppText>
-              </View>
-            )}
-          </View>
-        )}
-      </ScrollView>
+        }
+      />
     </Screen>
   );
 };
@@ -394,14 +374,9 @@ const styles = StyleSheet.create({
   actionSection: {
     marginTop: spacing.lg,
   },
-  section: {
-    marginTop: spacing.xxl,
-  },
-  previewGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "flex-start",
-    gap: spacing.sm,
+  previewCard: {
+    width: "100%",
+    paddingHorizontal: spacing.xxs,
   },
   emptyPreview: {
     backgroundColor: colors.card.background,
@@ -420,6 +395,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginTop: spacing.xxl,
     marginBottom: spacing.md,
   },
 });

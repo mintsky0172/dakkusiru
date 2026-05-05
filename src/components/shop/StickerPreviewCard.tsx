@@ -1,7 +1,9 @@
 import {
   ImageSourcePropType,
   StyleSheet,
+  StyleProp,
   View,
+  ViewStyle,
 } from "react-native";
 import { Image } from "expo-image";
 import React from "react";
@@ -12,11 +14,16 @@ import { colors } from "../../constants/colors";
 interface StickerPreviewCardProps {
   name: string;
   imageSource?: ImageSourcePropType;
+  style?: StyleProp<ViewStyle>;
 }
 
-const StickerPreviewCard = ({ name, imageSource }: StickerPreviewCardProps) => {
+const StickerPreviewCard = ({
+  name,
+  imageSource,
+  style,
+}: StickerPreviewCardProps) => {
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, style]}>
       <View style={styles.imageWrapper}>
         {imageSource ? (
           <Image
