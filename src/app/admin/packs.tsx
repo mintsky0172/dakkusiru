@@ -272,11 +272,12 @@ const AdminPacksScreen = () => {
       ) : isLoading ? (
         <AppText variant="body">팩 목록을 불러오는 중...</AppText>
       ) : (
-        <>
+        <View style={styles.listArea}>
           <AppText variant="body" style={{ marginBottom: spacing.sm }}>
             총 {filteredPacks.length}개의 팩
           </AppText>
           <FlashList
+            style={styles.list}
             data={filteredPacks}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
@@ -287,6 +288,7 @@ const AdminPacksScreen = () => {
               />
             )}
             contentContainerStyle={styles.listContent}
+            ItemSeparatorComponent={() => <View style={styles.listSeparator} />}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={styles.empty}>
@@ -299,7 +301,7 @@ const AdminPacksScreen = () => {
               </View>
             }
           />
-        </>
+        </View>
       )}
     </Screen>
   );
@@ -472,9 +474,17 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: spacing.sm,
   },
+  listArea: {
+    flex: 1,
+  },
+  list: {
+    flex: 1,
+  },
   listContent: {
     paddingBottom: spacing.xxxl,
-    gap: spacing.md,
+  },
+  listSeparator: {
+    height: spacing.md,
   },
   packCard: {
     position: "relative",
