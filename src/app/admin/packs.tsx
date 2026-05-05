@@ -1,11 +1,11 @@
 import {
   Alert,
-  FlatList,
   Pressable,
   StyleSheet,
   View,
 } from "react-native";
 import { Image as ExpoImage } from "expo-image";
+import { FlashList } from "@shopify/flash-list";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { useShopPackStore } from "../../store/shopPackStore";
@@ -276,7 +276,7 @@ const AdminPacksScreen = () => {
           <AppText variant="body" style={{ marginBottom: spacing.sm }}>
             총 {filteredPacks.length}개의 팩
           </AppText>
-          <FlatList
+          <FlashList
             data={filteredPacks}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (

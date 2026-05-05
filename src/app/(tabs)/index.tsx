@@ -1,4 +1,4 @@
-import { Alert, StyleSheet, View, FlatList } from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
 import React, { useCallback, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import Screen from "../../components/common/Screen";
@@ -17,6 +17,7 @@ import {
 } from "../../services/localDakkuStorage";
 import DakkuActionModal from "../../components/dakku/DakkuActionModal";
 import RenameDakkuModal from "../../components/dakku/RenameDakkuModal";
+import { FlashList } from "@shopify/flash-list";
 
 type CreateCardItem = {
   id: "create-card";
@@ -177,7 +178,7 @@ const HomeScreen = () => {
         <AppText variant="h1">내 다꾸</AppText>
       </View>
 
-      <FlatList<HomeListItem>
+      <FlashList<HomeListItem>
         data={dataWithCreateCard}
         keyExtractor={(item) => item.id}
         numColumns={2}
@@ -242,7 +243,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl,
   },
   cardWrapper: {
-    width: "50%",
+    width: "100%",
     marginBottom: spacing.md,
   },
   leftCard: {

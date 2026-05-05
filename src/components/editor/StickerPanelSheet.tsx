@@ -1,4 +1,5 @@
-import { FlatList, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { FlashList } from "@shopify/flash-list";
 import React, { useEffect, useMemo, useState } from "react";
 import SimpleBottomSheet from "../common/SimpleBottomSheet";
 import BottomSheetHeader from "../common/BottomSheetHeader";
@@ -141,7 +142,7 @@ const StickerPanelSheet = ({
               ))}
             </View>
 
-            <FlatList
+            <FlashList
               data={filteredPacks}
               keyExtractor={(pack) => pack.id}
               numColumns={2}
@@ -152,12 +153,8 @@ const StickerPanelSheet = ({
                   onPress={() => setSelectedPack(pack)}
                 />
               )}
-              columnWrapperStyle={styles.grid}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollContent}
-              initialNumToRender={6}
-              maxToRenderPerBatch={6}
-              windowSize={5}
             />
           </>
         ) : (
@@ -169,7 +166,7 @@ const StickerPanelSheet = ({
               </AppText>
             </View>
 
-            <FlatList
+            <FlashList
               data={selectedPack.previewStickers}
               keyExtractor={(sticker) => sticker.id}
               numColumns={2}
@@ -187,13 +184,9 @@ const StickerPanelSheet = ({
                   }}
                 />
               )}
-              columnWrapperStyle={styles.grid}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollContent}
               extraData={recentlyAddedStickerId}
-              initialNumToRender={8}
-              maxToRenderPerBatch={8}
-              windowSize={5}
             />
           </>
         )}

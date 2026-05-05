@@ -1,4 +1,4 @@
-import { FlatList, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import React, { useCallback, useMemo, useState } from "react";
 import { useEffect } from "react";
 import { ShopPack } from "../../types/shop";
@@ -20,6 +20,7 @@ import {
   stickerCategoryOptions,
 } from "../../constants/packCategories";
 import { prefetchImageSources } from "../../utils/prefetchImageSources";
+import { FlashList } from "@shopify/flash-list";
 
 type PackKindFilter = "all" | "sticker" | "background";
 type PackCategoryFilter = "all" | string;
@@ -120,14 +121,16 @@ const ShopScreen = () => {
   };
   return (
     <Screen>
-      <FlatList
+      <FlashList
         data={filteredPacks}
         keyExtractor={(item) => item.id}
         numColumns={2}
         renderItem={renderPackItem}
-        columnWrapperStyle={styles.packRow}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
+        onLoad={({elapsedTimeInMs}) => {
+          console.log('FlashList load time: ', elapsedTimeInMs)
+        }}
         ListHeaderComponent={
           <View>
             <View style={styles.header}>
@@ -239,11 +242,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     marginBottom: spacing.lg,
   },
-  packRow: {
-    alignItems: "stretch",
-  },
   cardWrapper: {
-    width: "50%",
+    width: "100%",
     marginBottom: spacing.md,
     alignSelf: "stretch",
   },

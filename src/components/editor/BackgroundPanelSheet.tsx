@@ -1,4 +1,5 @@
-import { FlatList, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { FlashList } from "@shopify/flash-list";
 import React, { useEffect, useMemo, useState } from "react";
 import { BackgroundItem } from "../../types/backgroundPanel";
 import SimpleBottomSheet from "../common/SimpleBottomSheet";
@@ -139,7 +140,7 @@ const BackgroundPanelSheet = ({
               ))}
             </View>
 
-            <FlatList
+            <FlashList
               data={filteredPacks}
               keyExtractor={(pack) => pack.id}
               numColumns={2}
@@ -150,12 +151,8 @@ const BackgroundPanelSheet = ({
                   onPress={() => setSelectedPack(pack)}
                 />
               )}
-              columnWrapperStyle={styles.grid}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollContent}
-              initialNumToRender={6}
-              maxToRenderPerBatch={6}
-              windowSize={5}
             />
           </>
         ) : (
@@ -167,7 +164,7 @@ const BackgroundPanelSheet = ({
               </AppText>
             </View>
 
-            <FlatList
+            <FlashList
               data={selectedPackBackgrounds}
               keyExtractor={(item) => item.id}
               numColumns={3}
@@ -180,13 +177,9 @@ const BackgroundPanelSheet = ({
                   onPress={() => onSelectBackground(item)}
                 />
               )}
-              columnWrapperStyle={styles.grid}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollContent}
               extraData={selectedBackgroundId}
-              initialNumToRender={9}
-              maxToRenderPerBatch={9}
-              windowSize={5}
             />
           </>
         )}
