@@ -8,7 +8,9 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "storage:refresh-cache": "node scripts/refreshStorageCacheControl.mjs",
-    "storage:refresh-cache:dry": "node scripts/refreshStorageCacheControl.mjs --dry-run"
+    "storage:refresh-cache:dry": "node scripts/refreshStorageCacheControl.mjs --dry-run",
+    "storage:generate-previews": "node scripts/generateItemPreviewImages.mjs",
+    "storage:generate-previews:dry": "node scripts/generateItemPreviewImages.mjs --dry-run"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
@@ -21,6 +23,7 @@
     "expo-font": "~14.0.11",
     "expo-iap": "^4.2.3",
     "expo-image": "~3.0.11",
+    "expo-image-manipulator": "~14.0.8",
     "expo-image-picker": "~17.0.11",
     "expo-media-library": "~18.2.1",
     "expo-router": "~6.0.23",

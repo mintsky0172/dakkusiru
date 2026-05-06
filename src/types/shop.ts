@@ -6,6 +6,7 @@ export interface PackPreviewSticker {
   id: string;
   name: string;
   imagePath?: string | null;
+  previewImagePath?: string | null;
   imageSource?: any;
 }
 
@@ -13,6 +14,7 @@ export interface PackPreviewBackground {
   id: string;
   name: string;
   imagePath?: string | null;
+  previewImagePath?: string | null;
   imageSource?: any;
   backgroundColor?: string;
 }
@@ -60,6 +62,7 @@ export interface RemotePackItem {
   pack_id: string;
   name: string;
   image_path?: string | null;
+  preview_image_path?: string | null;
   background_color?: string | null;
 }
 

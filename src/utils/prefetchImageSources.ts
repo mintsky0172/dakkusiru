@@ -12,7 +12,12 @@ function getUriFromImageSource(source?: ImageSourcePropType | null) {
   return "uri" in source ? source.uri : null;
 }
 
-export function prefetchImageSources(sources: (ImageSourcePropType | undefined)[]) {
+type PrefetchCachePolicy = "disk" | "memory" | "memory-disk";
+
+export function prefetchImageSources(
+  sources: (ImageSourcePropType | undefined)[],
+  cachePolicy: PrefetchCachePolicy = "memory-disk",
+) {
   const urls = [
     ...new Set(
       sources
@@ -23,5 +28,5 @@ export function prefetchImageSources(sources: (ImageSourcePropType | undefined)[
 
   if (!urls.length) return;
 
-  void Image.prefetch(urls, "disk");
+  void Image.prefetch(urls, cachePolicy);
 }

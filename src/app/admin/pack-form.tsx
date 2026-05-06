@@ -28,10 +28,11 @@ import {
 } from "../../services/adminShopPackService";
 import { pickAdminAssetImage } from "../../utils/pickAdminAssetImage";
 import {
-  getPackItemImagePath,
-  getPackThumbnailPath,
-  uploadAdminAsset,
-} from "../../services/adminAssetUploadService";
+	  getPackItemImagePath,
+	  getPackItemPreviewImagePath,
+	  getPackThumbnailPath,
+	  uploadAdminAsset,
+	} from "../../services/adminAssetUploadService";
 import { colors } from "../../constants/colors";
 import {
   backgroundCategoryOptions,
@@ -45,17 +46,20 @@ import {
   getBaseNameFromFileName,
   getDisplayNameFromItemId,
   normalizeItemId,
-} from "../../utils/adminItemName";
-import { useShopPackStore } from "../../store/shopPackStore";
+	} from "../../utils/adminItemName";
+	import { useShopPackStore } from "../../store/shopPackStore";
+	import { createAdminPreviewImageBase64 } from "../../utils/createAdminPreviewImage";
 
 interface BatchAdminItem {
   localId: string;
   itemId: string;
   name: string;
-  backgroundColor: string;
-  base64: string;
-  previewUri: string;
-}
+	  backgroundColor: string;
+	  base64: string;
+	  previewUri: string;
+	  width?: number | null;
+	  height?: number | null;
+	}
 
 interface SaveProgress {
   current: number;
@@ -64,12 +68,13 @@ interface SaveProgress {
 }
 
 interface ExistingPackItem {
-  id: string;
-  name: string;
-  imagePath?: string | null;
-  imageSource?: any;
-  backgroundColor?: string;
-}
+	  id: string;
+	  name: string;
+	  imagePath?: string | null;
+	  previewImagePath?: string | null;
+	  imageSource?: any;
+	  backgroundColor?: string;
+	}
 
 function makeUniqueItemId(baseId: string, usedIds: Set<string>) {
   let nextId = baseId;
@@ -155,20 +160,22 @@ const AdminPackFormScreen = () => {
 
     if (editingPack.kind === "sticker") {
       return editingPack.previewStickers.map((item) => ({
-        id: item.id,
-        name: item.name,
-        imagePath: item.imagePath,
-        imageSource: item.imageSource,
-      }));
+	        id: item.id,
+	        name: item.name,
+	        imagePath: item.imagePath,
+	        previewImagePath: item.previewImagePath,
+	        imageSource: item.imageSource,
+	      }));
     }
 
     return (editingPack.previewBackgrounds ?? []).map((item) => ({
-      id: item.id,
-      name: item.name,
-      imagePath: item.imagePath,
-      imageSource: item.imageSource,
-      backgroundColor: item.backgroundColor,
-    }));
+	      id: item.id,
+	      name: item.name,
+	      imagePath: item.imagePath,
+	      previewImagePath: item.previewImagePath,
+	      imageSource: item.imageSource,
+	      backgroundColor: item.backgroundColor,
+	    }));
   }, [editingPack]);
 
   useEffect(() => {
@@ -237,11 +244,13 @@ const AdminPackFormScreen = () => {
           localId: `${Date.now()}-${index}`,
           itemId,
           name: getDisplayNameFromItemId(itemId),
-          backgroundColor: "",
-          base64: asset.base64!,
-          previewUri: asset.uri,
-        };
-      });
+	          backgroundColor: "",
+	          base64: asset.base64!,
+	          previewUri: asset.uri,
+	          width: asset.width,
+	          height: asset.height,
+	        };
+	      });
 
       setBatchItems((prev) => [...prev, ...nextItems]);
     } catch (error) {
@@ -455,28 +464,47 @@ const AdminPackFormScreen = () => {
 
       usedItemIds.add(dbItemId);
 
-      const imagePath = getPackItemImagePath({
-        kind,
-        packId: targetPackId,
-        itemId,
-      });
+	      const imagePath = getPackItemImagePath({
+	        kind,
+	        packId: targetPackId,
+	        itemId,
+	      });
+	      const previewImagePath = getPackItemPreviewImagePath({
+	        kind,
+	        packId: targetPackId,
+	        itemId,
+	      });
 
       updateProgress(`${index + 1}번째 아이템 이미지 업로드 중`);
-      await uploadAdminAsset({
-        path: imagePath,
-        base64: item.base64,
-        contentType: "image/png",
-      });
+	      await uploadAdminAsset({
+	        path: imagePath,
+	        base64: item.base64,
+	        contentType: "image/png",
+	      });
 
-      updateProgress(`${index + 1}번째 아이템 정보 저장 중`);
-      await upsertAdminPackItem({
+	      updateProgress(`${index + 1}번째 아이템 미리보기 생성 중`);
+	      const previewBase64 = await createAdminPreviewImageBase64({
+	        uri: item.previewUri,
+	        width: item.width,
+	        height: item.height,
+	      });
+
+	      await uploadAdminAsset({
+	        path: previewImagePath,
+	        base64: previewBase64,
+	        contentType: "image/png",
+	      });
+
+	      updateProgress(`${index + 1}번째 아이템 정보 저장 중`);
+	      await upsertAdminPackItem({
         id: dbItemId,
         packId: targetPackId,
-        name: item.name.trim() || itemId,
-        imagePath,
-        backgroundColor:
-          kind === "background" ? item.backgroundColor.trim() || null : null,
-        sortOrder: index,
+	        name: item.name.trim() || itemId,
+	        imagePath,
+	        previewImagePath,
+	        backgroundColor:
+	          kind === "background" ? item.backgroundColor.trim() || null : null,
+	        sortOrder: index,
       });
     }
   };
@@ -488,13 +516,14 @@ const AdminPackFormScreen = () => {
     for (const [index, item] of existingItems.entries()) {
       updateProgress(`${index + 1}번째 기존 아이템 정보 저장 중`);
       await upsertAdminPackItem({
-        id: item.id,
-        packId: targetPackId,
-        name: item.name.trim() || item.id,
-        imagePath: item.imagePath ?? null,
-        backgroundColor:
-          kind === "background" ? item.backgroundColor?.trim() || null : null,
-        sortOrder: index,
+	        id: item.id,
+	        packId: targetPackId,
+	        name: item.name.trim() || item.id,
+	        imagePath: item.imagePath ?? null,
+	        previewImagePath: item.previewImagePath ?? null,
+	        backgroundColor:
+	          kind === "background" ? item.backgroundColor?.trim() || null : null,
+	        sortOrder: index,
       });
     }
   };
@@ -507,10 +536,10 @@ const AdminPackFormScreen = () => {
 
     const targetPackId = packId.trim();
     const totalSteps =
-      (thumbnailBase64 ? 1 : 0) +
-      1 +
-      (isEditMode ? existingItems.length : 0) +
-      batchItems.length * 2;
+	      (thumbnailBase64 ? 1 : 0) +
+	      1 +
+	      (isEditMode ? existingItems.length : 0) +
+	      batchItems.length * 3;
     let currentStep = 0;
     const updateProgress = (label: string) => {
       currentStep += 1;

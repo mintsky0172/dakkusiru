@@ -13,6 +13,7 @@ export interface AdminPackItem {
   pack_id: string;
   name: string;
   image_path?: string | null;
+  preview_image_path?: string | null;
   background_color?: string | null;
   sort_order: number;
 }
@@ -37,6 +38,7 @@ export interface UpsertAdminPackItemParams {
   packId: string;
   name: string;
   imagePath?: string | null;
+  previewImagePath?: string | null;
   backgroundColor: string | null;
   sortOrder?: number;
 }
@@ -46,7 +48,9 @@ export async function fetchAdminPackItems(
 ): Promise<AdminPackItem[]> {
   const { data, error } = await supabase
     .from("shop_pack_items")
-    .select("id, pack_id, name, image_path, background_color, sort_order")
+    .select(
+      "id, pack_id, name, image_path, preview_image_path, background_color, sort_order",
+    )
     .eq("pack_id", packId)
     .order("sort_order", { ascending: true });
 
@@ -81,11 +85,12 @@ export async function upsertAdminPackItem(params: UpsertAdminPackItemParams) {
   const { error } = await supabase.from("shop_pack_items").upsert({
     id: params.id,
     pack_id: params.packId,
-    name: params.name,
-    image_path: params.imagePath ?? null,
-    background_color: params.backgroundColor ?? null,
-    sort_order: params.sortOrder ?? 0,
-  });
+	    name: params.name,
+	    image_path: params.imagePath ?? null,
+	    preview_image_path: params.previewImagePath ?? null,
+	    background_color: params.backgroundColor ?? null,
+	    sort_order: params.sortOrder ?? 0,
+	  });
 
   if (error) {
     throw new Error(`[shop_pack_items 저장 실패] ${error.message}`);
@@ -110,18 +115,20 @@ export async function deleteAdminPack(packId: string) {
       : null;
   const storageFolderPaths = packKind
     ? [
-        getPackAssetFolderPath({ kind: packKind, packId }),
-        `${getPackAssetFolderPath({ kind: packKind, packId })}/items`,
-      ]
-    : [];
+	        getPackAssetFolderPath({ kind: packKind, packId }),
+	        `${getPackAssetFolderPath({ kind: packKind, packId })}/items`,
+	        `${getPackAssetFolderPath({ kind: packKind, packId })}/previews`,
+	      ]
+	    : [];
   const storagePaths = (
     await Promise.all(storageFolderPaths.map((path) => listAdminAssetPaths(path)))
   ).flat();
   const assetPaths = [
-    pack?.thumbnail_path,
-    ...items.map((item) => item.image_path),
-    ...storagePaths,
-  ].filter((path): path is string => !!path);
+	    pack?.thumbnail_path,
+	    ...items.map((item) => item.image_path),
+	    ...items.map((item) => item.preview_image_path),
+	    ...storagePaths,
+	  ].filter((path): path is string => !!path);
 
   await deleteAdminAssets(assetPaths);
 
@@ -142,9 +149,9 @@ export async function deleteAdminPack(packId: string) {
 }
 
 export async function deleteAdminPackItem(itemId: string) {
-  const { data: item, error: itemFetchError } = await supabase
-    .from("shop_pack_items")
-    .select("image_path")
+	  const { data: item, error: itemFetchError } = await supabase
+	    .from("shop_pack_items")
+	    .select("image_path, preview_image_path")
     .eq("id", itemId)
     .maybeSingle();
 
@@ -152,9 +159,7 @@ export async function deleteAdminPackItem(itemId: string) {
     throw new Error(`[shop_pack_items 조회 실패] ${itemFetchError.message}`);
   }
 
-  if (item?.image_path) {
-    await deleteAdminAssets([item.image_path]);
-  }
+	  await deleteAdminAssets([item?.image_path, item?.preview_image_path].filter(Boolean));
 
   const { error } = await supabase
     .from("shop_pack_items")

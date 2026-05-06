@@ -57,10 +57,19 @@ const PackDetailScreen = () => {
   useEffect(() => {
     if (!pack) return;
 
+    const priorityPreviewItems = previewItems.slice(0, 12);
+    const remainingPreviewItems = previewItems.slice(12);
+
     prefetchImageSources([pack.thumbnailSource]);
-    setTimeout(() => {
-      prefetchImageSources(previewItems.map((item) => item.imageSource));
-    });
+    prefetchImageSources(priorityPreviewItems.map((item) => item.imageSource));
+
+    if (!remainingPreviewItems.length) return;
+
+    const timeoutId = setTimeout(() => {
+      prefetchImageSources(remainingPreviewItems.map((item) => item.imageSource), "disk");
+    }, 120);
+
+    return () => clearTimeout(timeoutId);
   }, [pack, previewItems]);
 
   const handleBack = () => {
@@ -177,13 +186,14 @@ const PackDetailScreen = () => {
             <View style={styles.heroCard}>
               <View style={styles.heroImageWrapper}>
                 {pack.thumbnailSource ? (
-                  <ExpoImage
-                    source={pack.thumbnailSource}
-                    style={styles.heroImage}
-                    contentFit="contain"
-                    cachePolicy="disk"
-                    transition={160}
-                  />
+	                  <ExpoImage
+	                    source={pack.thumbnailSource}
+	                    style={styles.heroImage}
+	                    contentFit="contain"
+	                    cachePolicy="memory-disk"
+	                    priority="high"
+	                    transition={100}
+	                  />
                 ) : (
                   <View style={styles.heroPlaceholder} />
                 )}

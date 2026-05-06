@@ -26,13 +26,14 @@ const StickerPreviewCard = ({
     <View style={[styles.card, style]}>
       <View style={styles.imageWrapper}>
         {imageSource ? (
-          <Image
-            source={imageSource}
-            style={styles.image}
-            contentFit="contain"
-            cachePolicy="disk"
-            transition={100}
-          />
+	          <Image
+	            source={imageSource}
+	            style={styles.image}
+	            contentFit="contain"
+	            cachePolicy="memory-disk"
+	            priority="high"
+	            transition={80}
+	          />
         ) : (
           <View style={styles.placeholder} />
         )}

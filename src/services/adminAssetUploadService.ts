@@ -82,3 +82,11 @@ export function getPackItemImagePath(params: {
 }) {
   return `${getPackAssetFolderPath(params)}/items/${params.itemId}.png`;
 }
+
+export function getPackItemPreviewImagePath(params: {
+  kind: "sticker" | "background";
+  packId: string;
+  itemId: string;
+}) {
+  return `${getPackAssetFolderPath(params)}/previews/${params.itemId}.png`;
+}
