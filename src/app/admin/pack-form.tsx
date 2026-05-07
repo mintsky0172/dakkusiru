@@ -1,7 +1,9 @@
 import {
-	  Alert,
-	  findNodeHandle,
-	  Keyboard,
+  Alert,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  findNodeHandle,
+  Keyboard,
 	  KeyboardAvoidingView,
 	  ScrollView,
   StyleSheet,
@@ -106,6 +108,7 @@ const AdminPackFormScreen = () => {
 
   const tagInputRef = useRef<TextInput>(null);
   const scrollViewRef = useRef<ScrollView>(null);
+  const scrollYRef = useRef(0);
 
   const user = useAuthStore((state) => state.user);
   const profile = useAuthStore((state) => state.profile);
@@ -423,6 +426,21 @@ const AdminPackFormScreen = () => {
     }, 320);
   };
 
+  const restoreScrollPositionAfterKeyboardDismiss = () => {
+    const scrollY = scrollYRef.current;
+
+    requestAnimationFrame(() => {
+      scrollViewRef.current?.scrollTo({ y: scrollY, animated: false });
+    });
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({ y: scrollY, animated: false });
+    }, 120);
+  };
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    scrollYRef.current = event.nativeEvent.contentOffset.y;
+  };
+
   const resetPackForm = () => {
     setPackId("");
     setTitle("");
@@ -531,6 +549,7 @@ const AdminPackFormScreen = () => {
 
 	  const handleSavePack = async () => {
 	    Keyboard.dismiss();
+	    restoreScrollPositionAfterKeyboardDismiss();
 
 	    if (!packId.trim() || !title.trim()) {
 	      Alert.alert("입력 필요", "팩 ID와 제목은 꼭 입력해 주세요.");
@@ -704,11 +723,13 @@ const AdminPackFormScreen = () => {
         style={styles.keyboardAvoiding}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <ScrollView
-          ref={scrollViewRef}
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.content}
+	        <ScrollView
+	          ref={scrollViewRef}
+	          style={styles.scrollView}
+	          showsVerticalScrollIndicator={false}
+	          onScroll={handleScroll}
+	          scrollEventThrottle={16}
+	          contentContainerStyle={styles.content}
           contentInsetAdjustmentBehavior="automatic"
           keyboardDismissMode="interactive"
           keyboardShouldPersistTaps="handled"
