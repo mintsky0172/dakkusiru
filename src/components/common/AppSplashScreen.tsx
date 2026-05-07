@@ -2,12 +2,14 @@ import React from "react";
 import { Image, ImageBackground, StyleSheet, View } from "react-native";
 import { colors } from "../../constants/colors";
 import { radius, spacing } from "../../constants/spacing";
+import { AppText } from "./AppText";
 
 interface AppSplashScreenProps {
   progress: number;
+  label: string;
 }
 
-const AppSplashScreen = ({ progress }: AppSplashScreenProps) => {
+const AppSplashScreen = ({ progress, label }: AppSplashScreenProps) => {
   const normalizedProgress = Math.max(0, Math.min(1, progress));
 
   return (
@@ -23,15 +25,19 @@ const AppSplashScreen = ({ progress }: AppSplashScreenProps) => {
           resizeMode="contain"
         />
 
-        <View style={styles.progressTrack}>
-          <View
-            style={[
-              styles.progressFill,
-              { width: `${Math.round(normalizedProgress * 100)}%` },
-            ]}
-          />
-        </View>
-      </View>
+	        <View style={styles.progressTrack}>
+	          <View
+	            style={[
+	              styles.progressFill,
+	              { width: `${Math.round(normalizedProgress * 100)}%` },
+	            ]}
+	          />
+	        </View>
+
+	        <AppText variant="caption" style={styles.label}>
+	          {label}
+	        </AppText>
+	      </View>
     </ImageBackground>
   );
 };
@@ -64,6 +70,11 @@ const styles = StyleSheet.create({
   progressFill: {
     height: "100%",
     borderRadius: radius.round,
-    backgroundColor: colors.accent.main, 
+    backgroundColor: colors.accent.main,
+  },
+  label: {
+    marginTop: spacing.sm,
+    textAlign: "center",
+    color: colors.text.secondary,
   },
 });

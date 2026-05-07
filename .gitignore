@@ -45,3 +45,5 @@ yarn-error.*
 assets/sticker_pack/
 assets/background_pack/
 asset-upload/
+
+supabase/.temp/cli-latest

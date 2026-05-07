@@ -8,7 +8,6 @@ import { usePurchaseStore } from "../store/purchaseStore";
 import { useCoinStore } from "../store/coinStore";
 import { prefetchImageSources } from "../utils/prefetchImageSources";
 import { getPackPreviewImageSources } from "../utils/getPackPreviewImageSources";
-import { Image } from "expo-image";
 
 const SPLASH_PREFETCH_PACK_COUNT = 6;
 const SPLASH_PREFETCH_PREVIEW_COUNT = 6;
@@ -20,8 +19,12 @@ function wait(ms: number) {
 
 export default function RootLayout() {
   const fontsLoaded = useAppFonts();
+
   const [isBootstrapComplete, setIsBootstrapComplete] = useState(false);
   const [bootstrapProgress, setBootstrapProgress] = useState(0);
+  const [progressLabel, setProgressLabel] =
+    useState("앱 설정을 준비하는 중...");
+
   const hasStartedBootstrap = useRef(false);
   const authCleanupRef = useRef<(() => void) | undefined>(undefined);
 
@@ -43,15 +46,16 @@ export default function RootLayout() {
     };
 
     async function bootstrapApp() {
-      await Image.clearMemoryCache(); // 개발 중 캐시 삭제 테스트
-      await Image.clearDiskCache(); // 개발 중 캐시 삭제 테스트
+      setProgressLabel("앱 설정을 준비하는 중...");
       updateProgress(0.16);
 
       const cleanup = await initializeAuth();
       authCleanupRef.current = cleanup;
+      setProgressLabel("사용자 정보를 확인하는 중...");
       updateProgress(0.36);
 
       await Promise.all([loadPacks(), loadOwnedPackIds(), loadCoins()]);
+      setProgressLabel("상점 데이터를 불러오는 중...");
       updateProgress(0.68);
 
       const packs = useShopPackStore
@@ -66,6 +70,7 @@ export default function RootLayout() {
         ]) ?? Promise.resolve(false);
 
       await Promise.race([prefetchPromise, wait(SPLASH_PREFETCH_TIMEOUT_MS)]);
+      setProgressLabel("거의 다 왔어요...");
       updateProgress(0.94);
 
       await wait(140);
@@ -95,7 +100,7 @@ export default function RootLayout() {
   }, []);
 
   if (!fontsLoaded || !isBootstrapComplete) {
-    return <AppSplashScreen progress={bootstrapProgress} />;
+    return <AppSplashScreen progress={bootstrapProgress} label={progressLabel} />;
   }
 
   return (

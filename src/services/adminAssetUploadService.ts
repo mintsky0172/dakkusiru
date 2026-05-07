@@ -1,12 +1,22 @@
 import { decode } from "base64-arraybuffer";
 import { supabase } from "../lib/supabase";
 
-const ASSET_BUCKET = "dakku-assets";
-
 interface UploadAdminAssetParams {
   path: string;
   base64: string;
   contentType?: string;
+}
+
+async function invokeAdminR2Assets<T>(body: Record<string, unknown>) {
+  const { data, error } = await supabase.functions.invoke<T>("admin-r2-assets", {
+    body,
+  });
+
+  if (error) {
+    throw new Error(`[R2 asset 함수 실패] ${error.message}`);
+  }
+
+  return data;
 }
 
 export async function uploadAdminAsset({
@@ -14,16 +24,27 @@ export async function uploadAdminAsset({
   base64,
   contentType = "image/png",
 }: UploadAdminAssetParams) {
-  const { data, error } = await supabase.storage
-    .from(ASSET_BUCKET)
-    .upload(path, decode(base64), {
-      contentType,
-      upsert: true,
-      cacheControl: "31536000",
-    });
+  const data = await invokeAdminR2Assets<{ uploadUrl: string; path: string }>({
+    action: "createUploadUrl",
+    path,
+    contentType,
+  });
 
-  if (error) {
-    throw new Error(`[dakku-assets 업로드 실패] ${error.message}`);
+  if (!data?.uploadUrl) {
+    throw new Error("[R2 업로드 URL 생성 실패] uploadUrl이 비어 있어요.");
+  }
+
+  const response = await fetch(data.uploadUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Type": contentType,
+    },
+    body: decode(base64) as ArrayBuffer,
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`[R2 업로드 실패] ${response.status} ${message}`);
   }
 
   return data.path;
@@ -34,30 +55,19 @@ export async function deleteAdminAssets(paths: string[]) {
 
   if (!uniquePaths.length) return;
 
-  const { error } = await supabase.storage
-    .from(ASSET_BUCKET)
-    .remove(uniquePaths);
-
-  if (error) {
-    throw new Error(`[dakku-assets 삭제 실패] ${error.message}`);
-  }
+  await invokeAdminR2Assets({
+    action: "delete",
+    paths: uniquePaths,
+  });
 }
 
 export async function listAdminAssetPaths(folderPath: string) {
-  const { data, error } = await supabase.storage
-    .from(ASSET_BUCKET)
-    .list(folderPath, {
-      limit: 1000,
-      offset: 0,
-    });
+  const data = await invokeAdminR2Assets<{ paths: string[] }>({
+    action: "list",
+    folderPath,
+  });
 
-  if (error) {
-    throw new Error(`[dakku-assets 목록 조회 실패] ${error.message}`);
-  }
-
-  return (data ?? [])
-    .filter((item) => item.id)
-    .map((item) => `${folderPath}/${item.name}`);
+  return data?.paths ?? [];
 }
 
 export function getPackAssetFolderPath(params: {
