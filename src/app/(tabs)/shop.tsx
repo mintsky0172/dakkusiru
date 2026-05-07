@@ -22,6 +22,7 @@ import {
 import { prefetchImageSources } from "../../utils/prefetchImageSources";
 import { FlashList } from "@shopify/flash-list";
 import { getPackPreviewImageSources } from "../../utils/getPackPreviewImageSources";
+import ShopSkeleton from "../../components/shop/ShopSkeleton";
 
 type PackKindFilter = "all" | "sticker" | "background";
 type PackCategoryFilter = "all" | string;
@@ -49,6 +50,7 @@ const ShopScreen = () => {
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
 
   const packs = useShopPackStore((state) => state.packs);
+  const isPackLoading = useShopPackStore((state) => state.isLoading);
   const errorMessage = useShopPackStore((state) => state.errorMessage);
   const loadPacks = useShopPackStore((state) => state.loadPacks);
 
@@ -157,6 +159,16 @@ const ShopScreen = () => {
       </View>
     );
   };
+
+  const shouldShowSkeleton = isPackLoading && packs.length === 0;
+
+  if (shouldShowSkeleton) {
+    return (
+      <Screen>
+        <ShopSkeleton />
+      </Screen>
+    );
+  }
   return (
     <Screen>
       <FlashList

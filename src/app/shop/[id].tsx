@@ -9,6 +9,7 @@ import { radius, spacing } from "../../constants/spacing";
 import AppButton from "../../components/common/AppButton";
 import IconButton from "../../components/common/IconButton";
 import StickerPreviewCard from "../../components/shop/StickerPreviewCard";
+import SkeletonBox from "../../components/common/SkeletonBox";
 import { colors } from "../../constants/colors";
 import { usePurchaseStore } from "../../store/purchaseStore";
 import { useCoinStore } from "../../store/coinStore";
@@ -17,6 +18,7 @@ import { resolvePack } from "../../utils/shop";
 import { prefetchImageSources } from "../../utils/prefetchImageSources";
 import { PackPreviewBackground, PackPreviewSticker } from "../../types/shop";
 import { getPackPreviewImageSources } from "../../utils/getPackPreviewImageSources";
+import PackDetailSkeleton from "../../components/shop/PackDetailSkeleton";
 
 const INITIAL_PREVIEW_COUNT = 6;
 const MORE_PREVIEW_BATCH_SIZE = 6;
@@ -66,25 +68,6 @@ const PackDetailScreen = () => {
   const renderedPreviewItems = useMemo(() => {
     return previewItems.slice(0, previewRenderLimit);
   }, [previewItems, previewRenderLimit]);
-
-  useEffect(() => {
-    if (!pack) return;
-
-    console.log(
-      "[asset url check]",
-      previewItems.slice(0, 3).map((item) => {
-        const source = item.imageSource;
-        return {
-          id: item.id,
-          previewImagePath: item.previewImagePath,
-          uri:
-            source && typeof source === "object" && "uri" in source
-              ? source.uri
-              : null,
-        };
-      }),
-    );
-  }, [pack, previewItems]);
 
   useEffect(() => {
     setPreviewRenderLimit(INITIAL_PREVIEW_COUNT);
@@ -178,9 +161,7 @@ const PackDetailScreen = () => {
   if (!pack && isPackLoading) {
     return (
       <Screen>
-        <View style={styles.notFoundContainer}>
-          <AppText variant="body">팩 정보를 불러오는 중...</AppText>
-        </View>
+        <PackDetailSkeleton />
       </Screen>
     );
   }
@@ -359,17 +340,28 @@ const PackDetailScreen = () => {
           </View>
         }
         ListFooterComponent={
-          hasMorePreviewItems ? (
+          isShowingMorePreviewItems ? (
+            <View style={styles.morePreviewSkeletonGrid}>
+              {Array.from({ length: Math.min(6, hiddenPreviewItemCount) }).map(
+                (_, index) => (
+                  <View key={index} style={styles.morePreviewSkeletonCell}>
+                    <SkeletonBox height={88} borderRadius={16} />
+                    <SkeletonBox
+                      height={14}
+                      width="68%"
+                      borderRadius={7}
+                      style={styles.morePreviewSkeletonLabel}
+                    />
+                  </View>
+                ),
+              )}
+            </View>
+          ) : hasMorePreviewItems ? (
             <View style={styles.morePreviewSection}>
               <AppButton
-                label={
-                  isShowingMorePreviewItems
-                    ? "불러오는 중..."
-                    : `더보기 (${hiddenPreviewItemCount}개)`
-                }
+                label={`더보기 (${hiddenPreviewItemCount}개)`}
                 onPress={handleShowAllPreviewItems}
                 variant="secondary"
-                disabled={isShowingMorePreviewItems}
               />
             </View>
           ) : null
@@ -493,6 +485,20 @@ const styles = StyleSheet.create({
   },
   morePreviewSection: {
     marginTop: spacing.sm,
+  },
+  morePreviewSkeletonGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: spacing.sm,
+  },
+  morePreviewSkeletonCell: {
+    width: "33.333%",
+    paddingHorizontal: spacing.xxs,
+    marginBottom: spacing.md,
+  },
+  morePreviewSkeletonLabel: {
+    alignSelf: "center",
+    marginTop: spacing.xs,
   },
   notFoundContainer: {
     flex: 1,
