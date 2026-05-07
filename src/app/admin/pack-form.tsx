@@ -1,8 +1,9 @@
 import {
-  Alert,
-  findNodeHandle,
-  KeyboardAvoidingView,
-  ScrollView,
+	  Alert,
+	  findNodeHandle,
+	  Keyboard,
+	  KeyboardAvoidingView,
+	  ScrollView,
   StyleSheet,
   TextInput,
   Image,
@@ -528,9 +529,11 @@ const AdminPackFormScreen = () => {
     }
   };
 
-  const handleSavePack = async () => {
-    if (!packId.trim() || !title.trim()) {
-      Alert.alert("입력 필요", "팩 ID와 제목은 꼭 입력해 주세요.");
+	  const handleSavePack = async () => {
+	    Keyboard.dismiss();
+
+	    if (!packId.trim() || !title.trim()) {
+	      Alert.alert("입력 필요", "팩 ID와 제목은 꼭 입력해 주세요.");
       return;
     }
 
