@@ -8,15 +8,33 @@ interface UploadAdminAssetParams {
 }
 
 async function invokeAdminR2Assets<T>(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke<T>("admin-r2-assets", {
-    body,
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const functionUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/admin-r2-assets`;
+  const response = await fetch(functionUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(session?.access_token
+        ? { Authorization: `Bearer ${session.access_token}` }
+        : {}),
+    },
+    body: JSON.stringify(body),
   });
 
-  if (error) {
-    throw new Error(`[R2 asset 함수 실패] ${error.message}`);
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : null;
+
+  if (!response.ok) {
+    throw new Error(
+      `[R2 asset 함수 실패] ${
+        data?.error ?? `${response.status} ${response.statusText}`
+      }`,
+    );
   }
 
-  return data;
+  return data as T;
 }
 
 export async function uploadAdminAsset({
