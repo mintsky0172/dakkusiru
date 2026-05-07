@@ -21,8 +21,8 @@ export async function createAdminPreviewImageBase64(params: {
     ],
     {
       base64: true,
-      compress: 1,
-      format: SaveFormat.PNG,
+      compress: 0.82,
+      format: SaveFormat.WEBP,
     },
   );
 

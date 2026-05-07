@@ -88,5 +88,5 @@ export function getPackItemPreviewImagePath(params: {
   packId: string;
   itemId: string;
 }) {
-  return `${getPackAssetFolderPath(params)}/previews/${params.itemId}.png`;
+  return `${getPackAssetFolderPath(params)}/previews/${params.itemId}.webp`;
 }

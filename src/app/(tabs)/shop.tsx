@@ -21,15 +21,24 @@ import {
 } from "../../constants/packCategories";
 import { prefetchImageSources } from "../../utils/prefetchImageSources";
 import { FlashList } from "@shopify/flash-list";
+import { getPackPreviewImageSources } from "../../utils/getPackPreviewImageSources";
 
 type PackKindFilter = "all" | "sticker" | "background";
 type PackCategoryFilter = "all" | string;
+const SHOP_MAIN_PREVIEW_PREFETCH_COUNT = 6;
+const DETAIL_INITIAL_PREVIEW_COUNT = 6;
+const DETAIL_PREFETCH_TIMEOUT_MS = 900;
+const SHOP_PREFETCH_PACK_GAP_MS = 80;
 
 const kindFilters: { label: string; value: PackKindFilter }[] = [
   { label: "전체", value: "all" },
   { label: "스티커", value: "sticker" },
   { label: "배경", value: "background" },
 ];
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 const ShopScreen = () => {
   const balance = useCoinStore((state) => state.balance);
@@ -79,15 +88,44 @@ const ShopScreen = () => {
   }, [resolvedPacks, selectedCategory, selectedKind]);
 
   useEffect(() => {
+    let isCancelled = false;
+
     prefetchImageSources(filteredPacks.map((pack) => pack.thumbnailSource));
+
+    const timeoutId = setTimeout(() => {
+      void (async () => {
+        for (const pack of filteredPacks) {
+          if (isCancelled) break;
+
+          await prefetchImageSources(
+            getPackPreviewImageSources(pack, SHOP_MAIN_PREVIEW_PREFETCH_COUNT),
+          );
+          await wait(SHOP_PREFETCH_PACK_GAP_MS);
+        }
+      })();
+    }, 250);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timeoutId);
+    };
   }, [filteredPacks]);
 
   const handlePressCharge = () => {
     router.push("/coin");
   };
 
-  const handlePressPack = (pack: ShopPack) => {
+  const handlePressPack = async (pack: ShopPack) => {
     setSelectedPackId(pack.id);
+
+    await Promise.race([
+      prefetchImageSources([
+        pack.thumbnailSource,
+        ...getPackPreviewImageSources(pack, DETAIL_INITIAL_PREVIEW_COUNT),
+      ]) ?? Promise.resolve(false),
+      wait(DETAIL_PREFETCH_TIMEOUT_MS),
+    ]);
+
     router.push(`/shop/${pack.id}`);
   };
 

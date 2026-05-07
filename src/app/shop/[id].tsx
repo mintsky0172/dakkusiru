@@ -1,6 +1,6 @@
 import { Alert, StyleSheet, Image, View } from "react-native";
 import { Image as ExpoImage } from "expo-image";
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { FlashList } from "@shopify/flash-list";
 import { router, useLocalSearchParams } from "expo-router";
 import Screen from "../../components/common/Screen";
@@ -16,9 +16,24 @@ import { useShopPackStore } from "../../store/shopPackStore";
 import { resolvePack } from "../../utils/shop";
 import { prefetchImageSources } from "../../utils/prefetchImageSources";
 import { PackPreviewBackground, PackPreviewSticker } from "../../types/shop";
+import { getPackPreviewImageSources } from "../../utils/getPackPreviewImageSources";
+
+const INITIAL_PREVIEW_COUNT = 6;
+const MORE_PREVIEW_BATCH_SIZE = 6;
+const MORE_PREVIEW_PREFETCH_GAP_MS = 80;
+const SHOW_MORE_PREFETCH_TIMEOUT_MS = 900;
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 const PackDetailScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const [previewRenderLimit, setPreviewRenderLimit] = useState(
+    INITIAL_PREVIEW_COUNT,
+  );
+  const [isShowingMorePreviewItems, setIsShowingMorePreviewItems] =
+    useState(false);
 
   const balance = useCoinStore((state) => state.balance);
   const loadCoins = useCoinStore((state) => state.loadCoins);
@@ -31,12 +46,6 @@ const PackDetailScreen = () => {
   const packs = useShopPackStore((state) => state.packs);
   const isPackLoading = useShopPackStore((state) => state.isLoading);
   const loadPacks = useShopPackStore((state) => state.loadPacks);
-
-  useEffect(() => {
-    void loadPacks();
-    void loadOwnedPackIds();
-    void loadCoins();
-  }, [loadPacks, loadOwnedPackIds, loadCoins]);
 
   const rawPack = useMemo(() => {
     return packs.find((item) => item.id === id);
@@ -54,22 +63,69 @@ const PackDetailScreen = () => {
       : (pack.previewBackgrounds ?? []);
   }, [pack]);
 
+  const renderedPreviewItems = useMemo(() => {
+    return previewItems.slice(0, previewRenderLimit);
+  }, [previewItems, previewRenderLimit]);
+
   useEffect(() => {
     if (!pack) return;
 
-    const priorityPreviewItems = previewItems.slice(0, 12);
-    const remainingPreviewItems = previewItems.slice(12);
+    console.log(
+      "[asset url check]",
+      previewItems.slice(0, 3).map((item) => {
+        const source = item.imageSource;
+        return {
+          id: item.id,
+          previewImagePath: item.previewImagePath,
+          uri:
+            source && typeof source === "object" && "uri" in source
+              ? source.uri
+              : null,
+        };
+      }),
+    );
+  }, [pack, previewItems]);
+
+  useEffect(() => {
+    setPreviewRenderLimit(INITIAL_PREVIEW_COUNT);
+    setIsShowingMorePreviewItems(false);
+  }, [pack?.id]);
+
+  useEffect(() => {
+    if (!pack) return;
 
     prefetchImageSources([pack.thumbnailSource]);
-    prefetchImageSources(priorityPreviewItems.map((item) => item.imageSource));
+    prefetchImageSources(
+      getPackPreviewImageSources(pack, INITIAL_PREVIEW_COUNT),
+    );
 
-    if (!remainingPreviewItems.length) return;
+    if (previewItems.length <= INITIAL_PREVIEW_COUNT) return;
 
+    let isCancelled = false;
     const timeoutId = setTimeout(() => {
-      prefetchImageSources(remainingPreviewItems.map((item) => item.imageSource), "disk");
+      void (async () => {
+        for (
+          let index = INITIAL_PREVIEW_COUNT;
+          index < previewItems.length;
+          index += MORE_PREVIEW_BATCH_SIZE
+        ) {
+          if (isCancelled) break;
+
+          await prefetchImageSources(
+            previewItems
+              .slice(index, index + MORE_PREVIEW_BATCH_SIZE)
+              .map((item) => item.imageSource),
+            "memory-disk",
+          );
+          await wait(MORE_PREVIEW_PREFETCH_GAP_MS);
+        }
+      })();
     }, 120);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      isCancelled = true;
+      clearTimeout(timeoutId);
+    };
   }, [pack, previewItems]);
 
   const handleBack = () => {
@@ -150,12 +206,34 @@ const PackDetailScreen = () => {
         : `${pack.coinPrice?.toLocaleString() ?? 0}코인으로 구매하기`;
   const previewTitle =
     pack.kind === "sticker" ? "포함된 스티커" : "포함된 배경";
+  const hasMorePreviewItems = renderedPreviewItems.length < previewItems.length;
+  const hiddenPreviewItemCount =
+    previewItems.length - renderedPreviewItems.length;
+  const handleShowAllPreviewItems = async () => {
+    if (isShowingMorePreviewItems) return;
+
+    setIsShowingMorePreviewItems(true);
+
+    await Promise.race([
+      prefetchImageSources(
+        previewItems
+          .slice(INITIAL_PREVIEW_COUNT)
+          .map((item) => item.imageSource),
+        "memory-disk",
+      ) ?? Promise.resolve(false),
+      wait(SHOW_MORE_PREFETCH_TIMEOUT_MS),
+    ]);
+
+    setPreviewRenderLimit(Number.POSITIVE_INFINITY);
+    setIsShowingMorePreviewItems(false);
+  };
   const renderPreviewItem = ({
     item,
   }: {
     item: PackPreviewSticker | PackPreviewBackground;
   }) => (
     <StickerPreviewCard
+      id={item.id}
       name={item.name}
       imageSource={item.imageSource}
       style={styles.previewCard}
@@ -165,7 +243,7 @@ const PackDetailScreen = () => {
   return (
     <Screen>
       <FlashList
-        data={previewItems}
+        data={renderedPreviewItems}
         keyExtractor={(item) => item.id}
         numColumns={3}
         renderItem={renderPreviewItem}
@@ -186,14 +264,14 @@ const PackDetailScreen = () => {
             <View style={styles.heroCard}>
               <View style={styles.heroImageWrapper}>
                 {pack.thumbnailSource ? (
-	                  <ExpoImage
-	                    source={pack.thumbnailSource}
-	                    style={styles.heroImage}
-	                    contentFit="contain"
-	                    cachePolicy="memory-disk"
-	                    priority="high"
-	                    transition={100}
-	                  />
+                  <ExpoImage
+                    source={pack.thumbnailSource}
+                    style={styles.heroImage}
+                    contentFit="contain"
+                    cachePolicy="memory-disk"
+                    priority="high"
+                    transition={100}
+                  />
                 ) : (
                   <View style={styles.heroPlaceholder} />
                 )}
@@ -279,6 +357,22 @@ const PackDetailScreen = () => {
               미리보기 아이템이 아직 준비되지 않았어요.
             </AppText>
           </View>
+        }
+        ListFooterComponent={
+          hasMorePreviewItems ? (
+            <View style={styles.morePreviewSection}>
+              <AppButton
+                label={
+                  isShowingMorePreviewItems
+                    ? "불러오는 중..."
+                    : `더보기 (${hiddenPreviewItemCount}개)`
+                }
+                onPress={handleShowAllPreviewItems}
+                variant="secondary"
+                disabled={isShowingMorePreviewItems}
+              />
+            </View>
+          ) : null
         }
       />
     </Screen>
@@ -396,6 +490,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.xl,
     padding: spacing.lg,
     alignItems: "center",
+  },
+  morePreviewSection: {
+    marginTop: spacing.sm,
   },
   notFoundContainer: {
     flex: 1,

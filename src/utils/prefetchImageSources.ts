@@ -26,7 +26,7 @@ export function prefetchImageSources(
     ),
   ];
 
-  if (!urls.length) return;
+  if (!urls.length) return undefined;
 
-  void Image.prefetch(urls, cachePolicy);
+  return Image.prefetch(urls, cachePolicy);
 }

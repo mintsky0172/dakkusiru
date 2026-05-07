@@ -492,7 +492,7 @@ const AdminPackFormScreen = () => {
 	      await uploadAdminAsset({
 	        path: previewImagePath,
 	        base64: previewBase64,
-	        contentType: "image/png",
+	        contentType: "image/webp",
 	      });
 
 	      updateProgress(`${index + 1}번째 아이템 정보 저장 중`);

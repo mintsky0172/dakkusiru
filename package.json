@@ -10,7 +10,10 @@
     "storage:refresh-cache": "node scripts/refreshStorageCacheControl.mjs",
     "storage:refresh-cache:dry": "node scripts/refreshStorageCacheControl.mjs --dry-run",
     "storage:generate-previews": "node scripts/generateItemPreviewImages.mjs",
-    "storage:generate-previews:dry": "node scripts/generateItemPreviewImages.mjs --dry-run"
+    "storage:generate-previews:dry": "node scripts/generateItemPreviewImages.mjs --dry-run",
+    "storage:sync-r2": "node scripts/syncAssetsToR2.mjs",
+    "storage:sync-r2:dry": "node scripts/syncAssetsToR2.mjs --dry-run",
+    "storage:check-r2": "node scripts/checkR2Access.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
@@ -42,7 +45,9 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.1044.0",
     "@types/react": "~19.1.0",
+    "sharp": "^0.34.5",
     "typescript": "~5.9.2"
   },
   "private": true

@@ -1,11 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
-import { execFile } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, extname, join, resolve } from "node:path";
-import { promisify } from "node:util";
-
-const execFileAsync = promisify(execFile);
+import sharp from "sharp";
 
 function loadDotEnv() {
   const envPath = resolve(process.cwd(), ".env");
@@ -38,6 +35,7 @@ const SUPABASE_URL =
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BUCKET = process.env.SUPABASE_STORAGE_BUCKET ?? "dakku-assets";
 const PREVIEW_SIZE = Number(process.env.ITEM_PREVIEW_SIZE ?? 256);
+const WEBP_QUALITY = Number(process.env.ITEM_PREVIEW_WEBP_QUALITY ?? 82);
 const CACHE_CONTROL = process.env.STORAGE_CACHE_CONTROL ?? "31536000";
 const DRY_RUN = process.argv.includes("--dry-run");
 const FORCE = process.argv.includes("--force");
@@ -79,15 +77,14 @@ function getContentType(path) {
 }
 
 function getPreviewPath(imagePath) {
-  const extension = extname(imagePath) || ".png";
-  const filename = basename(imagePath, extension);
+  const filename = basename(imagePath, extname(imagePath) || ".png");
   const folder = dirname(imagePath);
 
   if (folder.endsWith("/items")) {
-    return `${dirname(folder)}/previews/${filename}${extension}`;
+    return `${dirname(folder)}/previews/${filename}.webp`;
   }
 
-  return `${folder}/previews/${filename}${extension}`;
+  return `${folder}/previews/${filename}.webp`;
 }
 
 async function fetchItems() {
@@ -107,9 +104,12 @@ async function fetchItems() {
 
 async function createPreviewImage(item, tempRoot) {
   const sourcePath = item.image_path;
-  const previewPath = item.preview_image_path || getPreviewPath(sourcePath);
+  const existingPreviewPath = item.preview_image_path ?? "";
+  const previewPath = existingPreviewPath.toLowerCase().endsWith(".webp")
+    ? existingPreviewPath
+    : getPreviewPath(sourcePath);
 
-  if (!FORCE && item.preview_image_path) {
+  if (!FORCE && existingPreviewPath.toLowerCase().endsWith(".webp")) {
     console.log(`[skip] ${item.id}: already has preview_image_path`);
     return "skipped";
   }
@@ -131,11 +131,19 @@ async function createPreviewImage(item, tempRoot) {
   mkdirSync(itemTempDir, { recursive: true });
 
   const inputPath = join(itemTempDir, `source${extname(sourcePath) || ".png"}`);
-  const outputPath = join(itemTempDir, `preview${extname(previewPath) || ".png"}`);
+  const outputPath = join(itemTempDir, "preview.webp");
 
   writeFileSync(inputPath, Buffer.from(await file.arrayBuffer()));
 
-  await execFileAsync("sips", ["-Z", String(PREVIEW_SIZE), inputPath, "--out", outputPath]);
+  await sharp(inputPath)
+    .resize({
+      width: PREVIEW_SIZE,
+      height: PREVIEW_SIZE,
+      fit: "inside",
+      withoutEnlargement: true,
+    })
+    .webp({ quality: WEBP_QUALITY })
+    .toFile(outputPath);
 
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
@@ -165,6 +173,7 @@ async function createPreviewImage(item, tempRoot) {
 async function main() {
   console.log(`bucket: ${BUCKET}`);
   console.log(`previewSize: ${PREVIEW_SIZE}`);
+  console.log(`webpQuality: ${WEBP_QUALITY}`);
   console.log(`mode: ${DRY_RUN ? "dry-run" : FORCE ? "force" : "missing-only"}`);
 
   const items = await fetchItems();

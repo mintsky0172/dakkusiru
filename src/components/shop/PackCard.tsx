@@ -54,12 +54,12 @@ const PackCard = ({
       <View style={styles.thumbnailWrapper}>
         {thumbnailSource ? (
           <ExpoImage
-            source={thumbnailSource}
-            style={styles.thumbnail}
-            contentFit="cover"
-            cachePolicy="disk"
-            transition={120}
-          />
+	            source={thumbnailSource}
+	            style={styles.thumbnail}
+	            contentFit="cover"
+	            cachePolicy="memory-disk"
+	            transition={80}
+	          />
         ) : (
           <View style={styles.thumbnailPlaceholder} />
         )}
