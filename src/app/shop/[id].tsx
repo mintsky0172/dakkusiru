@@ -21,6 +21,7 @@ import { getPackPreviewImageSources } from "../../utils/getPackPreviewImageSourc
 import PackDetailSkeleton from "../../components/shop/PackDetailSkeleton";
 
 const INITIAL_PREVIEW_COUNT = 6;
+const LOAD_MORE_PREVIEW_COUNT = 18;
 const MORE_PREVIEW_BATCH_SIZE = 6;
 const MORE_PREVIEW_PREFETCH_GAP_MS = 80;
 const SHOW_MORE_PREFETCH_TIMEOUT_MS = 900;
@@ -190,24 +191,26 @@ const PackDetailScreen = () => {
   const hasMorePreviewItems = renderedPreviewItems.length < previewItems.length;
   const hiddenPreviewItemCount =
     previewItems.length - renderedPreviewItems.length;
-  const handleShowAllPreviewItems = async () => {
-    if (isShowingMorePreviewItems) return;
 
-    setIsShowingMorePreviewItems(true);
+  const handleShowMorePreviewItems = async () => {
+    const nextLimit = Math.min(
+      previewItems.length,
+      previewRenderLimit + LOAD_MORE_PREVIEW_COUNT,
+    );
 
     await Promise.race([
       prefetchImageSources(
         previewItems
-          .slice(INITIAL_PREVIEW_COUNT)
+          .slice(previewRenderLimit, nextLimit)
           .map((item) => item.imageSource),
         "memory-disk",
       ) ?? Promise.resolve(false),
-      wait(SHOW_MORE_PREFETCH_TIMEOUT_MS),
+      wait(700),
     ]);
 
-    setPreviewRenderLimit(Number.POSITIVE_INFINITY);
-    setIsShowingMorePreviewItems(false);
+    setPreviewRenderLimit(nextLimit);
   };
+
   const renderPreviewItem = ({
     item,
   }: {
@@ -360,7 +363,7 @@ const PackDetailScreen = () => {
             <View style={styles.morePreviewSection}>
               <AppButton
                 label={`더보기 (${hiddenPreviewItemCount}개)`}
-                onPress={handleShowAllPreviewItems}
+                onPress={handleShowMorePreviewItems}
                 variant="secondary"
               />
             </View>

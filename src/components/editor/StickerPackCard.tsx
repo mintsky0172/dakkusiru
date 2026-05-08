@@ -50,7 +50,7 @@ export default StickerPackCard;
 
 const styles = StyleSheet.create({
   card: {
-    width: "48%",
+    width: "100%",
     marginBottom: spacing.md,
   },
   pressed: {

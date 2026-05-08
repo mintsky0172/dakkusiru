@@ -142,17 +142,24 @@ const StickerPanelSheet = ({
               ))}
             </View>
 
-            <FlashList
-              data={filteredPacks}
-              keyExtractor={(pack) => pack.id}
-              numColumns={2}
-              renderItem={({ item: pack }) => (
-                <StickerPackCard
-                  title={pack.title}
-                  thumbnailSource={pack.thumbnailSource}
-                  onPress={() => setSelectedPack(pack)}
-                />
-              )}
+	            <FlashList
+	              data={filteredPacks}
+	              keyExtractor={(pack) => pack.id}
+	              numColumns={2}
+	              renderItem={({ item: pack, index }) => (
+	                <View
+	                  style={[
+	                    styles.gridItem,
+	                    index % 2 === 0 ? styles.leftGridItem : styles.rightGridItem,
+	                  ]}
+	                >
+	                  <StickerPackCard
+	                    title={pack.title}
+	                    thumbnailSource={pack.thumbnailSource}
+	                    onPress={() => setSelectedPack(pack)}
+	                  />
+	                </View>
+	              )}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollContent}
             />
@@ -166,24 +173,31 @@ const StickerPanelSheet = ({
               </AppText>
             </View>
 
-            <FlashList
-              data={selectedPack.previewStickers}
-              keyExtractor={(sticker) => sticker.id}
-              numColumns={2}
-              renderItem={({ item: sticker }) => (
-                <StickerThumb
-                  name={sticker.name}
-                  imageSource={sticker.imageSource}
-                  added={recentlyAddedStickerId === sticker.id}
-                  onPress={() => {
-                    setRecentlyAddedStickerId(sticker.id);
-                    onSelectSticker({
-                      stickerId: sticker.id,
-                      imageSource: sticker.imageSource,
-                    });
-                  }}
-                />
-              )}
+	            <FlashList
+	              data={selectedPack.previewStickers}
+	              keyExtractor={(sticker) => sticker.id}
+	              numColumns={2}
+	              renderItem={({ item: sticker, index }) => (
+	                <View
+	                  style={[
+	                    styles.gridItem,
+	                    index % 2 === 0 ? styles.leftGridItem : styles.rightGridItem,
+	                  ]}
+	                >
+	                  <StickerThumb
+	                    name={sticker.name}
+	                    imageSource={sticker.imageSource}
+	                    added={recentlyAddedStickerId === sticker.id}
+	                    onPress={() => {
+	                      setRecentlyAddedStickerId(sticker.id);
+	                      onSelectSticker({
+	                        stickerId: sticker.id,
+	                        imageSource: sticker.imageSource,
+	                      });
+	                    }}
+	                  />
+	                </View>
+	              )}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollContent}
               extraData={recentlyAddedStickerId}
@@ -213,10 +227,19 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     gap: 4,
   },
-  scrollContent: {
-    paddingBottom: spacing.xxl,
-  },
-  grid: {
+	  scrollContent: {
+	    paddingBottom: spacing.xxl,
+	  },
+	  gridItem: {
+	    width: "100%",
+	  },
+	  leftGridItem: {
+	    paddingRight: spacing.xs,
+	  },
+	  rightGridItem: {
+	    paddingLeft: spacing.xs,
+	  },
+	  grid: {
     justifyContent: "space-between",
   },
 });
