@@ -1,3 +1,5 @@
+import { StickerPackCategory } from "../constants/packCategories";
+
 export interface StickerPanelItem {
     id: string;
     name: string;
@@ -7,16 +9,7 @@ export interface StickerPanelItem {
 export interface StickerPanelPack {
     id: string;
     title: string;
-    category:
-        | 'food'
-        | 'character'
-        | 'deco'
-        | 'memo'
-        | 'chat'
-        | 'object'
-        | 'nature'
-        | 'masking_tape'
-        | 'etc';
+    category: StickerPackCategory;
     thumbnailSource?: any;
     stickers: StickerPanelItem[];
 }

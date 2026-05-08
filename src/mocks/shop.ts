@@ -133,11 +133,11 @@ export const mockPacks: ShopPack[] = [
       },
     ]
   },
-  {
-    id: '5',
-    title: '기본 배경팩',
-    category: 'grid',
-    kind: 'background',
+	{
+	  id: '5',
+	  title: '기본 배경팩',
+	  category: 'simple',
+	  kind: 'background',
     status: 'free',
     ownStatus: 'owned',
     thumbnailSource: require('../../assets/background_pack/thumbnails/basic.png'),

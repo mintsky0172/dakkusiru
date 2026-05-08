@@ -1,3 +1,8 @@
+import {
+  BackgroundPackCategory,
+  StickerPackCategory,
+} from "../constants/packCategories";
+
 export type PackStatus = "free" | "priced";
 export type PackOwnStatus = "not_owned" | "owned";
 export type PackKind = "sticker" | "background";
@@ -36,22 +41,13 @@ interface BasePack {
 
 export interface StickerPack extends BasePack {
   kind: "sticker";
-  category:
-    | "food"
-    | "character"
-    | "deco"
-    | "memo"
-    | "chat"
-    | "object"
-    | "nature"
-    | "masking_tape"
-    | "etc";
+  category: StickerPackCategory;
   previewStickers: PackPreviewSticker[];
 }
 
 export interface BackgroundPack extends BasePack {
   kind: "background";
-  category: "grid" | "check" | 'dot' | 'paper' | 'color' | 'room' | "deco" | "landscape";
+  category: BackgroundPackCategory;
   previewBackgrounds?: PackPreviewBackground[];
 }
 

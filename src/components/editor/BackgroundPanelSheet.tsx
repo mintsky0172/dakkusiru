@@ -15,19 +15,19 @@ import StickerPackCard from "./StickerPackCard";
 import { AppText } from "../common/AppText";
 import { useShopPackStore } from "../../store/shopPackStore";
 import { prefetchImageSources } from "../../utils/prefetchImageSources";
+import {
+  backgroundCategoryOptions,
+  packCategoryLabelMap,
+} from "../../constants/packCategories";
 
 type CategoryFilter = "all" | BackgroundPack["category"];
 
 const categories: { label: string; value: CategoryFilter }[] = [
   { label: "전체", value: "all" },
-  { label: "모눈", value: "grid" },
-  { label: "체크", value: "check" },
-  { label: "도트/패턴", value: "dot" },
-  { label: "종이/노트", value: "paper" },
-  { label: "컬러/그라데이션", value: "color" },
-  { label: "공간", value: "room" },
-  { label: "풍경", value: "landscape" },
-  { label: "데코", value: "deco" },
+  ...backgroundCategoryOptions.map((category) => ({
+    label: packCategoryLabelMap[category] ?? category,
+    value: category,
+  })),
 ];
 
 interface BackgroundPanelSheetProps {
@@ -81,10 +81,10 @@ const BackgroundPanelSheet = ({
   const selectedPackBackgrounds = useMemo(
     () =>
       (selectedPack?.previewBackgrounds ?? []).map(
-        (background): BackgroundItem => ({
-          ...background,
-          category: selectedPack?.category ?? "grid",
-        }),
+	        (background): BackgroundItem => ({
+	          ...background,
+	          category: selectedPack?.category ?? "simple",
+	        }),
       ),
     [selectedPack],
   );
