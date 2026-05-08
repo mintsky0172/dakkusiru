@@ -1070,11 +1070,12 @@ const AdminPackFormScreen = () => {
                             updateExistingItem(item.id, { name: value })
                           }
                           placeholder="아이템 이름"
-                          placeholderTextColor={colors.text.muted}
-                          blurOnSubmit={false}
-                          onFocus={scrollToItemInputs}
-                          style={styles.input}
-                        />
+	                          placeholderTextColor={colors.text.muted}
+	                          blurOnSubmit={false}
+	                          selectTextOnFocus
+	                          onFocus={scrollToItemInputs}
+	                          style={styles.input}
+	                        />
                       ) : (
                         <AppText
                           variant="bodyStrong"
@@ -1168,11 +1169,12 @@ const AdminPackFormScreen = () => {
                       updateBatchItem(item.localId, { name: value })
                     }
                     placeholder="아이템 이름"
-                    placeholderTextColor={colors.text.muted}
-                    blurOnSubmit={false}
-                    onFocus={scrollToItemInputs}
-                    style={styles.input}
-                  />
+	                    placeholderTextColor={colors.text.muted}
+	                    blurOnSubmit={false}
+	                    selectTextOnFocus
+	                    onFocus={scrollToItemInputs}
+	                    style={styles.input}
+	                  />
 
                   {isDetailExpanded ? (
                     <View style={styles.batchDetailArea}>
