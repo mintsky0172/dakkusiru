@@ -730,11 +730,10 @@ const AdminPackFormScreen = () => {
 	          onScroll={handleScroll}
 	          scrollEventThrottle={16}
 	          contentContainerStyle={styles.content}
-          contentInsetAdjustmentBehavior="automatic"
-          keyboardDismissMode="interactive"
-          keyboardShouldPersistTaps="handled"
-          automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
-        >
+	          contentInsetAdjustmentBehavior="automatic"
+	          keyboardDismissMode="none"
+	          keyboardShouldPersistTaps="handled"
+	        >
           <View style={styles.headerRow}>
             <Pressable
               onPress={() => router.back()}
