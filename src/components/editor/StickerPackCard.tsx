@@ -79,5 +79,6 @@ const styles = StyleSheet.create({
   },
   title: {
     marginTop: spacing.xs,
+    textAlign: 'center', 
   },
 });
