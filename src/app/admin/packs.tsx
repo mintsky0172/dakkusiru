@@ -173,16 +173,7 @@ const AdminPacksScreen = () => {
             />
           </Pressable>
           <AppText variant="h1">팩 관리</AppText>
-          <AppText variant="caption" style={styles.description}>
-            등록된 스티커팩/배경팩을 확인해요.
-          </AppText>
-        </View>
-
-        <View style={styles.buttonWrapper}>
-          <AppButton
-            label="새 팩 등록"
-            onPress={() => router.replace("/admin/pack-form")}
-          />
+      
         </View>
 
         <View style={styles.kindFilterRow}>
