@@ -6,7 +6,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { Image } from "expo-image";
-import React, { useRef } from "react";
+import React from "react";
 import { AppText } from "../common/AppText";
 import { radius, spacing } from "../../constants/spacing";
 import { colors } from "../../constants/colors";
@@ -21,11 +21,9 @@ interface StickerPreviewCardProps {
 const StickerPreviewCard = ({
   id,
   name,
-  imageSource,
-  style,
+	imageSource,
+	style,
 }: StickerPreviewCardProps) => {
-  const startedAtRef = useRef<number | null>(null);
-
   return (
     <View style={[styles.card, style]}>
       <View style={styles.imageWrapper}>
@@ -33,25 +31,12 @@ const StickerPreviewCard = ({
           <Image
             source={imageSource}
             style={styles.image}
-            contentFit="contain"
-            cachePolicy="memory-disk"
-            priority="high"
-            transition={0}
-            onLoadStart={() => {
-              startedAtRef.current = Date.now();
-              console.log("[preview load start]");
-            }}
-            onLoad={() => {
-              const elapsed = startedAtRef.current
-                ? Date.now() - startedAtRef.current
-                : 0;
-
-              console.log("[preview loaded]",id, elapsed);
-            }}
-            onError={(error) => {
-              console.log("[preview error]", error);
-            }}
-          />
+	            contentFit="contain"
+	            cachePolicy="memory-disk"
+	            priority="high"
+	            transition={0}
+	            recyclingKey={id}
+	          />
         ) : (
           <View style={styles.placeholder} />
         )}
