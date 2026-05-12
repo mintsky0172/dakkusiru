@@ -27,8 +27,6 @@ import ShopSkeleton from "../../components/shop/ShopSkeleton";
 type PackKindFilter = "all" | "sticker" | "background";
 type PackCategoryFilter = "all" | string;
 const SHOP_MAIN_PREVIEW_PREFETCH_COUNT = 6;
-const DETAIL_INITIAL_PREVIEW_COUNT = 6;
-const DETAIL_PREFETCH_TIMEOUT_MS = 900;
 const SHOP_PREFETCH_PACK_GAP_MS = 80;
 
 const kindFilters: { label: string; value: PackKindFilter }[] = [
@@ -117,17 +115,8 @@ const ShopScreen = () => {
     router.push("/coin");
   };
 
-  const handlePressPack = async (pack: ShopPack) => {
+  const handlePressPack = (pack: ShopPack) => {
     setSelectedPackId(pack.id);
-
-    await Promise.race([
-      prefetchImageSources([
-        pack.thumbnailSource,
-        ...getPackPreviewImageSources(pack, DETAIL_INITIAL_PREVIEW_COUNT),
-      ]) ?? Promise.resolve(false),
-      wait(DETAIL_PREFETCH_TIMEOUT_MS),
-    ]);
-
     router.push(`/shop/${pack.id}`);
   };
 

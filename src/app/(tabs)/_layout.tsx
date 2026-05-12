@@ -37,10 +37,12 @@ const TabsLayout = () => {
           height: 76,
           paddingTop: 8,
           paddingBottom: 10,
+   
         },
         tabBarLabelStyle: {
           fontFamily: "Iseoyun",
           fontSize: 11,
+     
         },
       }}
     >

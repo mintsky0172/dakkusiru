@@ -18,6 +18,7 @@ import {
 import DakkuActionModal from "../../components/dakku/DakkuActionModal";
 import RenameDakkuModal from "../../components/dakku/RenameDakkuModal";
 import { FlashList } from "@shopify/flash-list";
+import HomeSkeleton from "../../components/dakku/HomeSkeleton";
 
 type CreateCardItem = {
   id: "create-card";
@@ -26,15 +27,27 @@ type CreateCardItem = {
 
 type HomeListItem = SavedDakku | CreateCardItem;
 
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 const HomeScreen = () => {
   const [savedDakkus, setSavedDakkus] = useState<SavedDakku[]>([]);
+  const [isLoadingDakkus, setIsLoadingDakkus] = useState(true);
   const [selectedDakku, setSelectedDakku] = useState<SavedDakku | null>(null);
   const [isActionModalVisible, setIsActionModalVisible] = useState(false);
   const [isRenameModalVisible, setIsRenameModalVisible] = useState(false);
 
   const loadDakkus = useCallback(async () => {
-    const data = await loadSavedDakkusFromLocal();
-    setSavedDakkus(data);
+    await wait(500);
+    setIsLoadingDakkus(true);
+
+    try {
+      const data = await loadSavedDakkusFromLocal();
+      setSavedDakkus(data);
+    } finally {
+      setIsLoadingDakkus(false);
+    }
   }, []);
 
   useFocusEffect(
@@ -99,6 +112,18 @@ const HomeScreen = () => {
       ],
     );
   };
+
+  if (isLoadingDakkus && savedDakkus.length === 0) {
+    return (
+      <Screen style={styles.screen}>
+        <View style={styles.header}>
+          <AppText variant="h1">내 다꾸</AppText>
+        </View>
+
+        <HomeSkeleton />
+      </Screen>
+    );
+  }
 
   if (savedDakkus.length === 0) {
     return (

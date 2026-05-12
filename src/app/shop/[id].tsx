@@ -24,7 +24,8 @@ const INITIAL_PREVIEW_COUNT = 6;
 const LOAD_MORE_PREVIEW_COUNT = 18;
 const MORE_PREVIEW_BATCH_SIZE = 6;
 const MORE_PREVIEW_PREFETCH_GAP_MS = 80;
-const SHOW_MORE_PREFETCH_TIMEOUT_MS = 900;
+const INITIAL_PREVIEW_PREFETCH_TIMEOUT_MS = 900;
+const MIN_INITIAL_SKELETON_MS = 160;
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -37,6 +38,7 @@ const PackDetailScreen = () => {
   );
   const [isShowingMorePreviewItems, setIsShowingMorePreviewItems] =
     useState(false);
+  const [isInitialPreviewReady, setIsInitialPreviewReady] = useState(false);
 
   const balance = useCoinStore((state) => state.balance);
   const loadCoins = useCoinStore((state) => state.loadCoins);
@@ -49,6 +51,9 @@ const PackDetailScreen = () => {
   const packs = useShopPackStore((state) => state.packs);
   const isPackLoading = useShopPackStore((state) => state.isLoading);
   const loadPacks = useShopPackStore((state) => state.loadPacks);
+  const [hasFinishedInitialPackLoad, setHasFinishedInitialPackLoad] = useState(
+    packs.length > 0,
+  );
 
   const rawPack = useMemo(() => {
     return packs.find((item) => item.id === id);
@@ -66,6 +71,29 @@ const PackDetailScreen = () => {
       : (pack.previewBackgrounds ?? []);
   }, [pack]);
 
+  useEffect(() => {
+    void loadOwnedPackIds();
+    void loadCoins();
+
+    if (packs.length > 0) {
+      setHasFinishedInitialPackLoad(true);
+      return;
+    }
+
+    let isCancelled = false;
+    setHasFinishedInitialPackLoad(false);
+
+    void loadPacks().finally(() => {
+      if (!isCancelled) {
+        setHasFinishedInitialPackLoad(true);
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [loadCoins, loadOwnedPackIds, loadPacks, packs.length]);
+
   const renderedPreviewItems = useMemo(() => {
     return previewItems.slice(0, previewRenderLimit);
   }, [previewItems, previewRenderLimit]);
@@ -73,15 +101,38 @@ const PackDetailScreen = () => {
   useEffect(() => {
     setPreviewRenderLimit(INITIAL_PREVIEW_COUNT);
     setIsShowingMorePreviewItems(false);
+    setIsInitialPreviewReady(false);
   }, [pack?.id]);
 
   useEffect(() => {
     if (!pack) return;
 
-    prefetchImageSources([pack.thumbnailSource]);
-    prefetchImageSources(
-      getPackPreviewImageSources(pack, INITIAL_PREVIEW_COUNT),
-    );
+    let isCancelled = false;
+
+    void Promise.all([
+      Promise.race([
+        prefetchImageSources([
+          pack.thumbnailSource,
+          ...getPackPreviewImageSources(pack, INITIAL_PREVIEW_COUNT),
+        ]) ?? Promise.resolve(false),
+        wait(INITIAL_PREVIEW_PREFETCH_TIMEOUT_MS),
+      ]),
+      wait(MIN_INITIAL_SKELETON_MS),
+    ])
+      .catch(() => undefined)
+      .finally(() => {
+        if (!isCancelled) {
+          setIsInitialPreviewReady(true);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [pack]);
+
+  useEffect(() => {
+    if (!pack || !isInitialPreviewReady) return;
 
     if (previewItems.length <= INITIAL_PREVIEW_COUNT) return;
 
@@ -110,7 +161,7 @@ const PackDetailScreen = () => {
       isCancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [pack, previewItems]);
+  }, [isInitialPreviewReady, pack, previewItems]);
 
   const handleBack = () => {
     router.back();
@@ -159,7 +210,7 @@ const PackDetailScreen = () => {
     Alert.alert("구매 완료", `${pack.title}을 사용할 수 있어요!`);
   };
 
-  if (!pack && isPackLoading) {
+  if (!pack && (!hasFinishedInitialPackLoad || isPackLoading)) {
     return (
       <Screen>
         <PackDetailSkeleton />
@@ -176,6 +227,14 @@ const PackDetailScreen = () => {
             <AppButton label="상점으로 돌아가기" onPress={handleBack} />
           </View>
         </View>
+      </Screen>
+    );
+  }
+
+  if (!isInitialPreviewReady) {
+    return (
+      <Screen>
+        <PackDetailSkeleton />
       </Screen>
     );
   }
