@@ -5,5 +5,6 @@ export interface BackgroundItem {
     name: string;
     category: BackgroundPack["category"];
     imageSource?: any;
+    originalImageSource?: any;
     backgroundColor?: string;
 }

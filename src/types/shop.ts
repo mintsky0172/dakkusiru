@@ -13,6 +13,7 @@ export interface PackPreviewSticker {
   imagePath?: string | null;
   previewImagePath?: string | null;
   imageSource?: any;
+  originalImageSource?: any;
 }
 
 export interface PackPreviewBackground {
@@ -21,6 +22,7 @@ export interface PackPreviewBackground {
   imagePath?: string | null;
   previewImagePath?: string | null;
   imageSource?: any;
+  originalImageSource?: any;
   backgroundColor?: string;
 }
 

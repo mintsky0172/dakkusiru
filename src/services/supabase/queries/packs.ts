@@ -79,35 +79,45 @@ export async function fetchShopPacksFromSupabase(params?: {
       tags: pack.tags ?? [],
     };
 
-	    if (pack.kind === "sticker") {
-	      return {
-	        ...base,
-	        kind: "sticker" as const,
-	        previewStickers: (pack.shop_pack_items ?? []).map((item: any) => ({
-	          id: item.id,
-	          name: item.name,
-	          imagePath: item.image_path ?? null,
-	          previewImagePath: item.preview_image_path ?? null,
-	          imageSource: item.preview_image_path || item.image_path
-	            ? { uri: getAssetPublicUrl(item.preview_image_path ?? item.image_path) }
-	            : undefined,
-	        })),
-	      };
-	    }
+    if (pack.kind === "sticker") {
+      return {
+        ...base,
+        kind: "sticker" as const,
+        previewStickers: (pack.shop_pack_items ?? []).map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          imagePath: item.image_path ?? null,
+          previewImagePath: item.preview_image_path ?? null,
+          originalImageSource: item.image_path
+            ? { uri: getAssetPublicUrl(item.image_path) }
+            : undefined,
+          imageSource: item.preview_image_path || item.image_path
+            ? {
+                uri: getAssetPublicUrl(item.preview_image_path ?? item.image_path),
+              }
+            : undefined,
+        })),
+      };
+    }
 
     return {
       ...base,
       kind: "background" as const,
-	      previewBackgrounds: (pack.shop_pack_items ?? []).map((item: any) => ({
-	        id: item.id,
-	        name: item.name,
-	        imagePath: item.image_path ?? null,
-	        previewImagePath: item.preview_image_path ?? null,
-	        imageSource: item.preview_image_path || item.image_path
-	          ? { uri: getAssetPublicUrl(item.preview_image_path ?? item.image_path) }
-	          : undefined,
-	        backgroundColor: item.background_color ?? undefined,
-	      })),
+      previewBackgrounds: (pack.shop_pack_items ?? []).map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        imagePath: item.image_path ?? null,
+        previewImagePath: item.preview_image_path ?? null,
+        originalImageSource: item.image_path
+          ? { uri: getAssetPublicUrl(item.image_path) }
+          : undefined,
+        imageSource: item.preview_image_path || item.image_path
+          ? {
+              uri: getAssetPublicUrl(item.preview_image_path ?? item.image_path),
+            }
+          : undefined,
+        backgroundColor: item.background_color ?? undefined,
+      })),
     };
   });
 }

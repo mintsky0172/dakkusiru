@@ -95,7 +95,9 @@ const BackgroundPanelSheet = ({
 
   useEffect(() => {
     prefetchImageSources(
-      selectedPackBackgrounds.map((background) => background.imageSource),
+      selectedPackBackgrounds.map(
+        (background) => background.originalImageSource ?? background.imageSource,
+      ),
     );
   }, [selectedPackBackgrounds]);
 
@@ -174,7 +176,12 @@ const BackgroundPanelSheet = ({
                   imageSource={item.imageSource}
                   backgroundColor={item.backgroundColor}
                   selected={selectedBackgroundId === item.id}
-                  onPress={() => onSelectBackground(item)}
+                  onPress={() =>
+                    onSelectBackground({
+                      ...item,
+                      imageSource: item.originalImageSource ?? item.imageSource,
+                    })
+                  }
                 />
               )}
               showsVerticalScrollIndicator={false}

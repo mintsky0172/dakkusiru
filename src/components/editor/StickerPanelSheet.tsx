@@ -84,7 +84,9 @@ const StickerPanelSheet = ({
   useEffect(() => {
     if (!selectedPack) return;
     prefetchImageSources(
-      selectedPack.previewStickers.map((sticker) => sticker.imageSource),
+      selectedPack.previewStickers.map(
+        (sticker) => sticker.originalImageSource ?? sticker.imageSource,
+      ),
     );
   }, [selectedPack]);
 
@@ -193,7 +195,8 @@ const StickerPanelSheet = ({
                       setRecentlyAddedStickerId(sticker.id);
                       onSelectSticker({
                         stickerId: sticker.id,
-                        imageSource: sticker.imageSource,
+                        imageSource:
+                          sticker.originalImageSource ?? sticker.imageSource,
                       });
                     }}
                   />
