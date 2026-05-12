@@ -26,6 +26,7 @@ import ShopSkeleton from "../../components/shop/ShopSkeleton";
 
 type PackKindFilter = "all" | "sticker" | "background";
 type PackCategoryFilter = "all" | string;
+type PackRow = [ShopPack, ShopPack?];
 const SHOP_MAIN_PREVIEW_PREFETCH_COUNT = 6;
 const SHOP_PREFETCH_PACK_GAP_MS = 80;
 
@@ -87,6 +88,16 @@ const ShopScreen = () => {
     });
   }, [resolvedPacks, selectedCategory, selectedKind]);
 
+  const packRows = useMemo(() => {
+    const rows: PackRow[] = [];
+
+    for (let index = 0; index < filteredPacks.length; index += 2) {
+      rows.push([filteredPacks[index], filteredPacks[index + 1]]);
+    }
+
+    return rows;
+  }, [filteredPacks]);
+
   useEffect(() => {
     let isCancelled = false;
 
@@ -120,31 +131,40 @@ const ShopScreen = () => {
     router.push(`/shop/${pack.id}`);
   };
 
-  const renderPackItem = ({
-    item,
-    index,
-  }: {
-    item: ShopPack;
-    index: number;
-  }) => {
+  const renderPackRow = ({ item }: { item: PackRow }) => {
+    const [leftPack, rightPack] = item;
+
     return (
-      <View
-        style={[
-          styles.cardWrapper,
-          index % 2 === 0 ? styles.leftCard : styles.rightCard,
-        ]}
-      >
-        <PackCard
-          title={item.title}
-          thumbnailSource={item.thumbnailSource}
-          status={item.status}
-          priceLabel={item.coinPrice}
-          ownStatus={item.ownStatus}
-          isNew={item.isNew}
-          selected={selectedPackId === item.id}
-          style={styles.packCard}
-          onPress={() => handlePressPack(item)}
-        />
+      <View style={styles.packRow}>
+        <View style={[styles.cardWrapper, styles.leftCard]}>
+          <PackCard
+            title={leftPack.title}
+            thumbnailSource={leftPack.thumbnailSource}
+            status={leftPack.status}
+            priceLabel={leftPack.coinPrice}
+            ownStatus={leftPack.ownStatus}
+            isNew={leftPack.isNew}
+            selected={selectedPackId === leftPack.id}
+            style={styles.packCard}
+            onPress={() => handlePressPack(leftPack)}
+          />
+        </View>
+
+        <View style={[styles.cardWrapper, styles.rightCard]}>
+          {rightPack ? (
+            <PackCard
+              title={rightPack.title}
+              thumbnailSource={rightPack.thumbnailSource}
+              status={rightPack.status}
+              priceLabel={rightPack.coinPrice}
+              ownStatus={rightPack.ownStatus}
+              isNew={rightPack.isNew}
+              selected={selectedPackId === rightPack.id}
+              style={styles.packCard}
+              onPress={() => handlePressPack(rightPack)}
+            />
+          ) : null}
+        </View>
       </View>
     );
   };
@@ -161,10 +181,9 @@ const ShopScreen = () => {
   return (
     <Screen>
       <FlashList
-        data={filteredPacks}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        renderItem={renderPackItem}
+        data={packRows}
+        keyExtractor={(item) => item.map((pack) => pack?.id).join("-")}
+        renderItem={renderPackRow}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
@@ -278,9 +297,13 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     marginBottom: spacing.lg,
   },
-  cardWrapper: {
-    width: "100%",
+  packRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
     marginBottom: spacing.md,
+  },
+  cardWrapper: {
+    width: "50%",
     alignSelf: "stretch",
   },
   packCard: {

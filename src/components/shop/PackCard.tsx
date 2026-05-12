@@ -13,6 +13,7 @@ import { AppText } from "../common/AppText";
 import { colors } from "../../constants/colors";
 import { radius, spacing } from "../../constants/spacing";
 import { PackOwnStatus, PackStatus } from "../../types/shop";
+import { lineHeight } from "../../constants/typography";
 
 interface PackCardProps {
   title: string;
@@ -74,7 +75,7 @@ const PackCard = ({
       </View>
 
       <View style={styles.content}>
-        <AppText variant="title" numberOfLines={2}>
+        <AppText variant="title" numberOfLines={2} style={styles.titleText}>
           {title}
         </AppText>
 
@@ -172,6 +173,9 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: spacing.sm,
     gap: spacing.xs,
+  },
+  titleText: {
+    minHeight: lineHeight.md * 2,
   },
   badge: {
     flexDirection: "row",
