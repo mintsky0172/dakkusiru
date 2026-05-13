@@ -1,9 +1,4 @@
-import {
-  Alert,
-  Pressable,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { Image as ExpoImage } from "expo-image";
 import { FlashList } from "@shopify/flash-list";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -26,6 +21,7 @@ import {
 import { deleteAdminPack } from "../../services/adminShopPackService";
 import { Ionicons } from "@expo/vector-icons";
 import { prefetchImageSources } from "../../utils/prefetchImageSources";
+import SearchInput from "../../components/common/SearchInput";
 
 type PackKindFilter = "all" | "sticker" | "background";
 type PackActiveFilter = "all" | "active" | "inactive";
@@ -44,6 +40,8 @@ const activeFilters: { label: string; value: PackActiveFilter }[] = [
 ];
 
 const AdminPacksScreen = () => {
+  const [searchQuery, setSearchQuery] = useState("");
+
   const user = useAuthStore((state) => state.user);
   const profile = useAuthStore((state) => state.profile);
   const isLoaded = useAuthStore((state) => state.isLoaded);
@@ -67,6 +65,8 @@ const AdminPacksScreen = () => {
   }, [selectedKind]);
 
   const filteredPacks = useMemo(() => {
+    const keyword = searchQuery.trim().toLowerCase();
+
     return packs.filter((pack) => {
       if (selectedKind !== "all" && pack.kind !== selectedKind) return false;
       if (selectedActive === "active") return pack.isActive !== false;
@@ -78,9 +78,15 @@ const AdminPacksScreen = () => {
       ) {
         return false;
       }
-      return true;
+      if (!keyword) return true;
+
+      const searchableText = [pack.title, pack.category, ...(pack.tags ?? [])]
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(keyword);
     });
-  }, [packs, selectedActive, selectedCategory, selectedKind]);
+  }, [packs, selectedActive, selectedCategory, selectedKind, searchQuery]);
 
   useEffect(() => {
     prefetchImageSources(filteredPacks.map((pack) => pack.thumbnailSource));
@@ -159,7 +165,7 @@ const AdminPacksScreen = () => {
       <View style={styles.header}>
         <View style={styles.headerRow}>
           <Pressable
-            onPress={() => router.replace('/admin')}
+            onPress={() => router.replace("/admin")}
             style={({ pressed }) => [
               styles.backButton,
               pressed && styles.backButtonPressed,
@@ -173,7 +179,14 @@ const AdminPacksScreen = () => {
             />
           </Pressable>
           <AppText variant="h1">팩 관리</AppText>
-      
+        </View>
+
+        <View>
+          <SearchInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="팩 제목, ID, 카테고리, 태그 검색"
+          />
         </View>
 
         <View style={styles.kindFilterRow}>
@@ -283,11 +296,13 @@ const AdminPacksScreen = () => {
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={styles.empty}>
-                <AppText variant="h3">등록된 팩이 없어요</AppText>
+                <AppText variant="h3">
+                  {searchQuery ? "검색 결과가 없어요." : "등록된 팩이 없어요."}
+                </AppText>
                 <AppText variant="caption" style={styles.description}>
-                  {selectedKind === "all"
-                    ? "조건에 맞는 팩이 없어요."
-                    : "선택한 조건의 팩이 없어요."}
+                  {searchQuery
+                    ? "팩 제목이나 ID를 다시 확인해 보세요."
+                    : "새 팩을 먼저 등록해 보세요."}
                 </AppText>
               </View>
             }

@@ -9,7 +9,7 @@ import AppButton from "../../components/common/AppButton";
 import CoinBalanceCard from "../../components/shop/CoinBalanceCard";
 import Chip from "../../components/common/Chip";
 import { spacing } from "../../constants/spacing";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { usePurchaseStore } from "../../store/purchaseStore";
 import { resolvePacks } from "../../utils/shop";
 import { useCoinStore } from "../../store/coinStore";
@@ -23,6 +23,7 @@ import { prefetchImageSources } from "../../utils/prefetchImageSources";
 import { FlashList } from "@shopify/flash-list";
 import { getPackPreviewImageSources } from "../../utils/getPackPreviewImageSources";
 import ShopSkeleton from "../../components/shop/ShopSkeleton";
+import SearchInput from "../../components/common/SearchInput";
 
 type PackKindFilter = "all" | "sticker" | "background";
 type PackCategoryFilter = "all" | string;
@@ -41,6 +42,9 @@ function wait(ms: number) {
 }
 
 const ShopScreen = () => {
+  const { search } = useLocalSearchParams<{ search?: string | string[] }>();
+  const [searchQuery, setSearchQuery] = useState("");
+
   const balance = useCoinStore((state) => state.balance);
   const loadCoins = useCoinStore((state) => state.loadCoins);
   const [selectedKind, setSelectedKind] = useState<PackKindFilter>("all");
@@ -64,6 +68,16 @@ const ShopScreen = () => {
     }, [loadPacks, loadOwnedPackIds, loadCoins]),
   );
 
+  useEffect(() => {
+    const nextSearchQuery = Array.isArray(search) ? search[0] : search;
+
+    if (typeof nextSearchQuery !== "string") return;
+
+    setSearchQuery(nextSearchQuery);
+    setSelectedKind("all");
+    setSelectedCategory("all");
+  }, [search]);
+
   const resolvedPacks = useMemo(() => {
     return resolvePacks(packs, ownedPackIds);
   }, [packs, ownedPackIds]);
@@ -75,6 +89,8 @@ const ShopScreen = () => {
   }, [selectedKind]);
 
   const filteredPacks = useMemo(() => {
+    const keyword = searchQuery.trim().toLowerCase();
+
     return resolvedPacks.filter((pack) => {
       if (selectedKind !== "all" && pack.kind !== selectedKind) return false;
       if (
@@ -84,9 +100,15 @@ const ShopScreen = () => {
       ) {
         return false;
       }
-      return true;
+      if (!keyword) return true;
+
+      const searchableText = [pack.title, pack.category, ...(pack.tags ?? [])]
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(keyword);
     });
-  }, [resolvedPacks, selectedCategory, selectedKind]);
+  }, [resolvedPacks, selectedCategory, selectedKind, searchQuery]);
 
   const packRows = useMemo(() => {
     const rows: PackRow[] = [];
@@ -190,6 +212,13 @@ const ShopScreen = () => {
           <View>
             <View style={styles.header}>
               <AppText variant="h1">상점</AppText>
+              <View style={styles.searchWrapper}>
+                <SearchInput
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder="팩 이름 또는 태그 검색"
+                />
+              </View>
             </View>
 
             <CoinBalanceCard
@@ -243,12 +272,12 @@ const ShopScreen = () => {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <AppText variant="h3">
-              {errorMessage
-                ? "팩 목록을 불러오지 못했어요."
-                : "조건에 맞는 팩이 없어요."}
+              {searchQuery ? "검색 결과가 없어요." : "조건에 맞는 팩이 없어요."}
             </AppText>
             <AppText variant="caption" style={styles.emptyDescription}>
-              {errorMessage ?? "다른 카테고리를 선택해 보세요."}
+              {searchQuery
+                ? "다른 검색어를 입력해 보세요."
+                : "다른 카테고리를 선택해 보세요."}
             </AppText>
             {errorMessage ? (
               <View style={styles.retryButtonWrapper}>
@@ -271,6 +300,12 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: spacing.md,
     marginBottom: spacing.lg,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: spacing.xxxl,
+  },
+  searchWrapper: {
+    flex: 1,
   },
   categoryRow: {
     flexDirection: "row",

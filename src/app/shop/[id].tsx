@@ -19,6 +19,7 @@ import { prefetchImageSources } from "../../utils/prefetchImageSources";
 import { PackPreviewBackground, PackPreviewSticker } from "../../types/shop";
 import { getPackPreviewImageSources } from "../../utils/getPackPreviewImageSources";
 import PackDetailSkeleton from "../../components/shop/PackDetailSkeleton";
+import Chip from "../../components/common/Chip";
 
 const INITIAL_PREVIEW_COUNT = 6;
 const LOAD_MORE_PREVIEW_COUNT = 18;
@@ -210,6 +211,13 @@ const PackDetailScreen = () => {
     Alert.alert("구매 완료", `${pack.title}을 사용할 수 있어요!`);
   };
 
+  const handlePressTag = (tag: string) => {
+    router.push({
+      pathname: "/shop",
+      params: { search: tag },
+    });
+  };
+
   if (!pack && (!hasFinishedInitialPackLoad || isPackLoading)) {
     return (
       <Screen>
@@ -370,6 +378,19 @@ const PackDetailScreen = () => {
                     </View>
                   ) : null}
                 </View>
+
+                {pack.tags?.length ? (
+                  <View style={styles.tagSection}>
+                    {pack.tags.map((tag) => (
+                      <Chip
+                        key={tag}
+                        label={`#${tag}`}
+                        onPress={() => handlePressTag(tag)}
+                        style={styles.tagChip}
+                      />
+                    ))}
+                  </View>
+                ) : null}
               </View>
             </View>
 
@@ -504,6 +525,17 @@ const styles = StyleSheet.create({
     borderRadius: radius.round,
     paddingHorizontal: spacing.sm,
     paddingVertical: 5,
+  },
+  tagSection: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  tagChip: {
+    minHeight: 28,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
   },
   primaryButtonCoin: {
     width: 18,
