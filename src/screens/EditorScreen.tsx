@@ -133,7 +133,7 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
       let thumbnailUri: string | undefined;
 
       try {
-        thumbnailUri = await captureCanvasWithoutSelection();
+        thumbnailUri = await captureCanvasThumbnailWithoutSelection();
       } catch {
         thumbnailUri = undefined;
       }
@@ -193,6 +193,29 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
 
       if (!uri) {
         throw new Error("캔버스 이미지를 생성하지 못했어요.");
+      }
+
+      return uri;
+    } finally {
+      setHideSelectionUI(false);
+    }
+  };
+
+  const captureCanvasThumbnailWithoutSelection = async () => {
+    setHideSelectionUI(true);
+
+    await waitForNextFrame();
+    await waitForNextFrame();
+
+    try {
+      const uri = await canvasRef.current?.capture?.({
+        format: "jpg",
+        quality: 0.72,
+        result: "data-uri",
+      });
+
+      if (!uri) {
+        throw new Error("썸네일 이미지를 생성하지 못했어요.");
       }
 
       return uri;
