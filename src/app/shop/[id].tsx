@@ -25,6 +25,7 @@ const INITIAL_PREVIEW_COUNT = 6;
 const LOAD_MORE_PREVIEW_COUNT = 18;
 const MORE_PREVIEW_BATCH_SIZE = 6;
 const MORE_PREVIEW_PREFETCH_GAP_MS = 80;
+const TAIL_PREVIEW_PREFETCH_COUNT = 6;
 const INITIAL_PREVIEW_PREFETCH_TIMEOUT_MS = 900;
 const MIN_INITIAL_SKELETON_MS = 160;
 
@@ -140,6 +141,13 @@ const PackDetailScreen = () => {
     let isCancelled = false;
     const timeoutId = setTimeout(() => {
       void (async () => {
+        void prefetchImageSources(
+          previewItems
+            .slice(-TAIL_PREVIEW_PREFETCH_COUNT)
+            .map((item) => item.imageSource),
+          "memory-disk",
+        );
+
         for (
           let index = INITIAL_PREVIEW_COUNT;
           index < previewItems.length;
