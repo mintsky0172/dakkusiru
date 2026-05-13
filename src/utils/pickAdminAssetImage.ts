@@ -12,6 +12,7 @@ export async function pickAdminAssetImage() {
     quality: 1,
     allowsEditing: false,
     allowsMultipleSelection: true,
+    orderedSelection: true,
     base64: true,
   });
 
