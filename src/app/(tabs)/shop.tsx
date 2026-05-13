@@ -79,7 +79,10 @@ const ShopScreen = () => {
   }, [search]);
 
   const resolvedPacks = useMemo(() => {
-    return resolvePacks(packs, ownedPackIds);
+    return resolvePacks(
+      packs.filter((pack) => pack.isActive !== false),
+      ownedPackIds,
+    );
   }, [packs, ownedPackIds]);
 
   const categoryFilters = useMemo(() => {
