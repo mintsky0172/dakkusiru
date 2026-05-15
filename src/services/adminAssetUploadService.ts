@@ -99,8 +99,10 @@ export function getPackAssetFolderPath(params: {
 export function getPackThumbnailPath(params: {
   kind: "sticker" | "background";
   packId: string;
+  version?: string | number;
 }) {
-  return `${getPackAssetFolderPath(params)}/thumbnail.png`;
+  const suffix = params.version ? `-${params.version}` : "";
+  return `${getPackAssetFolderPath(params)}/thumbnail${suffix}.png`;
 }
 
 export function getPackItemImagePath(params: {

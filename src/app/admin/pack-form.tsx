@@ -654,6 +654,7 @@ const AdminPackFormScreen = () => {
         thumbnailPath = getPackThumbnailPath({
           kind,
           packId: targetPackId,
+          version: Date.now(),
         });
 
         updateProgress("썸네일 업로드 중");
