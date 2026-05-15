@@ -71,13 +71,17 @@ interface SaveProgress {
 }
 
 interface ExistingPackItem {
-	  id: string;
-	  name: string;
-	  imagePath?: string | null;
-	  previewImagePath?: string | null;
-	  imageSource?: any;
-	  backgroundColor?: string;
-	}
+  id: string;
+  name: string;
+  imagePath?: string | null;
+  previewImagePath?: string | null;
+  imageSource?: any;
+  backgroundColor?: string;
+  replacementBase64?: string;
+  replacementPreviewUri?: string;
+  replacementWidth?: number | null;
+  replacementHeight?: number | null;
+}
 
 function makeUniqueItemId(baseId: string, usedIds: Set<string>) {
   let nextId = baseId;
@@ -332,6 +336,28 @@ const AdminPackFormScreen = () => {
     ]);
   };
 
+  const handleReplaceExistingItemImage = async (itemId: string) => {
+    try {
+      const assets = await pickAdminAssetImage();
+      const asset = assets[0];
+
+      if (!asset?.base64) return;
+
+      updateExistingItem(itemId, {
+        replacementBase64: asset.base64,
+        replacementPreviewUri: asset.uri,
+        replacementWidth: asset.width,
+        replacementHeight: asset.height,
+        imageSource: { uri: asset.uri },
+      });
+    } catch (error) {
+      Alert.alert(
+        "이미지 선택 실패",
+        error instanceof Error ? error.message : "이미지를 선택하지 못했어요.",
+      );
+    }
+  };
+
   const currentThumbnailUri =
     thumbnailPreviewUri ??
     (editingPack?.thumbnailSource &&
@@ -533,16 +559,55 @@ const AdminPackFormScreen = () => {
     updateProgress: (label: string) => void,
   ) => {
     for (const [index, item] of existingItems.entries()) {
+      let imagePath = item.imagePath ?? null;
+      let previewImagePath = item.previewImagePath ?? null;
+
+      if (item.replacementBase64 && item.replacementPreviewUri) {
+        const localItemId = getPackLocalItemId(targetPackId, item.id);
+        const replacementVersion = Date.now();
+
+        imagePath = getPackItemImagePath({
+          kind,
+          packId: targetPackId,
+          itemId: `${localItemId}-${replacementVersion}`,
+        });
+        previewImagePath = getPackItemPreviewImagePath({
+          kind,
+          packId: targetPackId,
+          itemId: `${localItemId}-${replacementVersion}`,
+        });
+
+        updateProgress(`${index + 1}번째 기존 아이템 이미지 교체 중`);
+        await uploadAdminAsset({
+          path: imagePath,
+          base64: item.replacementBase64,
+          contentType: "image/png",
+        });
+
+        updateProgress(`${index + 1}번째 기존 아이템 미리보기 교체 중`);
+        const previewBase64 = await createAdminPreviewImageBase64({
+          uri: item.replacementPreviewUri,
+          width: item.replacementWidth,
+          height: item.replacementHeight,
+        });
+
+        await uploadAdminAsset({
+          path: previewImagePath,
+          base64: previewBase64,
+          contentType: "image/webp",
+        });
+      }
+
       updateProgress(`${index + 1}번째 기존 아이템 정보 저장 중`);
       await upsertAdminPackItem({
-	        id: item.id,
-	        packId: targetPackId,
-	        name: item.name.trim() || item.id,
-	        imagePath: item.imagePath ?? null,
-	        previewImagePath: item.previewImagePath ?? null,
-	        backgroundColor:
-	          kind === "background" ? item.backgroundColor?.trim() || null : null,
-	        sortOrder: index,
+        id: item.id,
+        packId: targetPackId,
+        name: item.name.trim() || item.id,
+        imagePath,
+        previewImagePath,
+        backgroundColor:
+          kind === "background" ? item.backgroundColor?.trim() || null : null,
+        sortOrder: index,
       });
     }
   };
@@ -558,10 +623,13 @@ const AdminPackFormScreen = () => {
 
     const targetPackId = packId.trim();
     const totalSteps =
-	      (thumbnailBase64 ? 1 : 0) +
-	      1 +
-	      (isEditMode ? existingItems.length : 0) +
-	      batchItems.length * 3;
+      (thumbnailBase64 ? 1 : 0) +
+      1 +
+      (isEditMode
+        ? existingItems.length +
+          existingItems.filter((item) => !!item.replacementBase64).length * 2
+        : 0) +
+      batchItems.length * 3;
     let currentStep = 0;
     const updateProgress = (label: string) => {
       currentStep += 1;
@@ -1061,6 +1129,30 @@ const AdminPackFormScreen = () => {
                         )}
                       </View>
 
+                      {isDetailExpanded ? (
+                        <Pressable
+                          onPress={() => handleReplaceExistingItemImage(item.id)}
+                          disabled={isSaving}
+                          style={({ pressed }) => [
+                            styles.replaceImageButton,
+                            pressed && styles.replaceImageButtonPressed,
+                            isSaving && styles.replaceImageButtonDisabled,
+                          ]}
+                        >
+                          <Ionicons
+                            name="image-outline"
+                            size={14}
+                            color={colors.text.secondary}
+                          />
+                          <AppText
+                            variant="caption"
+                            style={styles.replaceImageButtonText}
+                          >
+                            이미지 교체
+                          </AppText>
+                        </Pressable>
+                      ) : null}
+
                       <AppText variant="caption">아이템 이름</AppText>
                       {isDetailExpanded ? (
                         <TextInput
@@ -1477,6 +1569,27 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     borderRadius: radius.md,
     resizeMode: "contain",
+  },
+  replaceImageButton: {
+    minHeight: 34,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    backgroundColor: colors.background.surface,
+    paddingHorizontal: spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
+  },
+  replaceImageButtonPressed: {
+    opacity: 0.8,
+  },
+  replaceImageButtonDisabled: {
+    opacity: 0.5,
+  },
+  replaceImageButtonText: {
+    color: colors.text.secondary,
   },
   existingItemFallback: {
     alignItems: "center",
