@@ -483,7 +483,6 @@ const styles = StyleSheet.create({
     width: "100%",
     aspectRatio: 1.1,
     borderRadius: radius.xl,
-    backgroundColor: colors.background.subtle,
     overflow: "hidden",
     justifyContent: "center",
     alignItems: "center",
