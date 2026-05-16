@@ -43,6 +43,12 @@ export interface UpsertAdminPackItemParams {
   sortOrder?: number;
 }
 
+interface FindAdminPackConflictsParams {
+  id: string;
+  title: string;
+  excludeId?: string;
+}
+
 export async function fetchAdminPackItems(
   packId: string,
 ): Promise<AdminPackItem[]> {
@@ -57,6 +63,42 @@ export async function fetchAdminPackItems(
   if (error) throw error;
 
   return data ?? [];
+}
+
+export async function findAdminPackConflicts({
+  id,
+  title,
+  excludeId,
+}: FindAdminPackConflictsParams) {
+  const normalizedTitle = title.trim();
+  const [idResult, titleResult] = await Promise.all([
+    supabase.from("shop_packs").select("id, title").eq("id", id).limit(1),
+    supabase
+      .from("shop_packs")
+      .select("id, title")
+      .eq("title", normalizedTitle)
+      .limit(20),
+  ]);
+
+  if (idResult.error) {
+    throw new Error(`[팩 ID 중복 확인 실패] ${idResult.error.message}`);
+  }
+
+  if (titleResult.error) {
+    throw new Error(`[팩 제목 중복 확인 실패] ${titleResult.error.message}`);
+  }
+
+  const duplicatedIdPack = (idResult.data ?? []).find(
+    (pack) => pack.id !== excludeId,
+  );
+  const duplicatedTitlePack = (titleResult.data ?? []).find(
+    (pack) => pack.id !== excludeId,
+  );
+
+  return {
+    duplicatedId: duplicatedIdPack?.id ?? null,
+    duplicatedTitle: duplicatedTitlePack?.title ?? null,
+  };
 }
 
 export async function upsertAdminPack(params: UpsertAdminPackParams) {

@@ -26,6 +26,7 @@ import {
   AdminPackKind,
   AdminPackStatus,
   deleteAdminPackItem,
+  findAdminPackConflicts,
   upsertAdminPack,
   upsertAdminPackItem,
 } from "../../services/adminShopPackService";
@@ -612,16 +613,48 @@ const AdminPackFormScreen = () => {
     }
   };
 
-	  const handleSavePack = async () => {
-	    Keyboard.dismiss();
-	    restoreScrollPositionAfterKeyboardDismiss();
+  const handleSavePack = async () => {
+    Keyboard.dismiss();
+    restoreScrollPositionAfterKeyboardDismiss();
 
-	    if (!packId.trim() || !title.trim()) {
-	      Alert.alert("입력 필요", "팩 ID와 제목은 꼭 입력해 주세요.");
+    if (!packId.trim() || !title.trim()) {
+      Alert.alert("입력 필요", "팩 ID와 제목은 꼭 입력해 주세요.");
       return;
     }
 
     const targetPackId = packId.trim();
+    const targetTitle = title.trim();
+
+    try {
+      const conflicts = await findAdminPackConflicts({
+        id: targetPackId,
+        title: targetTitle,
+        excludeId: editPackId,
+      });
+
+      if (conflicts.duplicatedId || conflicts.duplicatedTitle) {
+        const messages = [
+          conflicts.duplicatedId
+            ? `이미 등록된 팩 ID예요: ${targetPackId}`
+            : null,
+          conflicts.duplicatedTitle
+            ? `이미 등록된 팩 제목이에요: ${targetTitle}`
+            : null,
+        ].filter(Boolean);
+
+        Alert.alert("중복 확인 필요", messages.join("\n"));
+        return;
+      }
+    } catch (error) {
+      Alert.alert(
+        "중복 확인 실패",
+        error instanceof Error
+          ? error.message
+          : "팩 ID와 제목 중복 여부를 확인하지 못했어요.",
+      );
+      return;
+    }
+
     const totalSteps =
       (thumbnailBase64 ? 1 : 0) +
       1 +
@@ -669,7 +702,7 @@ const AdminPackFormScreen = () => {
       await upsertAdminPack({
         id: targetPackId,
         kind,
-        title: title.trim(),
+        title: targetTitle,
         category,
         status,
         coinPrice: Number(coinPrice),
