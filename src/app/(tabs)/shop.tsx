@@ -6,7 +6,6 @@ import PackCard from "../../components/shop/PackCard";
 import Screen from "../../components/common/Screen";
 import { AppText } from "../../components/common/AppText";
 import AppButton from "../../components/common/AppButton";
-import CoinBalanceCard from "../../components/shop/CoinBalanceCard";
 import Chip from "../../components/common/Chip";
 import { spacing } from "../../constants/spacing";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -24,13 +23,14 @@ import { FlashList } from "@shopify/flash-list";
 import { getPackPreviewImageSources } from "../../utils/getPackPreviewImageSources";
 import ShopSkeleton from "../../components/shop/ShopSkeleton";
 import SearchInput from "../../components/common/SearchInput";
-import { useEffectiveCoinBalance } from "../../hooks/useEffectiveCoinBalance";
+import ShopCurationSlider from "../../components/shop/ShopCurationSlider";
 
 type PackKindFilter = "all" | "sticker" | "background";
 type PackCategoryFilter = "all" | string;
 type PackRow = [ShopPack, ShopPack?];
 const SHOP_MAIN_PREVIEW_PREFETCH_COUNT = 6;
 const SHOP_PREFETCH_PACK_GAP_MS = 80;
+const CURATION_PACK_COUNT = 6;
 
 const kindFilters: { label: string; value: PackKindFilter }[] = [
   { label: "전체", value: "all" },
@@ -42,16 +42,30 @@ function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+const shufflePacks = (packs: ShopPack[]) => {
+  const shuffled = [...packs];
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[randomIndex]] = [
+      shuffled[randomIndex],
+      shuffled[index],
+    ];
+  }
+
+  return shuffled;
+};
+
 const ShopScreen = () => {
   const { search } = useLocalSearchParams<{ search?: string | string[] }>();
   const [searchQuery, setSearchQuery] = useState("");
 
-  const balance = useEffectiveCoinBalance();
   const loadCoins = useCoinStore((state) => state.loadCoins);
   const [selectedKind, setSelectedKind] = useState<PackKindFilter>("all");
   const [selectedCategory, setSelectedCategory] =
     useState<PackCategoryFilter>("all");
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
+  const [curationPackIds, setCurationPackIds] = useState<string[]>([]);
 
   const packs = useShopPackStore((state) => state.packs);
   const isPackLoading = useShopPackStore((state) => state.isLoading);
@@ -125,6 +139,22 @@ const ShopScreen = () => {
   }, [filteredPacks]);
 
   useEffect(() => {
+    setCurationPackIds(
+      shufflePacks(resolvedPacks)
+        .slice(0, CURATION_PACK_COUNT)
+        .map((pack) => pack.id),
+    );
+  }, [resolvedPacks]);
+
+  const curationPacks = useMemo(() => {
+    const packsById = new Map(resolvedPacks.map((pack) => [pack.id, pack]));
+
+    return curationPackIds
+      .map((packId) => packsById.get(packId))
+      .filter((pack): pack is ShopPack => Boolean(pack));
+  }, [curationPackIds, resolvedPacks]);
+
+  useEffect(() => {
     let isCancelled = false;
 
     prefetchImageSources(filteredPacks.map((pack) => pack.thumbnailSource));
@@ -148,9 +178,6 @@ const ShopScreen = () => {
     };
   }, [filteredPacks]);
 
-  const handlePressCharge = () => {
-    router.push("/coin");
-  };
 
   const handlePressPack = (pack: ShopPack) => {
     setSelectedPackId(pack.id);
@@ -225,9 +252,9 @@ const ShopScreen = () => {
               </View>
             </View>
 
-            <CoinBalanceCard
-              balance={balance}
-              onPressCharge={handlePressCharge}
+            <ShopCurationSlider
+              packs={curationPacks}
+              onPressPack={handlePressPack}
             />
 
             <View style={styles.categoryRow}>

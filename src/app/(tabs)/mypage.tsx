@@ -1,4 +1,11 @@
-import { Alert, StyleSheet, ScrollView, View, Image, Pressable } from "react-native";
+import {
+  Alert,
+  StyleSheet,
+  ScrollView,
+  View,
+  Image,
+  Pressable,
+} from "react-native";
 import React, { useMemo } from "react";
 import Screen from "../../components/common/Screen";
 import { AppText } from "../../components/common/AppText";
@@ -7,14 +14,22 @@ import MenuRow from "../../components/mypage/MenuRow";
 import { spacing } from "../../constants/spacing";
 import { router } from "expo-router";
 import { useAuthStore } from "../../store/authStore";
+import CoinBalanceCard from "../../components/shop/CoinBalanceCard";
+import { useEffectiveCoinBalance } from "../../hooks/useEffectiveCoinBalance";
 
 const MyPageScreen = () => {
   const authUser = useAuthStore((state) => state.user);
   const profile = useAuthStore((state) => state.profile);
   const logout = useAuthStore((state) => state.logout);
 
+  const balance = useEffectiveCoinBalance();
+
   const isGuest = !authUser;
   const isAdmin = !!authUser && profile?.role === "admin";
+
+  const handlePressCharge = () => {
+    router.push("/coin");
+  };
 
   const handleLogin = () => {
     router.push("/login");
@@ -92,6 +107,10 @@ const MyPageScreen = () => {
             </Pressable>
           ) : null}
         </View>
+
+        <CoinBalanceCard balance={balance} onPressCharge={handlePressCharge} />
+
+        <View style={{ height: spacing.md }} />
 
         <ProfileCard
           name={profileName}
@@ -185,9 +204,9 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: spacing.md,
     marginBottom: spacing.lg,
-    flexDirection: 'row',
-    alignItems:'center',
-    justifyContent: 'space-between'
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   admin: {
     flexDirection: "row",
