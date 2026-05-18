@@ -425,9 +425,19 @@ const PackDetailScreen = () => {
             </View>
 
             <View style={styles.lengthRow}>
-              <AppText variant="title">{previewTitle}</AppText>
-              <AppText>{previewItems.length}개</AppText>
+              <View style={styles.previewTitleArea}>
+                <AppText variant="title">{previewTitle}</AppText>
+              </View>
+              <AppText style={styles.previewCountText}>
+                {previewItems.length}개
+              </AppText>
             </View>
+
+            <AppText variant="caption" style={styles.watermarkNotice}>
+                  * 흰색 대각선 무늬는 도용 방지를 위한 것으로, 현재
+                  페이지에서만 보이며 다꾸 편집기에서 사용 시에는 보이지
+                  않습니다.
+                </AppText>
           </>
         }
         ListEmptyComponent={
@@ -616,8 +626,23 @@ const styles = StyleSheet.create({
   lengthRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     marginTop: spacing.xxl,
     marginBottom: spacing.md,
+    gap: spacing.md,
+  },
+  previewTitleArea: {
+    flex: 1,
+  },
+  watermarkNotice: {
+    marginTop: spacing.xs,
+    marginBottom: spacing.md,
+    color: colors.text.secondary,
+    lineHeight: 18,
+    textAlign: 'center',
+
+  },
+  previewCountText: {
+    marginTop: 2,
   },
 });
