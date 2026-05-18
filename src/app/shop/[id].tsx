@@ -20,6 +20,10 @@ import { PackPreviewBackground, PackPreviewSticker } from "../../types/shop";
 import { getPackPreviewImageSources } from "../../utils/getPackPreviewImageSources";
 import PackDetailSkeleton from "../../components/shop/PackDetailSkeleton";
 import Chip from "../../components/common/Chip";
+import {
+  useEffectiveCoinBalance,
+  useIsAdminCoinAccount,
+} from "../../hooks/useEffectiveCoinBalance";
 
 const INITIAL_PREVIEW_COUNT = 6;
 const LOAD_MORE_PREVIEW_COUNT = 18;
@@ -42,7 +46,8 @@ const PackDetailScreen = () => {
     useState(false);
   const [isInitialPreviewReady, setIsInitialPreviewReady] = useState(false);
 
-  const balance = useCoinStore((state) => state.balance);
+  const balance = useEffectiveCoinBalance();
+  const isAdminCoinAccount = useIsAdminCoinAccount();
   const loadCoins = useCoinStore((state) => state.loadCoins);
   const spendCoins = useCoinStore((state) => state.spendCoins);
 
@@ -204,10 +209,12 @@ const PackDetailScreen = () => {
       return;
     }
 
-    const success = await spendCoins({
-      amount: coinPrice,
-      description: `${pack.title} 구매`,
-    });
+    const success = isAdminCoinAccount
+      ? true
+      : await spendCoins({
+          amount: coinPrice,
+          description: `${pack.title} 구매`,
+        });
 
     if (!success) {
       Alert.alert("구매 실패", "코인이 부족해요.");

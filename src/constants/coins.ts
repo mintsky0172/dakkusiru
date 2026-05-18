@@ -1,0 +1,1 @@
+export const ADMIN_COIN_BALANCE = 9_999_999;

@@ -24,6 +24,7 @@ import { FlashList } from "@shopify/flash-list";
 import { getPackPreviewImageSources } from "../../utils/getPackPreviewImageSources";
 import ShopSkeleton from "../../components/shop/ShopSkeleton";
 import SearchInput from "../../components/common/SearchInput";
+import { useEffectiveCoinBalance } from "../../hooks/useEffectiveCoinBalance";
 
 type PackKindFilter = "all" | "sticker" | "background";
 type PackCategoryFilter = "all" | string;
@@ -45,7 +46,7 @@ const ShopScreen = () => {
   const { search } = useLocalSearchParams<{ search?: string | string[] }>();
   const [searchQuery, setSearchQuery] = useState("");
 
-  const balance = useCoinStore((state) => state.balance);
+  const balance = useEffectiveCoinBalance();
   const loadCoins = useCoinStore((state) => state.loadCoins);
   const [selectedKind, setSelectedKind] = useState<PackKindFilter>("all");
   const [selectedCategory, setSelectedCategory] =

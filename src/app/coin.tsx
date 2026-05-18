@@ -17,9 +17,10 @@ import { spacing } from "../constants/spacing";
 import { colors } from "../constants/colors";
 import { useCoinStore } from "../store/coinStore";
 import { useIAP, ErrorCode } from "expo-iap";
+import { useEffectiveCoinBalance } from "../hooks/useEffectiveCoinBalance";
 
 const CoinScreen = () => {
-  const balance = useCoinStore((state) => state.balance);
+  const balance = useEffectiveCoinBalance();
   const loadCoins = useCoinStore((state) => state.loadCoins);
   const chargeCoins = useCoinStore((state) => state.chargeCoins);
   const [isPurchasing, setIsPurchasing] = useState(false);
