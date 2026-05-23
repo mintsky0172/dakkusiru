@@ -138,13 +138,17 @@ const ShopScreen = () => {
     return rows;
   }, [filteredPacks]);
 
+  const resolvedPackIdKey = useMemo(() => {
+    return resolvedPacks.map((pack) => pack.id).join("|");
+  }, [resolvedPacks]);
+
   useEffect(() => {
     setCurationPackIds(
       shufflePacks(resolvedPacks)
         .slice(0, CURATION_PACK_COUNT)
         .map((pack) => pack.id),
     );
-  }, [resolvedPacks]);
+  }, [resolvedPackIdKey]);
 
   const curationPacks = useMemo(() => {
     const packsById = new Map(resolvedPacks.map((pack) => [pack.id, pack]));
