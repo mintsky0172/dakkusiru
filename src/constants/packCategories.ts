@@ -6,7 +6,7 @@ export const packCategoryLabelMap: Record<string, string> = {
   lettering: "글자",
   label: "라벨",
   object: "사물",
-  nature: "자연/동식물",
+  nature: "자연",
   masking_tape: "마스킹테이프",
   etc: "기타",
   simple: "심플",
