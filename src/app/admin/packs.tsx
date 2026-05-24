@@ -281,6 +281,7 @@ const AdminPacksScreen = () => {
                     </View>
                   </View>
                 ) : null}
+                <View style={{ height: spacing.md }} />
                 <AppText variant="body" style={{ marginBottom: spacing.sm }}>
                   총 {filteredPacks.length}개의 팩
                 </AppText>
