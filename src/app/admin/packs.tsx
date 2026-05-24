@@ -188,76 +188,6 @@ const AdminPacksScreen = () => {
             placeholder="팩 제목, ID, 카테고리, 태그 검색"
           />
         </View>
-
-        <View style={styles.kindFilterRow}>
-          {kindFilters.map((filter) => (
-            <Chip
-              key={filter.value}
-              label={filter.label}
-              selected={selectedKind === filter.value}
-              onPress={() => {
-                setSelectedKind(filter.value);
-                setSelectedCategory("all");
-              }}
-            />
-          ))}
-        </View>
-
-        <View style={styles.statusFilterBox}>
-          <AppText variant="caption" style={styles.statusFilterLabel}>
-            노출 상태
-          </AppText>
-          <View style={styles.statusFilterRow}>
-            {activeFilters.map((filter) => {
-              const selected = selectedActive === filter.value;
-
-              return (
-                <Pressable
-                  key={filter.value}
-                  onPress={() => setSelectedActive(filter.value)}
-                  style={({ pressed }) => [
-                    styles.statusFilterButton,
-                    selected && styles.statusFilterButtonSelected,
-                    pressed && styles.statusFilterButtonPressed,
-                  ]}
-                >
-                  <AppText
-                    variant="caption"
-                    style={[
-                      styles.statusFilterText,
-                      selected && styles.statusFilterTextSelected,
-                    ]}
-                  >
-                    {filter.label}
-                  </AppText>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        {selectedKind !== "all" ? (
-          <View style={styles.categoryFilterBox}>
-            <AppText variant="caption" style={styles.statusFilterLabel}>
-              카테고리
-            </AppText>
-            <View style={styles.categoryFilterRow}>
-              <Chip
-                label="전체 카테고리"
-                selected={selectedCategory === "all"}
-                onPress={() => setSelectedCategory("all")}
-              />
-              {categoryFilters.map((category) => (
-                <Chip
-                  key={category}
-                  label={packCategoryLabelMap[category] ?? category}
-                  selected={selectedCategory === category}
-                  onPress={() => setSelectedCategory(category)}
-                />
-              ))}
-            </View>
-          </View>
-        ) : null}
       </View>
 
       {errorMessage ? (
@@ -276,13 +206,86 @@ const AdminPacksScreen = () => {
       ) : isLoading ? (
         <AppText variant="body">팩 목록을 불러오는 중...</AppText>
       ) : (
-        <View style={styles.listArea}>
-          <AppText variant="body" style={{ marginBottom: spacing.sm }}>
-            총 {filteredPacks.length}개의 팩
-          </AppText>
+        <>
           <FlashList
             style={styles.list}
             data={filteredPacks}
+            ListHeaderComponent={
+              <>
+                <View style={styles.kindFilterRow}>
+                  {kindFilters.map((filter) => (
+                    <Chip
+                      key={filter.value}
+                      label={filter.label}
+                      selected={selectedKind === filter.value}
+                      onPress={() => {
+                        setSelectedKind(filter.value);
+                        setSelectedCategory("all");
+                      }}
+                    />
+                  ))}
+                </View>
+
+                <View style={styles.statusFilterBox}>
+                  <AppText variant="caption" style={styles.statusFilterLabel}>
+                    노출 상태
+                  </AppText>
+                  <View style={styles.statusFilterRow}>
+                    {activeFilters.map((filter) => {
+                      const selected = selectedActive === filter.value;
+
+                      return (
+                        <Pressable
+                          key={filter.value}
+                          onPress={() => setSelectedActive(filter.value)}
+                          style={({ pressed }) => [
+                            styles.statusFilterButton,
+                            selected && styles.statusFilterButtonSelected,
+                            pressed && styles.statusFilterButtonPressed,
+                          ]}
+                        >
+                          <AppText
+                            variant="caption"
+                            style={[
+                              styles.statusFilterText,
+                              selected && styles.statusFilterTextSelected,
+                            ]}
+                          >
+                            {filter.label}
+                          </AppText>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {selectedKind !== "all" ? (
+                  <View style={styles.categoryFilterBox}>
+                    <AppText variant="caption" style={styles.statusFilterLabel}>
+                      카테고리
+                    </AppText>
+                    <View style={styles.categoryFilterRow}>
+                      <Chip
+                        label="전체 카테고리"
+                        selected={selectedCategory === "all"}
+                        onPress={() => setSelectedCategory("all")}
+                      />
+                      {categoryFilters.map((category) => (
+                        <Chip
+                          key={category}
+                          label={packCategoryLabelMap[category] ?? category}
+                          selected={selectedCategory === category}
+                          onPress={() => setSelectedCategory(category)}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
+                <AppText variant="body" style={{ marginBottom: spacing.sm }}>
+                  총 {filteredPacks.length}개의 팩
+                </AppText>
+              </>
+            }
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <AdminPackListItem
@@ -307,7 +310,7 @@ const AdminPacksScreen = () => {
               </View>
             }
           />
-        </View>
+        </>
       )}
     </Screen>
   );
@@ -479,9 +482,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.sm,
-  },
-  listArea: {
-    flex: 1,
   },
   list: {
     flex: 1,
