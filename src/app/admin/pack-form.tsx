@@ -425,13 +425,10 @@ const AdminPackFormScreen = () => {
       TextInput as unknown as {
         State?: {
           currentlyFocusedInput?: () => unknown;
-          currentlyFocusedField?: () => number | null;
         };
       }
     ).State;
-    const focusedNode =
-      focusedInput?.currentlyFocusedInput?.() ??
-      focusedInput?.currentlyFocusedField?.();
+    const focusedNode = focusedInput?.currentlyFocusedInput?.();
     const nodeHandle =
       typeof focusedNode === "number"
         ? focusedNode
