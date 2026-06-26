@@ -55,7 +55,7 @@ const CurationSlide = ({ pack, width, onPress }: CurationSlideProps) => {
             {pack.isNew ? "새로 나온 팩" : "추천 팩"}
           </AppText>
         </View>
-        <AppText variant="title" numberOfLines={2} style={styles.title}>
+        <AppText variant="title" numberOfLines={1} style={styles.title}>
           {pack.title}
         </AppText>
         <AppText variant="caption" numberOfLines={1} style={styles.subtitle}>
@@ -153,7 +153,9 @@ const styles = StyleSheet.create({
   },
   textArea: {
     flex: 1,
-    justifyContent: "space-between",
+    minWidth: 0,
+    justifyContent: "center",
+    gap: spacing.xs,
   },
   badge: {
     alignSelf: "flex-start",
@@ -168,9 +170,10 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
   },
   title: {
-    marginTop: spacing.xs,
+    flexShrink: 1,
   },
   subtitle: {
+    flexShrink: 0,
     color: colors.text.secondary,
   },
   thumbnailFrame: {

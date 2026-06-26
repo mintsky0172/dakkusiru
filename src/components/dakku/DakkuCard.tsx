@@ -3,8 +3,8 @@ import {
   Pressable,
   StyleSheet,
   View,
-  Image,
 } from "react-native";
+import { Image as ExpoImage } from "expo-image";
 import React from "react";
 import { MoreHorizontal } from "lucide-react-native";
 import IconButton from "../common/IconButton";
@@ -73,7 +73,13 @@ const DakkuCard = ({
     >
       <View style={styles.thumbnailWrapper}>
         {thumbnailSource ? (
-          <Image source={thumbnailSource} style={styles.thumbnail} />
+          <ExpoImage
+            source={thumbnailSource}
+            style={styles.thumbnail}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            recyclingKey={getImageRecyclingKey(thumbnailSource)}
+          />
         ) : (
           <View style={styles.thumbnailPlaceholder} />
         )}
@@ -105,6 +111,18 @@ const DakkuCard = ({
 
 export default DakkuCard;
 
+function getImageRecyclingKey(source: ImageSourcePropType) {
+  if (typeof source === "number") return String(source);
+  if (Array.isArray(source)) {
+    return source
+      .map((item) => ("uri" in item ? item.uri : ""))
+      .filter(Boolean)
+      .join("|");
+  }
+
+  return "uri" in source ? source.uri : undefined;
+}
+
 const styles = StyleSheet.create({
   card: {
     width: "100%",
@@ -128,7 +146,6 @@ const styles = StyleSheet.create({
   thumbnail: {
     width: "100%",
     height: "100%",
-    resizeMode: "cover",
   },
   thumbnailPlaceholder: {
     flex: 1,

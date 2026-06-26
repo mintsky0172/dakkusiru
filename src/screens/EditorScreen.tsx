@@ -7,7 +7,7 @@ import {
   View,
 } from "react-native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import ViewShot from "react-native-view-shot";
+import ViewShot, { captureRef } from "react-native-view-shot";
 import { useEditorStore } from "../store/editorStore";
 import {
   loadDakkuByIdFromLocal,
@@ -208,7 +208,7 @@ const EditorScreen = ({ mode, dakkuId }: EditorScreenProps) => {
     await waitForNextFrame();
 
     try {
-      const uri = await canvasRef.current?.capture?.({
+      const uri = await captureRef(canvasRef, {
         format: "jpg",
         quality: 0.72,
         result: "data-uri",
