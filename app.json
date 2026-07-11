@@ -57,6 +57,7 @@
           "savePhotosPermission": "다꾸시루에서 완성한 이미지를 사진 앱에 저장하기 위해 사진 저장 권한이 필요해요."
         }
       ]
-    ]
+    ],
+    "scheme": "dakkusiru"
   }
 }
