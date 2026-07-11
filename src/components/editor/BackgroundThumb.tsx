@@ -1,9 +1,4 @@
-import {
-  ImageSourcePropType,
-  Pressable,
-  StyleSheet,
-  View,
-} from "react-native";
+import { ImageSourcePropType, Pressable, StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
 import React from "react";
 import { AppText } from "../common/AppText";
@@ -32,7 +27,7 @@ const BackgroundThumb = ({
     >
       <View
         style={[
-          styles.preview,
+          styles.imageWrapper,
           backgroundColor ? { backgroundColor } : null,
           selected && styles.selectedPreview,
         ]}
@@ -45,7 +40,9 @@ const BackgroundThumb = ({
             cachePolicy="disk"
             transition={100}
           />
-        ) : null}
+        ) : (
+          <View style={styles.placeholder} />
+        )}
       </View>
 
       <AppText variant="small" numberOfLines={1} style={styles.label}>
@@ -59,19 +56,24 @@ export default BackgroundThumb;
 
 const styles = StyleSheet.create({
   card: {
-    width: "31.5%",
+    width: "100%",
     marginBottom: spacing.md,
   },
   pressed: {
     opacity: 0.9,
   },
-  preview: {
+  addedCard: {
+    transform: [{ scale: 0.98 }],
+  },
+  imageWrapper: {
     width: "100%",
-    aspectRatio: 1.18,
+    aspectRatio: 1,
+    backgroundColor: colors.background.subtle,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border.light,
-    backgroundColor: colors.background.surface,
+    alignItems: "center",
+    justifyContent: "center",
     overflow: "hidden",
   },
   selectedPreview: {
@@ -79,8 +81,14 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   image: {
-    width: "100%",
-    height: "100%",
+    width: "76%",
+    height: "76%",
+  },
+  placeholder: {
+    width: "76%",
+    height: "76%",
+    borderRadius: radius.md,
+    backgroundColor: colors.background.surface,
   },
   label: {
     marginTop: spacing.xs,

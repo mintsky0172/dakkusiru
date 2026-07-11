@@ -81,10 +81,10 @@ const BackgroundPanelSheet = ({
   const selectedPackBackgrounds = useMemo(
     () =>
       (selectedPack?.previewBackgrounds ?? []).map(
-	        (background): BackgroundItem => ({
-	          ...background,
-	          category: selectedPack?.category ?? "simple",
-	        }),
+        (background): BackgroundItem => ({
+          ...background,
+          category: selectedPack?.category ?? "simple",
+        }),
       ),
     [selectedPack],
   );
@@ -96,7 +96,8 @@ const BackgroundPanelSheet = ({
   useEffect(() => {
     prefetchImageSources(
       selectedPackBackgrounds.map(
-        (background) => background.originalImageSource ?? background.imageSource,
+        (background) =>
+          background.originalImageSource ?? background.imageSource,
       ),
     );
   }, [selectedPackBackgrounds]);
@@ -167,22 +168,35 @@ const BackgroundPanelSheet = ({
             </View>
 
             <FlashList
-              data={selectedPackBackgrounds}
-              keyExtractor={(item) => item.id}
-              numColumns={3}
-              renderItem={({ item }) => (
-                <BackgroundThumb
-                  name={item.name}
-                  imageSource={item.imageSource}
-                  backgroundColor={item.backgroundColor}
-                  selected={selectedBackgroundId === item.id}
-                  onPress={() =>
-                    onSelectBackground({
-                      ...item,
-                      imageSource: item.originalImageSource ?? item.imageSource,
-                    })
-                  }
-                />
+              data={selectedPack.previewBackgrounds}
+              keyExtractor={(background) => background.id}
+              numColumns={2}
+              renderItem={({ item: background, index }) => (
+                <View
+                  style={[
+                    styles.gridItem,
+                    index % 2 === 0
+                      ? styles.leftGridItem
+                      : styles.rightGridItem,
+                  ]}
+                >
+                  <BackgroundThumb
+                    name={background.name}
+                    imageSource={background.imageSource}
+                    backgroundColor={background.backgroundColor}
+                    selected={selectedBackgroundId === background.id}
+                    onPress={() =>
+                      onSelectBackground({
+                        id: background.id,
+                        name: background.name,
+                        category: selectedPack.category,
+                        imageSource:
+                          background.originalImageSource ??
+                          background.imageSource,
+                      })
+                    }
+                  />
+                </View>
               )}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollContent}
@@ -215,6 +229,15 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: spacing.xxl,
+  },
+  gridItem: {
+    width: "100%",
+  },
+  leftGridItem: {
+    paddingRight: spacing.xs,
+  },
+  rightGridItem: {
+    paddingLeft: spacing.xs,
   },
   grid: {
     justifyContent: "space-between",
