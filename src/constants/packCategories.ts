@@ -10,6 +10,7 @@ export const packCategoryLabelMap: Record<string, string> = {
   masking_tape: "마스킹테이프",
   etc: "기타",
   simple: "심플",
+  moody: '감성',
   vintage: "빈티지",
   landscape: "풍경",
 };
@@ -30,6 +31,7 @@ export const stickerCategoryOptions = [
 export const backgroundCategoryOptions = [
   "simple",
   "deco",
+  'moody',
   "vintage",
   "landscape",
   "etc",

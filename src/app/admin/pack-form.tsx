@@ -400,7 +400,7 @@ const AdminPackFormScreen = () => {
 
   const handleChangeKind = (nextKind: AdminPackKind) => {
     setKind(nextKind);
-    setCategory(nextKind === "sticker" ? "food" : "grid");
+    setCategory(nextKind === "sticker" ? "food" : "simple");
     setIsCategoryDropdownOpen(false);
   };
 

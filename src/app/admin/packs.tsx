@@ -266,7 +266,7 @@ const AdminPacksScreen = () => {
                     </AppText>
                     <View style={styles.categoryFilterRow}>
                       <Chip
-                        label="전체 카테고리"
+                        label="전체"
                         selected={selectedCategory === "all"}
                         onPress={() => setSelectedCategory("all")}
                       />
