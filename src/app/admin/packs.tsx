@@ -1,7 +1,7 @@
-import { Alert, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Switch, View } from "react-native";
 import { Image as ExpoImage } from "expo-image";
 import { FlashList } from "@shopify/flash-list";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { useShopPackStore } from "../../store/shopPackStore";
 import { router, useFocusEffect } from "expo-router";
@@ -50,6 +50,9 @@ const AdminPacksScreen = () => {
   const isLoading = useShopPackStore((state) => state.isLoading);
   const errorMessage = useShopPackStore((state) => state.errorMessage);
   const loadPacks = useShopPackStore((state) => state.loadPacks);
+  const setPackActive = useShopPackStore((state) => state.setPackActive);
+  const pendingUpdates = useRef(new Set<string>());
+  const [updatingPackIds, setUpdatingPackIds] = useState<string[]>([]);
 
   const isAdmin = profile?.role === "admin";
   const [selectedKind, setSelectedKind] = useState<PackKindFilter>("all");
@@ -69,8 +72,8 @@ const AdminPacksScreen = () => {
 
     return packs.filter((pack) => {
       if (selectedKind !== "all" && pack.kind !== selectedKind) return false;
-      if (selectedActive === "active") return pack.isActive !== false;
-      if (selectedActive === "inactive") return pack.isActive === false;
+      if (selectedActive === "active" && pack.isActive === false) return false;
+      if (selectedActive === "inactive" && pack.isActive !== false) return false;
       if (
         selectedKind !== "all" &&
         selectedCategory !== "all" &&
@@ -100,6 +103,23 @@ const AdminPacksScreen = () => {
     }, [user, isAdmin, loadPacks]),
   );
 
+  const handleToggleActive = async (pack: ShopPack, isActive: boolean) => {
+    if (!user || !isAdmin || deletingPackId || pendingUpdates.current.has(pack.id)) return;
+    pendingUpdates.current.add(pack.id);
+    setUpdatingPackIds([...pendingUpdates.current]);
+    try {
+      await setPackActive(pack.id, isActive);
+    } catch (error) {
+      Alert.alert(
+        "상태 변경 실패",
+        error instanceof Error ? error.message : "팩 상태를 변경하지 못했어요.",
+      );
+    } finally {
+      pendingUpdates.current.delete(pack.id);
+      setUpdatingPackIds([...pendingUpdates.current]);
+    }
+  };
+
   const handleDeletePack = (pack: ShopPack) => {
     Alert.alert(
       "팩 삭제",
@@ -113,7 +133,7 @@ const AdminPacksScreen = () => {
           text: "삭제",
           style: "destructive",
           onPress: async () => {
-            if (deletingPackId) return;
+            if (deletingPackId || pendingUpdates.current.has(pack.id)) return;
 
             try {
               setDeletingPackId(pack.id);
@@ -288,10 +308,13 @@ const AdminPacksScreen = () => {
               </>
             }
             keyExtractor={(item) => item.id}
+            extraData={{ deletingPackId, updatingPackIds }}
             renderItem={({ item }) => (
               <AdminPackListItem
                 pack={item}
                 isDeleting={deletingPackId === item.id}
+                isUpdating={updatingPackIds.includes(item.id)}
+                onToggleActive={(value) => void handleToggleActive(item, value)}
                 onDelete={() => handleDeletePack(item)}
               />
             )}
@@ -322,10 +345,14 @@ export default AdminPacksScreen;
 function AdminPackListItem({
   pack,
   isDeleting,
+  isUpdating,
+  onToggleActive,
   onDelete,
 }: {
   pack: ShopPack;
   isDeleting: boolean;
+  isUpdating: boolean;
+  onToggleActive: (value: boolean) => void;
   onDelete: () => void;
 }) {
   const kindLabel = pack.kind === "sticker" ? "스티커" : "배경";
@@ -336,25 +363,6 @@ function AdminPackListItem({
 
   return (
     <View style={styles.packCard}>
-      <IconButton
-        imageSource={require("../../../assets/icons/x.png")}
-        size={32}
-        iconSize={16}
-        variant="filled"
-        style={styles.deleteIconButton}
-        disabled={isDeleting}
-        onPress={onDelete}
-      />
-      <IconButton
-        imageSource={require("../../../assets/icons/pencil.png")}
-        size={32}
-        iconSize={16}
-        variant="filled"
-        style={styles.editIconButton}
-        disabled={isDeleting}
-        onPress={() => router.push(`/admin/pack-form?id=${pack.id}`)}
-      />
-
       <View style={styles.packContentRow}>
         <View style={styles.thumbnailBox}>
           {pack.thumbnailSource ? (
@@ -399,6 +407,40 @@ function AdminPackListItem({
           <AppText variant="caption" style={styles.packMeta}>
             {categoryLabel} / {statusLabel}
           </AppText>
+        </View>
+      </View>
+      <View style={styles.cardActions}>
+        <View style={styles.activeControl}>
+          <Switch
+            style={styles.activeSwitch}
+            value={!isInactive}
+            onValueChange={onToggleActive}
+            disabled={isDeleting || isUpdating}
+            accessibilityLabel={`${pack.title} 활성 상태`}
+            trackColor={{ true: colors.state.success }}
+          />
+          <AppText variant="caption">
+            {isInactive ? "비활성" : "활성"}
+          </AppText>
+          {isUpdating ? <ActivityIndicator size="small" color={colors.text.muted} /> : null}
+        </View>
+        <View style={styles.editActions}>
+          <IconButton
+            imageSource={require("../../../assets/icons/pencil.png")}
+            size={32}
+            iconSize={16}
+            variant="filled"
+            disabled={isDeleting || isUpdating}
+            onPress={() => router.push(`/admin/pack-form?id=${pack.id}`)}
+          />
+          <IconButton
+            imageSource={require("../../../assets/icons/x.png")}
+            size={32}
+            iconSize={16}
+            variant="filled"
+            disabled={isDeleting || isUpdating}
+            onPress={onDelete}
+          />
         </View>
       </View>
     </View>
@@ -526,10 +568,12 @@ const styles = StyleSheet.create({
   },
   packInfo: {
     flex: 1,
+    minWidth: 0,
     gap: spacing.xs,
   },
   packHeader: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     gap: spacing.sm,
   },
@@ -556,17 +600,26 @@ const styles = StyleSheet.create({
   packMeta: {
     opacity: 0.8,
   },
-  editIconButton: {
-    position: "absolute",
-    right: 50,
-    bottom: spacing.md,
-    zIndex: 1,
+  cardActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+    marginTop: spacing.sm,
   },
-  deleteIconButton: {
-    position: "absolute",
-    right: spacing.md,
-    bottom: spacing.md,
-    zIndex: 1,
+  activeControl: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    minHeight: 44,
+  },
+  activeSwitch: {
+    alignSelf: "center",
+  },
+  editActions: {
+    flexDirection: "row",
+    gap: spacing.xs,
   },
   empty: {
     paddingVertical: spacing.xxxl,

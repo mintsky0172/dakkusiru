@@ -101,6 +101,18 @@ export async function findAdminPackConflicts({
   };
 }
 
+export async function updateAdminPackActive(packId: string, isActive: boolean) {
+  const { data, error } = await supabase
+    .from("shop_packs")
+    .update({ is_active: isActive, updated_at: new Date().toISOString() })
+    .eq("id", packId)
+    .select("id, is_active")
+    .single();
+
+  if (error) throw new Error(`[팩 상태 변경 실패] ${error.message}`);
+  return data;
+}
+
 export async function upsertAdminPack(params: UpsertAdminPackParams) {
   const { error } = await supabase.from("shop_packs").upsert({
     id: params.id,
