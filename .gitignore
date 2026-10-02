@@ -46,4 +46,10 @@ assets/sticker_pack/
 assets/background_pack/
 asset-upload/
 
+# Background asset originals, generated files, and recovery journals
+tools/background-assets/inbox/
+tools/background-assets/archive/
+tools/background-assets/.state/
+tools/background-assets/.cache/
+
 supabase/.temp/cli-latest

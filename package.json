@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
+    "assets:register-backgrounds": "node tools/background-assets/register.mjs",
+    "assets:register-backgrounds:dry": "node tools/background-assets/register.mjs --dry-run",
+    "assets:test-backgrounds": "node --test tools/background-assets/*.test.mjs",
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",

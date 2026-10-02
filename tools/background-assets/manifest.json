@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "packs": [
+    {
+      "id": "pastel-grid-pack",
+      "title": "파스텔 그리드 배경팩",
+      "category": "simple",
+      "subcategory": "grid",
+      "status": "priced",
+      "coin_price": 1000,
+      "description": "파스텔 그리드 배경 모음",
+      "tags": [
+        "파스텔"
+      ],
+      "is_active": true,
+      "sort_order": 0,
+      "thumbnail": "pastel-grid/1.png",
+      "items": [
+        {
+          "file": "pastel-grid/1.png",
+          "name": "분홍 그리드",
+          "background_color": null
+        },
+        {
+          "file": "pastel-grid/2.jpg",
+          "name": "하늘 그리드",
+          "background_color": null
+        }
+      ]
+    },
+    {
+      "id": "test-typography-pack",
+      "title": "test 타이포그래피 배경팩",
+      "category": "simple",
+      "subcategory": "typography",
+      "status": "free",
+      "description": "크림색 바탕에 test 타이포그래피가 반복되는 배경",
+      "tags": [
+        "test",
+        "타이포그래피"
+      ],
+      "is_active": true,
+      "items": [
+        {
+          "file": "test-typography-pack/1.png",
+          "name": "test 반복 타이포그래피",
+          "background_color": "#F6F1E8"
+        }
+      ]
+    }
+  ]
+}

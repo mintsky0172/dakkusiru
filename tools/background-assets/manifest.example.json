@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "packs": [
+    {
+      "id": "pastel-grid-pack",
+      "title": "파스텔 그리드 배경팩",
+      "category": "simple",
+      "subcategory": "grid",
+      "status": "priced",
+      "coin_price": 1000,
+      "description": "파스텔 그리드 배경 모음",
+      "tags": ["파스텔"],
+      "is_active": true,
+      "sort_order": 0,
+      "thumbnail": "pastel-grid/1.png",
+      "items": [
+        { "file": "pastel-grid/1.png", "name": "분홍 그리드", "background_color": null },
+        { "file": "pastel-grid/2.jpg", "name": "하늘 그리드", "background_color": null }
+      ]
+    }
+  ]
+}
