@@ -19,10 +19,54 @@ test('exact width and inclusive height tolerance', () => {
   for (const h of [2731, 2732, 2733]) validateSize(2048, h);
   for (const [w, h] of [[2047, 2732], [2048, 2730], [2048, 2734], [2732, 2048]]) assert.throws(() => validateSize(w, h));
 });
+test('height exception is explicit and still requires 2048px width and a positive height', () => {
+  validateSize(2048, 2719, true);
+  assert.throws(() => validateSize(2048, 2719));
+  for (const [w, h] of [[1024, 2719], [2048, 0], [2048, NaN]]) assert.throws(() => validateSize(w, h, true));
+  for (const key of ['allow_nonstandard_height', 'include_subcategory_tag']) {
+    assert.throws(() => validateManifest({ version: 1, packs: [{ ...spec, [key]: 'true' }] }, ['simple']));
+  }
+});
+test('nonstandard pack preserves pixels, uses separate square thumbnail and exact supplied tags', async t => {
+  const { inbox, root } = await fixture(t);
+  const bytes = await sharp({ create: { width: 2048, height: 2719, channels: 3, background: '#abcdef' } }).png().toBuffer();
+  await writeFile(join(inbox, '1.png'), bytes);
+  await writeFile(join(inbox, 'thumbnail.png'), await sharp({ create: { width: 1024, height: 1024, channels: 3, background: '#ff0000' } }).png().toBuffer());
+  const pack = await preparePack({ ...spec, allow_nonstandard_height: true, thumbnail: 'thumbnail.png', include_subcategory_tag: false, tags: ['블루', '심플'] }, inbox);
+  assert.equal((await sharp(pack.items[0].original).metadata()).height, 2719);
+  assert.equal(await pixelHash(pack.items[0].original), await pixelHash(bytes));
+  assert.equal((await sharp(pack.thumbnail).metadata()).width, 512);
+  assert.equal((await sharp(pack.thumbnail).metadata()).height, 512);
+  const journal = buildRegistration(pack, 'test');
+  assert.deepEqual(journal.pack.tags, ['블루', '심플']);
+  assert.equal(journal.sources.length, 2);
+  await archiveSources(journal, join(root, 'archive'));
+  const archivedThumbnail = join(root, 'archive/simple/grid/test-pack/thumbnail.png');
+  assert.equal(hash(await readFile(archivedThumbnail)), journal.sources[1].byteHash);
+  await assert.rejects(readFile(join(inbox, 'thumbnail.png')), { code: 'ENOENT' });
+});
 test('manifest rejects missing subcategory and normalized ID collisions', () => {
   validateManifest({ version: 1, packs: [spec] }, ['simple']);
   assert.throws(() => validateManifest({ version: 1, packs: [{ ...spec, subcategory: '../escape' }] }, ['simple']));
   assert.throws(() => validateManifest({ version: 1, packs: [{ ...spec, items: [{ file: 'a_b.png' }, { file: 'a-b.jpg' }] }] }, ['simple']));
+});
+test('preserved upload names and archive-only editing file survive commit and archive retry', async t => {
+  const { inbox, root } = await fixture(t);
+  await writeFile(join(inbox, 'thumbnail.clip'), Buffer.from('editing source'));
+  const pack = await preparePack({ ...spec, preserve_file_names: true, archive_files: ['thumbnail.clip'] }, inbox);
+  const journal = buildRegistration(pack, 'token');
+  assert.equal(journal.items[0].image_path, 'packs/backgrounds/test-pack/items/1.webp');
+  assert.equal(journal.items[0].preview_image_path, 'packs/backgrounds/test-pack/previews/1.webp');
+  assert.equal(journal.pack.thumbnail_path, 'packs/backgrounds/test-pack/thumbnail.webp');
+  assert.equal(journal.objects.length, 3);
+  assert.equal(journal.sources.at(-1).file, 'thumbnail.clip');
+  const adapter = Object.fromEntries(['upload', 'insertPack', 'insertItems', 'verify', 'activate'].map(name => [name, async () => {}]));
+  const archive = join(root, 'archive');
+  await executeRegistration(journal, adapter, async () => {}, j => archiveSources(j, archive));
+  await archiveSources(journal, archive);
+  assert.equal(journal.phase, 'done');
+  assert.equal(await readFile(join(archive, 'simple/grid/test-pack/thumbnail.clip'), 'utf8'), 'editing source');
+  await assert.rejects(readFile(join(inbox, 'thumbnail.clip')), { code: 'ENOENT' });
 });
 test('lossless WebP retains canonical pixels and paths match existing pack structure', async t => {
   const { pack, bytes } = await fixture(t);

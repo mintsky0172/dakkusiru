@@ -53,3 +53,9 @@ tools/background-assets/.state/
 tools/background-assets/.cache/
 
 supabase/.temp/cli-latest
+
+# Sticker asset originals, generated files, and recovery journals
+tools/sticker-assets/inbox/
+tools/sticker-assets/archive/
+tools/sticker-assets/.state/
+tools/sticker-assets/.cache/

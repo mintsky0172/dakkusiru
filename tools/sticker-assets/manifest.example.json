@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "packs": [
+    {
+      "id": "cat-doodle-pack",
+      "title": "고양이 낙서 스티커팩",
+      "category": "nature",
+      "subcategory": "cat",
+      "status": "priced",
+      "coin_price": 1000,
+      "description": "귀여운 고양이 낙서 스티커 모음",
+      "tags": ["고양이", "낙서"],
+      "include_subcategory_tag": false,
+      "preserve_file_names": true,
+      "thumbnail": "cat-doodle-pack/thumbnail.png",
+      "archive_files": ["cat-doodle-pack/thumbnail.clip"],
+      "items": [
+        { "file": "cat-doodle-pack/1.png", "name": "누운 고양이" },
+        { "file": "cat-doodle-pack/2.png", "name": "앉은 고양이" }
+      ]
+    }
+  ]
+}

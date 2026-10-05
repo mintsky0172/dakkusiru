@@ -1,0 +1,4 @@
+interface:
+  display_name: "다꾸시루 스티커팩"
+  short_description: "스티커 생성 준비와 기존 inbox 팩의 R2·DB 자동 등록"
+  default_prompt: "$dakkusiru-sticker-pack 기존 inbox 스티커팩을 지정한 메타데이터로 등록해줘."

@@ -1,6 +1,6 @@
 interface:
-  display_name: "다꾸시루 배경팩 만들기"
-  short_description: "배경 생성부터 크기 보정, manifest 작성과 등록 전 검증까지 자동화"
+  display_name: "다꾸시루 배경팩 생성·등록"
+  short_description: "배경 생성·등록 준비와 기존 inbox 팩의 R2·DB 등록"
   default_prompt: "$dakkusiru-background-pack 파스텔 그리드 배경 6장을 무료 팩으로 만들고 미리보기와 dry-run 결과를 보여줘."
 policy:
   allow_implicit_invocation: true

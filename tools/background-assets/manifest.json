@@ -47,6 +47,249 @@
           "background_color": "#F6F1E8"
         }
       ]
+    },
+    {
+      "id": "pastel-crayon-doodle-pack",
+      "title": "파스텔 크레용 드로잉 배경팩",
+      "category": "deco",
+      "subcategory": "crayon-doodle",
+      "status": "priced",
+      "coin_price": 1000,
+      "description": "파스텔 스트라이프와 나선 위에 검은 크레용 사과·고양이·별빛을 얹은 배경 5장",
+      "tags": [
+        "파스텔",
+        "크레용",
+        "사과",
+        "고양이",
+        "별빛",
+        "스트라이프",
+        "나선"
+      ],
+      "is_active": true,
+      "items": [
+        {
+          "file": "pastel-crayon-doodle-pack/1.png",
+          "name": "하늘 스트라이프와 사과",
+          "background_color": "#FFF9EF"
+        },
+        {
+          "file": "pastel-crayon-doodle-pack/2.png",
+          "name": "라벤더 나선과 고양이",
+          "background_color": "#FFF9EF"
+        },
+        {
+          "file": "pastel-crayon-doodle-pack/3.png",
+          "name": "민트 사선과 작은 사과",
+          "background_color": "#FFF9EF"
+        },
+        {
+          "file": "pastel-crayon-doodle-pack/4.png",
+          "name": "복숭아 스트라이프와 고양이",
+          "background_color": "#FFF9EF"
+        },
+        {
+          "file": "pastel-crayon-doodle-pack/5.png",
+          "name": "하늘 나선과 별빛",
+          "background_color": "#FFF9EF"
+        }
+      ]
+    },
+    {
+      "id": "minimal-pastel-doodle-background-pack",
+      "title": "미니멀 블루 낙서 배경팩",
+      "category": "simple",
+      "subcategory": "minimal-doodle",
+      "status": "free",
+      "description": "낙서 같은 드로잉과 하늘색 패턴이 그려져 있는 종이 질감의 배경들이 들어 있어요.",
+      "tags": [
+        "블루",
+        "드로잉",
+        "심플",
+        "메모",
+        "패턴",
+        "귀염"
+      ],
+      "include_subcategory_tag": false,
+      "allow_nonstandard_height": true,
+      "is_active": true,
+      "thumbnail": "minimal-pastel-doodle-background-pack/thumbnail.png",
+      "items": [
+        {
+          "file": "minimal-pastel-doodle-background-pack/1.png",
+          "name": "미니멀 블루 낙서 배경 1"
+        },
+        {
+          "file": "minimal-pastel-doodle-background-pack/2.png",
+          "name": "미니멀 블루 낙서 배경 2"
+        },
+        {
+          "file": "minimal-pastel-doodle-background-pack/3.png",
+          "name": "미니멀 블루 낙서 배경 3"
+        },
+        {
+          "file": "minimal-pastel-doodle-background-pack/4.png",
+          "name": "미니멀 블루 낙서 배경 4"
+        },
+        {
+          "file": "minimal-pastel-doodle-background-pack/5.png",
+          "name": "미니멀 블루 낙서 배경 5"
+        },
+        {
+          "file": "minimal-pastel-doodle-background-pack/6.png",
+          "name": "미니멀 블루 낙서 배경 6"
+        },
+        {
+          "file": "minimal-pastel-doodle-background-pack/7.png",
+          "name": "미니멀 블루 낙서 배경 7"
+        },
+        {
+          "file": "minimal-pastel-doodle-background-pack/8.png",
+          "name": "미니멀 블루 낙서 배경 8"
+        }
+      ]
+    },
+    {
+      "id": "cute-cat-bed-pack",
+      "title": "침대 고양이 배경팩",
+      "category": "deco",
+      "subcategory": "cat",
+      "status": "priced",
+      "coin_price": 1000,
+      "description": "침대 위에서 자고 있는 귀여운 고양이가 그려져 있는 배경들이 들어 있어요.",
+      "tags": [
+        "귀염",
+        "고양이",
+        "블루",
+        "파스텔",
+        "동물",
+        "캐릭터"
+      ],
+      "include_subcategory_tag": false,
+      "preserve_file_names": true,
+      "is_active": true,
+      "thumbnail": "cute-cat-bed-pack/thumbnail.png",
+      "archive_files": [
+        "cute-cat-bed-pack/thumbnail.clip"
+      ],
+      "items": [
+        {
+          "file": "cute-cat-bed-pack/1.png",
+          "name": "1"
+        },
+        {
+          "file": "cute-cat-bed-pack/2.png",
+          "name": "2"
+        },
+        {
+          "file": "cute-cat-bed-pack/3.png",
+          "name": "3"
+        },
+        {
+          "file": "cute-cat-bed-pack/4.png",
+          "name": "4"
+        }
+      ]
+    },
+    {
+      "id": "cute-cat-bed-pack-2",
+      "title": "침대 고양이 배경팩 2",
+      "category": "deco",
+      "subcategory": "cat",
+      "status": "priced",
+      "coin_price": 1000,
+      "description": "침대 위에서 자고 있는 귀여운 고양이가 그려져 있는 배경들이 들어 있어요.",
+      "tags": [
+        "귀염",
+        "고양이",
+        "핑크",
+        "베이지",
+        "파스텔",
+        "동물",
+        "캐릭터"
+      ],
+      "include_subcategory_tag": false,
+      "preserve_file_names": true,
+      "is_active": true,
+      "thumbnail": "cute-cat-bed-pack-2/thumbnail.png",
+      "archive_files": [
+        "cute-cat-bed-pack-2/thumbnail.clip"
+      ],
+      "items": [
+        {
+          "file": "cute-cat-bed-pack-2/1.png",
+          "name": "1"
+        },
+        {
+          "file": "cute-cat-bed-pack-2/2.png",
+          "name": "2"
+        },
+        {
+          "file": "cute-cat-bed-pack-2/3.png",
+          "name": "3"
+        },
+        {
+          "file": "cute-cat-bed-pack-2/4.png",
+          "name": "4"
+        }
+      ]
+    },
+    {
+      "id": "minimal-pink-doodle-background-pack",
+      "title": "미니멀 핑크 낙서 배경팩",
+      "category": "simple",
+      "subcategory": "minimal-doodle",
+      "status": "priced",
+      "coin_price": 1000,
+      "description": "낙서 같은 드로잉과 핑크색 패턴이 그려져 있는 종이 질감의 배경들이 들어 있어요.",
+      "tags": [
+        "핑크",
+        "드로잉",
+        "심플",
+        "메모",
+        "패턴",
+        "귀염"
+      ],
+      "include_subcategory_tag": false,
+      "preserve_file_names": true,
+      "is_active": true,
+      "thumbnail": "minimal-pink-doodle-background-pack/thumbnail.png",
+      "archive_files": [
+        "minimal-pink-doodle-background-pack/thumbnail.clip"
+      ],
+      "items": [
+        {
+          "file": "minimal-pink-doodle-background-pack/1.png",
+          "name": "1"
+        },
+        {
+          "file": "minimal-pink-doodle-background-pack/2.png",
+          "name": "2"
+        },
+        {
+          "file": "minimal-pink-doodle-background-pack/3.png",
+          "name": "3"
+        },
+        {
+          "file": "minimal-pink-doodle-background-pack/4.png",
+          "name": "4"
+        },
+        {
+          "file": "minimal-pink-doodle-background-pack/5.png",
+          "name": "5"
+        },
+        {
+          "file": "minimal-pink-doodle-background-pack/6.png",
+          "name": "6"
+        },
+        {
+          "file": "minimal-pink-doodle-background-pack/7.png",
+          "name": "7"
+        },
+        {
+          "file": "minimal-pink-doodle-background-pack/8.png",
+          "name": "8"
+        }
+      ]
     }
   ]
 }

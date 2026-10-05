@@ -16,7 +16,10 @@
     "storage:generate-previews:dry": "node scripts/generateItemPreviewImages.mjs --dry-run",
     "storage:sync-r2": "node scripts/syncAssetsToR2.mjs",
     "storage:sync-r2:dry": "node scripts/syncAssetsToR2.mjs --dry-run",
-    "storage:check-r2": "node scripts/checkR2Access.mjs"
+    "storage:check-r2": "node scripts/checkR2Access.mjs",
+    "assets:register-stickers": "node tools/sticker-assets/register.mjs",
+    "assets:register-stickers:dry": "node tools/sticker-assets/register.mjs --dry-run",
+    "assets:test-stickers": "node --test tools/sticker-assets/*.test.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",

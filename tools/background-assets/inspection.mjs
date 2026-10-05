@@ -4,9 +4,9 @@ import { randomUUID } from 'node:crypto';
 import { ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { hash, pixelHash } from './pipeline.mjs';
 
-export function requestTimeout(value = '30000') {
+export function requestTimeout(value = '30000', variable = 'BACKGROUND_ASSET_REQUEST_TIMEOUT_MS') {
   const ms = Number(value);
-  if (!Number.isSafeInteger(ms) || ms < 1 || ms > 600000) throw new Error('BACKGROUND_ASSET_REQUEST_TIMEOUT_MS는 1~600000 사이의 정수여야 합니다.');
+  if (!Number.isSafeInteger(ms) || ms < 1 || ms > 600000) throw new Error(`${variable}는 1~600000 사이의 정수여야 합니다.`);
   return ms;
 }
 export async function withDeadline(label, timeoutMs, operation, upstream) {
@@ -96,11 +96,11 @@ export function listingValidator(cache, key, object) {
   } catch { /* Invalid cache identity: download and replace it. */ }
   return listed;
 }
-export async function listR2Objects(r2, bucket, log = console.log) {
+export async function listR2Objects(r2, bucket, log = console.log, prefix = 'packs/backgrounds/') {
   const objects = new Map();
   let token, pages = 0;
   do {
-    const result = await r2.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: 'packs/backgrounds/', MaxKeys: 1000, ContinuationToken: token }));
+    const result = await r2.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix, MaxKeys: 1000, ContinuationToken: token }));
     for (const object of result.Contents ?? []) if (object.Key) objects.set(object.Key, object);
     pages++;
     log(`[R2 목록] ${pages}페이지, 객체 ${objects.size}개 확인`);
@@ -114,12 +114,12 @@ export function storageValidator(info) {
   if (!info.etag && !info.version) return null;
   return JSON.stringify([info.etag ?? null, info.version ?? null, info.size ?? null, info.lastModified ?? null]);
 }
-export async function scanExisting({ keys, cache, inspect, read, refresh = false, log = console.log, heartbeatMs = 5000, checkpoint = 10 }) {
+export async function scanExisting({ keys, cache, inspect, read, refresh = false, log = console.log, heartbeatMs = 5000, checkpoint = 10, label = '배경' }) {
   const stats = { completed: 0, cached: 0, decoded: 0 };
   const hashes = new Set(), start = Date.now();
   let current = '검사 준비', stage = '원격 변경 정보 확인';
   const progress = () => log(`[중복 검사] ${stats.completed}/${keys.length} (${keys.length ? (stats.completed / keys.length * 100).toFixed(1) : '100.0'}%) | 캐시=${stats.cached}, 새 검사=${stats.decoded} | ${Math.floor((Date.now() - start) / 1000)}초 | ${stage}: ${current}`);
-  log(`[중복 검사] 기존 배경 원본 ${keys.length}개 확인 (캐시 변경 여부 확인)`);
+  log(`[중복 검사] 기존 ${label} 원본 ${keys.length}개 확인 (캐시 변경 여부 확인)`);
   const heartbeat = setInterval(progress, heartbeatMs); heartbeat.unref();
   try {
     for (const key of keys) {

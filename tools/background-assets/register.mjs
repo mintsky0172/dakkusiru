@@ -10,8 +10,6 @@ import { hash, validateManifest, preparePack, buildRegistration, executeRegistra
 import { requestTimeout, withDeadline, timedR2, timedFetch, HashCache, r2Validator, storageValidator, scanExisting, listR2Objects, listingValidator } from './inspection.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const home = resolve(root, 'tools/background-assets');
-const inbox = resolve(home, 'inbox'), archive = resolve(home, 'archive'), state = resolve(home, '.state');
 const invokedDirectly = !!process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
 export function parseArgs(args) {
   const options = { dry: false, refreshHashCache: false, help: false, pack: null };
@@ -35,9 +33,8 @@ export function selectPacks(manifest, pack) {
   return matches;
 }
 const options = invokedDirectly ? parseArgs(process.argv.slice(2)) : {};
-const { dry, refreshHashCache } = options;
 if (invokedDirectly && options.help) { console.log('npm run assets:register-backgrounds [-- --dry-run --pack PACK_ID --refresh-hash-cache]\n입력: tools/background-assets/manifest.json 및 inbox/\n상세 설명: tools/background-assets/README.md'); process.exit(0); }
-async function loadEnv() {
+async function loadEnv(root) {
   try {
     const text = await readFile(resolve(root, '.env'), 'utf8');
     for (const line of text.split(/\r?\n/)) {
@@ -103,43 +100,52 @@ export function adapterFor(db, r2, bucket) {
     }
   };
 }
-async function persist(j) {
-  const path = resolve(state, `${j.token}.json`);
-  const serial = { ...j, objects: j.objects.map(({ key, sourceHash, size, outputHash }) => ({ key, sourceHash, size, outputHash })) };
-  const temp = `${path}.tmp`;
-  const file = await open(temp, 'w', 0o600);
-  try { await file.writeFile(JSON.stringify(serial, null, 2)); await file.sync(); } finally { await file.close(); }
-  await rename(temp, path);
-  const directory = await open(state, 'r');
-  try { await directory.sync(); } finally { await directory.close(); }
-}
-async function journals() {
-  try { return await Promise.all((await readdir(state)).filter(n => n.endsWith('.json')).map(async n => JSON.parse(await readFile(resolve(state, n), 'utf8')))); }
-  catch (e) { if (e.code === 'ENOENT') return []; throw e; }
-}
-async function acquireLock() {
-  await mkdir(state, { recursive: true });
-  const path = resolve(state, 'run.lock');
-  try { await writeFile(path, String(process.pid), { flag: 'wx', mode: 0o600 }); }
-  catch (e) {
-    if (e.code !== 'EEXIST') throw e;
-    const pid = Number(await readFile(path, 'utf8'));
-    if (!Number.isSafeInteger(pid) || pid <= 0) throw new Error('run.lock이 손상되었습니다. 실행 중인 프로세스가 없는지 확인하세요.');
-    try { process.kill(pid, 0); } catch (err) {
-      if (err.code !== 'ESRCH') throw err;
-      await unlink(path); return acquireLock();
-    }
-    throw new Error(`다른 등록 프로세스가 실행 중입니다 (PID ${pid}).`);
+// Shared runner: each asset kind keeps its own manifest, journal, cache and archive.
+export async function runRegistration({ kind = 'background', options = {}, root: projectRoot = root,
+  prepare = preparePack, build = buildRegistration } = {}) {
+  if (!['background', 'sticker'].includes(kind)) throw new Error(`잘못된 에셋 종류: ${kind}`);
+  const root = projectRoot;
+  const home = resolve(root, `tools/${kind}-assets`);
+  const inbox = resolve(home, 'inbox'), archive = resolve(home, 'archive'), state = resolve(home, '.state');
+  const { dry, refreshHashCache } = options;
+  const label = kind === 'sticker' ? '스티커' : '배경';
+  async function persist(j) {
+    const path = resolve(state, `${j.token}.json`);
+    const serial = { ...j, objects: j.objects.map(({ key, sourceHash, size, outputHash }) => ({ key, sourceHash, size, outputHash })) };
+    const temp = `${path}.tmp`;
+    const file = await open(temp, 'w', 0o600);
+    try { await file.writeFile(JSON.stringify(serial, null, 2)); await file.sync(); } finally { await file.close(); }
+    await rename(temp, path);
+    const directory = await open(state, 'r');
+    try { await directory.sync(); } finally { await directory.close(); }
   }
-  return () => unlink(path);
-}
-async function main() {
-  await loadEnv();
-  const timeoutMs = requestTimeout(process.env.BACKGROUND_ASSET_REQUEST_TIMEOUT_MS);
+  async function journals() {
+    try { return await Promise.all((await readdir(state)).filter(n => n.endsWith('.json')).map(async n => JSON.parse(await readFile(resolve(state, n), 'utf8')))); }
+    catch (e) { if (e.code === 'ENOENT') return []; throw e; }
+  }
+  async function acquireLock() {
+    await mkdir(state, { recursive: true });
+    const path = resolve(state, 'run.lock');
+    try { await writeFile(path, String(process.pid), { flag: 'wx', mode: 0o600 }); }
+    catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+      const pid = Number(await readFile(path, 'utf8'));
+      if (!Number.isSafeInteger(pid) || pid <= 0) throw new Error('run.lock이 손상되었습니다. 실행 중인 프로세스가 없는지 확인하세요.');
+      try { process.kill(pid, 0); } catch (err) {
+        if (err.code !== 'ESRCH') throw err;
+        await unlink(path); return acquireLock();
+      }
+      throw new Error(`다른 등록 프로세스가 실행 중입니다 (PID ${pid}).`);
+    }
+    return () => unlink(path);
+  }
+  await loadEnv(root);
+  const timeoutVariable = `${kind.toUpperCase()}_ASSET_REQUEST_TIMEOUT_MS`;
+  const timeoutMs = requestTimeout(process.env[timeoutVariable], timeoutVariable);
   const manifest = JSON.parse(await readFile(resolve(home, 'manifest.json'), 'utf8'));
   const categorySource = await readFile(resolve(root, 'src/constants/packCategories.ts'), 'utf8');
-  const section = categorySource.match(/backgroundCategoryOptions\s*=\s*\[([\s\S]*?)\]/)?.[1];
-  if (!section) throw new Error('프로젝트 배경 카테고리를 읽을 수 없습니다.');
+  const section = categorySource.match(new RegExp(`${kind}CategoryOptions\\s*=\\s*\\[([\\s\\S]*?)\\]`))?.[1];
+  if (!section) throw new Error(`프로젝트 ${label} 카테고리를 읽을 수 없습니다.`);
   validateManifest(manifest, [...section.matchAll(/["']([^"']+)["']/g)].map(m => m[1]));
   const selected = selectPacks(manifest, options.pack);
   const url = process.env.SUPABASE_URL ?? process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -170,17 +176,17 @@ async function main() {
     if (dry && !online) console.log('[오프라인 dry-run] 로컬 검증·변환만 수행합니다. 운영 DB/R2 중복 및 접근 권한은 미검증입니다.');
     const packs = online ? await pages(db, 'shop_packs', 'id, title, kind') : [];
     const items = online ? await pages(db, 'shop_pack_items', 'id, pack_id, image_path') : [];
-    const backgrounds = new Set(packs.filter(p => p.kind === 'background').map(p => p.id));
+    const assetPacks = new Set(packs.filter(p => p.kind === kind).map(p => p.id));
     const existingHashes = new Set();
     if (online) {
-      const sources = [...new Set(items.filter(i => backgrounds.has(i.pack_id) && i.image_path).map(i => i.image_path))];
+      const sources = [...new Set(items.filter(i => assetPacks.has(i.pack_id) && i.image_path).map(i => i.image_path))];
       const storageBucket = process.env.SUPABASE_STORAGE_BUCKET ?? 'dakku-assets';
       const cache = new HashCache(resolve(home, '.cache/pixel-hashes.json'), { endpoint, bucket, url, storageBucket });
       await cache.load();
       console.log(`[요청 제한 시간] ${timeoutMs}ms (응답 본문 다운로드 포함)`);
       const inspectionStarted = performance.now();
-      const listed = await listR2Objects(r2, bucket);
-      const scan = await scanExisting({ keys: sources, cache, refresh: refreshHashCache,
+      const listed = await listR2Objects(r2, bucket, console.log, `packs/${kind === 'sticker' ? 'stickers' : 'backgrounds'}/`);
+      const scan = await scanExisting({ keys: sources, cache, refresh: refreshHashCache, label,
         inspect: async key => {
           const object = listed.get(key);
           if (object?.ETag && object.Size !== undefined && object.LastModified) {
@@ -220,12 +226,12 @@ async function main() {
       try {
         const done = history.find(j => j.phase === 'done' && j.pack.id === spec.id && j.manifestHash === hash(JSON.stringify(spec)));
         if (done) { if (online) await adapter.verify(done); summary.skipped++; console.log(`[건너뜀] ${spec.id}: 이미 등록·archive 완료 (기록 기준)`); continue; }
-        const prepared = await preparePack(spec, inbox);
+        const prepared = await prepare(spec, inbox);
         const duplicate = prepared.items.find(i => existingHashes.has(i.sourceHash));
         if (duplicate) { summary.skipped++; console.log(`[중복 건너뜀] ${spec.id}: ${duplicate.file}; 팩 전체 미등록, 원본 유지`); continue; }
         if (packs.some(p => p.id === spec.id || p.title === spec.title.trim())) throw new Error('기존 팩 ID/제목이 존재합니다. 기존 팩 변경은 지원하지 않습니다.');
         if (prepared.items.some(i => items.some(r => r.id === i.id))) throw new Error('기존 아이템 ID 충돌');
-        const j = buildRegistration(prepared, randomUUID()); j.manifestHash = hash(JSON.stringify(spec));
+        const j = build(prepared, randomUUID()); j.manifestHash = hash(JSON.stringify(spec));
         if (dry) {
           summary.planned++;
           console.log(`[등록 예정] ${spec.id}: 원본 ${prepared.items.length}개, 미리보기 ${prepared.items.length}개, 썸네일 1개`);
@@ -249,5 +255,5 @@ async function main() {
   }
 }
 if (invokedDirectly) {
-  main().catch(e => { console.error(`[중단] ${e.message}`); process.exitCode = 1; });
+  runRegistration({ options }).catch(e => { console.error(`[중단] ${e.message}`); process.exitCode = 1; });
 }

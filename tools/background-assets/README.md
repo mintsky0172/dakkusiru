@@ -47,10 +47,14 @@ archive, `.state`, `.cache`는 Git에서 제외됩니다. manifest에는 비밀�
 - `items`: 등록할 이미지 목록. `file`은 **inbox 기준 상대 경로**입니다.
   선택 필드 `name`, `background_color`(`#RRGGBB`/`#RRGGBBAA`). 배열 순서가 DB `sort_order`입니다.
 - `thumbnail`: 선택한 inbox 원본 상대 경로. 생략하면 첫 아이템에서 생성합니다.
+- `allow_nonstandard_height`: 기본 false. 명시적으로 true인 팩만 높이 제한을 생략하며, 너비 2048px는 유지합니다. 원본을 리사이즈하지 않습니다.
+- `include_subcategory_tag`: 기본 true. false이면 지정한 `tags`만 저장하고 세부 카테고리는 archive 분류에 사용합니다.
+- `preserve_file_names`: 기본 false. true이면 R2 파일명에 UUID를 붙이지 않고 원본 이름 부분을 유지하며 확장자만 `.webp`로 바꿉니다. 원본/archive 파일명은 언제나 그대로 유지합니다. 기존 객체는 조건부 업로드로 덮어쓰지 않습니다.
+- `archive_files`: 업로드하지 않고 등록 성공 후 원본과 함께 보관할 파일의 inbox 상대 경로 배열. 예: `["cute-cat-bed-pack/thumbnail.clip"]`. 해시를 기록하여 중단 후 이동을 재개할 수 있습니다.
 
 manifest에 명시한 파일만 처리합니다. 폴더의 다른 이미지·PSD·숨김 파일은 자동 등록하지 않습니다.
-원본과 지정 썸네일 입력은 실제 PNG/JPEG 단일 이미지여야 하고 EXIF 회전 적용 후
-**2048×2731, 2048×2732, 2048×2733** 중 하나여야 합니다. 모든 크기를 비율만으로 허용하지 않습니다.
+원본과 지정 썸네일 입력은 실제 PNG/JPEG 단일 이미지여야 합니다. 배경 원본은 EXIF 회전 적용 후
+기본적으로 **2048×2731, 2048×2732, 2048×2733** 중 하나여야 합니다. 별도 지정 썸네일에는 이 크기 제한을 적용하지 않습니다.
 
 파일명은 기존 정규화 규칙(공백/언더스코어를 하이픈으로 변환, 소문자화)을 사용합니다.
 한글은 NFC 정규화를 추가합니다. 정규화 후 빈 이름·ID 충돌은 오류입니다.

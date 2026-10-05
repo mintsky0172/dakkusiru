@@ -7,13 +7,14 @@ import { randomUUID } from 'node:crypto';
 import { validateManifest, preparePack } from './pipeline.mjs';
 
 // Local-only preparation: no network requests, R2/DB writes, or source deletion.
-export async function prepareGenerated(config, root) {
-  const home = resolve(root, 'tools/background-assets');
+export async function prepareGenerated(config, root, { kind = 'background', prepare = preparePack } = {}) {
+  const home = resolve(root, `tools/${kind}-assets`);
   const manifestPath = resolve(home, 'manifest.json');
   if (!config.pack || !Array.isArray(config.images) || !config.images.length) throw new Error('pack와 images 배열이 필요합니다.');
-  if (config.resize !== 'cover') throw new Error('크기 보정을 허용하려면 resize: "cover"를 지정하세요.');
+  if (kind === 'background' && config.resize !== 'cover') throw new Error('크기 보정을 허용하려면 resize: "cover"를 지정하세요.');
+  if (kind === 'sticker' && config.resize !== 'none') throw new Error('스티커 원본 보존을 위해 resize: "none"을 지정하세요.');
   const categorySource = await readFile(resolve(root, 'src/constants/packCategories.ts'), 'utf8');
-  const section = categorySource.match(/backgroundCategoryOptions\s*=\s*\[([\s\S]*?)\]/)?.[1];
+  const section = categorySource.match(new RegExp(`${kind}CategoryOptions\\s*=\\s*\\[([\\s\\S]*?)\\]`))?.[1];
   if (!section) throw new Error('프로젝트 카테고리를 읽을 수 없습니다.');
   const categories = [...section.matchAll(/["']([^"']+)["']/g)].map(m => m[1]);
   const p = config.pack;
@@ -43,10 +44,12 @@ export async function prepareGenerated(config, root) {
     await mkdir(dirname(destination), { recursive: true });
     await mkdir(destination); // EEXIST prevents replacing any existing folder.
     for (const [index, source] of sources.entries()) {
-      const bytes = await sharp(source).rotate().resize(2048, 2732, { fit: 'cover', position: 'centre' }).png().toBuffer();
+      const image = sharp(source).rotate();
+      if (kind === 'background') image.resize(2048, 2732, { fit: 'cover', position: 'centre' });
+      const bytes = await image.png().toBuffer();
       await writeFile(resolve(destination, `${index + 1}.png`), bytes, { flag: 'wx' });
     }
-    const prepared = await preparePack(pack, resolve(home, 'inbox'));
+    const prepared = await prepare(pack, resolve(home, 'inbox'));
     const previewPath = resolve(cache, `${pack.id}-preview.png`);
     const tiles = await Promise.all(prepared.items.map(item => sharp(item.source).resize(240, 320, { fit: 'contain', background: '#ffffff' }).png().toBuffer()));
     const columns = Math.min(4, tiles.length), rows = Math.ceil(tiles.length / columns);

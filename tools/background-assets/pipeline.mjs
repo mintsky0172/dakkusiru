@@ -9,8 +9,8 @@ export function normalizeItemId(value) {
   return value.normalize('NFC').toLowerCase().replace(/\s+/g, '-').replace(/_/g, '-')
     .replace(/[^a-z0-9가-힣-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '');
 }
-export function validateSize(width, height) {
-  if (width !== 2048 || ![2731, 2732, 2733].includes(height)) {
+export function validateSize(width, height, allowNonstandardHeight = false) {
+  if (width !== 2048 || !Number.isSafeInteger(height) || height < 1 || (!allowNonstandardHeight && ![2731, 2732, 2733].includes(height))) {
     throw new Error(`허용 크기는 2048×2731~2733입니다 (실제 ${width}×${height}).`);
   }
 }
@@ -43,9 +43,13 @@ export function validateManifest(manifest, categories) {
     if (p.status === 'priced' && (!Number.isSafeInteger(p.coin_price) || p.coin_price < 0)) throw new Error('유료 팩 coin_price는 0 이상의 정수여야 합니다.');
     if (p.tags !== undefined && (!Array.isArray(p.tags) || p.tags.some(t => typeof t !== 'string'))) throw new Error('tags는 문자열 배열이어야 합니다.');
     if (p.is_active !== undefined && typeof p.is_active !== 'boolean') throw new Error('is_active는 boolean이어야 합니다.');
+    for (const key of ['allow_nonstandard_height', 'include_subcategory_tag', 'preserve_file_names']) {
+      if (p[key] !== undefined && typeof p[key] !== 'boolean') throw new Error(`${key}는 boolean이어야 합니다.`);
+    }
     if (p.sort_order !== undefined && !Number.isSafeInteger(p.sort_order)) throw new Error('sort_order는 정수여야 합니다.');
     if (p.description !== undefined && p.description !== null && typeof p.description !== 'string') throw new Error('description은 문자열이어야 합니다.');
     if (!Array.isArray(p.items) || !p.items.length) throw new Error(`아이템이 없는 팩: ${p.id}`);
+    if (p.archive_files !== undefined && (!Array.isArray(p.archive_files) || p.archive_files.some(f => typeof f !== 'string' || !f))) throw new Error('archive_files는 inbox 상대 경로 문자열 배열이어야 합니다.');
     const localIds = new Set();
     for (const item of p.items) {
       if (typeof item.file !== 'string' || !/\.(png|jpe?g)$/i.test(item.file)) throw new Error('PNG/JPG/JPEG 파일을 지정하세요.');
@@ -59,7 +63,7 @@ export function validateManifest(manifest, categories) {
     }
   }
 }
-export async function preparePack(pack, inbox) {
+export async function preparePack(pack, inbox, { validateDimensions = validateSize } = {}) {
   const items = [], seen = new Set();
   for (const [index, item] of pack.items.entries()) {
     const source = await inputFile(inbox, item.file);
@@ -68,7 +72,7 @@ export async function preparePack(pack, inbox) {
     if (!['png', 'jpeg'].includes(metadata.format) || (metadata.pages ?? 1) !== 1) throw new Error(`실제 PNG/JPEG 단일 이미지가 아닙니다: ${item.file}`);
     const rotated = await sharp(bytes).rotate().toBuffer();
     const dimensions = await sharp(rotated).metadata();
-    validateSize(dimensions.width, dimensions.height);
+    validateDimensions(dimensions.width, dimensions.height, pack.allow_nonstandard_height === true);
     const sourceHash = await pixelHash(bytes);
     if (seen.has(sourceHash)) throw new Error(`동일 이미지 중복: ${item.file}`);
     seen.add(sourceHash);
@@ -83,32 +87,43 @@ export async function preparePack(pack, inbox) {
   const thumbnailBytes = await readFile(thumbnailSource);
   const thumbnailMetadata = await sharp(thumbnailBytes).metadata();
   if (!['png', 'jpeg'].includes(thumbnailMetadata.format) || (thumbnailMetadata.pages ?? 1) !== 1) throw new Error('썸네일 입력도 PNG/JPEG 단일 이미지여야 합니다.');
-  const thumbnailDimensions = await sharp(thumbnailBytes).rotate().toBuffer().then(bytes => sharp(bytes).metadata());
-  validateSize(thumbnailDimensions.width, thumbnailDimensions.height);
   if (!items.some(i => i.source === thumbnailSource) && items.some(i => basename(i.file) === basename(pack.thumbnail))) throw new Error('썸네일과 아이템 archive 파일명이 충돌합니다.');
   const thumbnail = await sharp(thumbnailSource).rotate().resize({ width: 512, height: 512, fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
-  return { ...pack, items, thumbnail, thumbnailSource, thumbnailByteHash: hash(thumbnailBytes) };
+  const archiveFiles = [], sourcePaths = new Set([...items.map(i => i.source), thumbnailSource]);
+  const archiveNames = new Set([...items.map(i => basename(i.file)), basename(thumbnailSource)]);
+  for (const file of pack.archive_files ?? []) {
+    const path = await inputFile(inbox, file);
+    if (sourcePaths.has(path) || archiveNames.has(basename(file))) throw new Error(`archive 파일 중복/파일명 충돌: ${file}`);
+    archiveFiles.push({ path, file, byteHash: hash(await readFile(path)) });
+    sourcePaths.add(path); archiveNames.add(basename(file));
+  }
+  return { ...pack, items, thumbnail, thumbnailFile: pack.thumbnail, thumbnailSource, thumbnailByteHash: hash(thumbnailBytes), archiveFiles };
 }
-export function buildRegistration(pack, token) {
-  const folder = `packs/backgrounds/${pack.id}`;
-  const objects = [{ key: `${folder}/thumbnail-${token}.webp`, bytes: pack.thumbnail }];
+export function buildRegistration(pack, token, kind = 'background') {
+  if (!['background', 'sticker'].includes(kind)) throw new Error(`잘못된 에셋 종류: ${kind}`);
+  const folder = `packs/${kind === 'sticker' ? 'stickers' : 'backgrounds'}/${pack.id}`;
+  const thumbnailName = pack.preserve_file_names && pack.thumbnailFile ? basename(pack.thumbnailFile, extname(pack.thumbnailFile)) : 'thumbnail';
+  const suffix = pack.preserve_file_names ? '' : `-${token}`;
+  const objects = [{ key: `${folder}/${thumbnailName}${suffix}.webp`, bytes: pack.thumbnail }];
   const rows = pack.items.map(item => {
-    const image_path = `${folder}/items/${item.localId}-${token}.webp`;
-    const preview_image_path = `${folder}/previews/${item.localId}-${token}.webp`;
+    const filename = pack.preserve_file_names ? basename(item.file, extname(item.file)) : item.localId;
+    const image_path = `${folder}/items/${filename}${suffix}.webp`;
+    const preview_image_path = `${folder}/previews/${filename}${suffix}.webp`;
     objects.push({ key: image_path, bytes: item.original, sourceHash: item.sourceHash }, { key: preview_image_path, bytes: item.preview });
     return { id: item.id, pack_id: pack.id, name: item.name, image_path, preview_image_path,
       background_color: item.background_color ?? null, sort_order: item.sort_order };
   });
   for (const object of objects) { object.size = object.bytes.length; object.outputHash = hash(object.bytes); }
   return { token, phase: 'pending', objects,
-    pack: { id: pack.id, kind: 'background', title: pack.title.trim(), category: pack.category,
+    pack: { id: pack.id, kind, title: pack.title.trim(), category: pack.category,
       status: pack.status, coin_price: pack.status === 'priced' ? pack.coin_price : null,
       thumbnail_path: objects[0].key, description: pack.description ?? null, is_new: false,
       sort_order: pack.sort_order ?? 0, is_active: false, updated_at: new Date().toISOString(),
-      tags: [...new Set([...(pack.tags ?? []), pack.subcategory])] },
+      tags: [...new Set([...(pack.tags ?? []), ...(pack.include_subcategory_tag === false ? [] : [pack.subcategory])])] },
     targetActive: pack.is_active ?? true, items: rows,
     sources: [...pack.items.map(item => ({ path: item.source, file: item.file, byteHash: item.byteHash, sourceHash: item.sourceHash })),
-      ...(pack.thumbnailSource && !pack.items.some(i => i.source === pack.thumbnailSource) ? [{ path: pack.thumbnailSource, file: pack.thumbnail, byteHash: pack.thumbnailByteHash }] : [])],
+      ...(pack.thumbnailSource && !pack.items.some(i => i.source === pack.thumbnailSource) ? [{ path: pack.thumbnailSource, file: pack.thumbnailFile, byteHash: pack.thumbnailByteHash }] : []),
+      ...(pack.archiveFiles ?? [])],
     category: pack.category, subcategory: pack.subcategory };
 }
 export async function archiveSources(journal, archive) {
