@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import sharp from 'sharp';
-import { mkdtemp, mkdir, writeFile, readFile, rm, symlink, copyFile, readdir } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm, symlink, copyFile, readdir, unlink as fsUnlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFile } from 'node:child_process';
@@ -104,7 +104,7 @@ test('folder preparation uses natural order, excludes thumbnail and hidden files
   const result = await prepareInbox({ folder: 'cats', pack }, root); assert.equal(result.count, 2);
   const saved = JSON.parse(await readFile(join(home, 'manifest.json'))).packs[0];
   assert.deepEqual(saved.items.map(i => i.file), ['cats/2.png', 'cats/10.png']);
-  assert.deepEqual(saved.archive_files, ['cats/thumbnail.clip']); assert.equal(saved.thumbnail, 'cats/thumbnail.png');
+  assert.deepEqual(saved.archive_files, ['cats/other.clip', 'cats/thumbnail.clip']); assert.equal(saved.thumbnail, 'cats/thumbnail.png');
   assert.equal(saved.preserve_file_names, true); assert.equal(saved.include_subcategory_tag, false);
   assert.deepEqual(await readFile(join(folder, '10.png')), bytes);
   await assert.rejects(prepareInbox({ folder: 'cats', pack }, root), /衝突|충돌/);
@@ -139,4 +139,121 @@ test('actual sticker CLI dry-run keeps source and background state untouched, cr
   assert.match(stdout, /packs\/stickers\//); assert.doesNotMatch(stdout, /packs\/backgrounds\//);
   assert.deepEqual(await readFile(source), bytes); assert(!(await readdir(home)).includes('.state'));
   assert.equal(await readFile(join(background, '.state/untouched.json'), 'utf8'), 'background sentinel');
+});
+
+test('bounded concurrent inspection settles all reads and persists successful hashes on failure', async t => {
+  const { root, bytes } = await fixture(t);
+  const path = join(root, 'parallel-cache.json'), cache = new HashCache(path, {});
+  let active = 0, peak = 0, finished = 0;
+  await assert.rejects(scanExisting({ keys: ['a', 'bad', 'c', 'd'], cache, concurrency: 3, log: () => {},
+    inspect: async key => ({ source: 'R2', validator: key }),
+    read: async key => {
+      active++; peak = Math.max(peak, active);
+      await new Promise(resolve => setTimeout(resolve, key === 'bad' ? 1 : 15));
+      active--; finished++;
+      if (key === 'bad') throw new Error('unavailable');
+      return { bytes, validator: key };
+    }
+  }), /bad: unavailable/);
+  assert.equal(peak, 3); assert.equal(active, 0); assert.equal(finished, 3);
+  const restored = new HashCache(path, {}); await restored.load();
+  assert(restored.get('R2:a', 'a')); assert(restored.get('R2:c', 'c'));
+  assert.equal(restored.get('R2:bad', 'bad'), null); assert.equal(restored.get('R2:d', 'd'), null);
+});
+
+test('registration discovers editing originals without an explicit archive list and preserves them on failure', async t => {
+  const { root, inbox, bytes } = await fixture(t);
+  await mkdir(join(inbox, 'test-pack')); await mkdir(join(inbox, 'other-pack'));
+  await writeFile(join(inbox, 'test-pack/1.png'), bytes);
+  await writeFile(join(inbox, 'test-pack/artwork.clip'), 'clip original');
+  await writeFile(join(inbox, 'test-pack/layers.PSD'), 'psd original');
+  await writeFile(join(inbox, 'test-pack/.hidden.clip'), 'hidden');
+  await writeFile(join(inbox, 'test-pack/notes.txt'), 'notes');
+  await writeFile(join(inbox, 'other-pack/other.clip'), 'unrelated');
+  const pack = await preparePack({ ...spec, items: [{ file: 'test-pack/1.png' }] }, inbox);
+  const j = buildRegistration(pack, 'token');
+  assert.deepEqual(j.sources.map(s => s.file), ['test-pack/1.png', 'test-pack/artwork.clip', 'test-pack/layers.PSD']);
+  assert.equal(j.objects.length, 3); // Editing originals never become R2 objects.
+  const adapter = { upload: async () => { throw new Error('offline'); }, rollback: async () => {} };
+  await assert.rejects(executeRegistration(j, adapter, async () => {}, async journal => archiveSources(journal, join(root, 'archive'))), /offline/);
+  assert.equal(await readFile(join(inbox, 'test-pack/artwork.clip'), 'utf8'), 'clip original');
+  const committed = buildRegistration(pack, 'next-token');
+  const success = Object.fromEntries(['upload', 'insertPack', 'insertItems', 'verify', 'activate'].map(name => [name, async () => {}]));
+  await executeRegistration(committed, success, async () => {}, journal => archiveSources(journal, join(root, 'archive')));
+  await archiveSources(committed, join(root, 'archive'));
+  assert.equal(committed.phase, 'done');
+  assert.equal(await readFile(join(root, 'archive/nature/cat/test-pack/artwork.clip'), 'utf8'), 'clip original');
+  assert.equal(await readFile(join(root, 'archive/nature/cat/test-pack/layers.PSD'), 'utf8'), 'psd original');
+  assert.equal(await readFile(join(inbox, 'other-pack/other.clip'), 'utf8'), 'unrelated');
+  assert.equal(await readFile(join(inbox, 'test-pack/.hidden.clip'), 'utf8'), 'hidden');
+});
+
+test('completed registration archives originals and removes only its inbox folder, including DS_Store', async t => {
+  const { root, inbox, bytes } = await fixture(t);
+  const { cleanupInboxPack } = await import('./pipeline.mjs');
+  const folder = join(inbox, 'test-pack'); await mkdir(folder);
+  await mkdir(join(inbox, 'other-pack'));
+  await writeFile(join(folder, '1.png'), bytes); await writeFile(join(folder, 'art.clip'), 'editing original');
+  await writeFile(join(folder, '.DS_Store'), 'finder metadata');
+  const j = buildRegistration(await preparePack({ ...spec, items: [{ file: 'test-pack/1.png' }] }, inbox), 'token');
+  const adapter = Object.fromEntries(['upload', 'insertPack', 'insertItems', 'verify', 'activate'].map(name => [name, async () => {}]));
+  const archive = join(root, 'archive');
+  await executeRegistration(j, adapter, async () => {}, async journal => {
+    await archiveSources(journal, archive); await cleanupInboxPack(journal, inbox, archive);
+  });
+  assert.equal(j.phase, 'done'); await assert.rejects(readdir(folder), { code: 'ENOENT' });
+  assert.deepEqual(await readdir(join(inbox, 'other-pack')), []);
+  assert.equal(await readFile(join(archive, 'nature/cat/test-pack/art.clip'), 'utf8'), 'editing original');
+  await cleanupInboxPack(j, inbox, archive); // Recovery after removal is idempotent.
+});
+
+test('cleanup retains unarchived or altered originals and refuses a pending registration', async t => {
+  const { root, inbox, bytes } = await fixture(t);
+  const { cleanupInboxPack } = await import('./pipeline.mjs');
+  const folder = join(inbox, 'test-pack'); await mkdir(folder); await writeFile(join(folder, '1.png'), bytes);
+  const j = buildRegistration(await preparePack({ ...spec, items: [{ file: 'test-pack/1.png' }] }, inbox), 'token');
+  const archive = join(root, 'archive');
+  await assert.rejects(cleanupInboxPack(j, inbox, archive), /등록 완료 전/);
+  assert.deepEqual(await readFile(join(folder, '1.png')), bytes);
+  await archiveSources(j, archive); j.phase = 'committed';
+  await writeFile(join(folder, 'late-original.clip'), 'new original');
+  await assert.rejects(cleanupInboxPack(j, inbox, archive), /보관되지 않은 파일/);
+  assert.equal(await readFile(join(folder, 'late-original.clip'), 'utf8'), 'new original');
+  await fsUnlink(join(folder, 'late-original.clip'));
+  await writeFile(join(archive, 'nature/cat/test-pack/1.png'), 'changed archive');
+  await assert.rejects(cleanupInboxPack(j, inbox, archive), /archive 확인 실패/);
+  assert.deepEqual(await readdir(folder), []);
+});
+
+test('omitted folder selects the single unregistered candidate and excludes completed packs', async t => {
+  const { root, inbox, bytes, home } = await fixture(t);
+  for (const name of ['cats', 'completed']) {
+    await mkdir(join(inbox, name));
+    await writeFile(join(inbox, name, '1.png'), bytes); await writeFile(join(inbox, name, 'thumbnail.png'), bytes);
+  }
+  await mkdir(join(home, '.state'));
+  await writeFile(join(home, '.state/done.json'), JSON.stringify({ phase: 'done', pack: { id: 'completed' } }));
+  const config = { pack: { title: '고양이', category: 'nature', subcategory: 'cat', status: 'free' } };
+  const result = await prepareInbox(config, root);
+  assert.equal(result.packId, 'cats'); assert.equal(config.folder, undefined);
+  assert.deepEqual(JSON.parse(await readFile(join(home, 'manifest.json'))).packs.map(p => p.id), ['cats']);
+  assert.deepEqual(await readFile(join(inbox, 'completed/1.png')), bytes);
+});
+
+test('omitted folder requires selection for multiple candidates and never writes a manifest', async t => {
+  const { root, inbox, bytes, home } = await fixture(t);
+  for (const name of ['cats-a', 'cats-b']) {
+    await mkdir(join(inbox, name)); await writeFile(join(inbox, name, '1.png'), bytes); await writeFile(join(inbox, name, 'thumbnail.png'), bytes);
+  }
+  const before = await readFile(join(home, 'manifest.json'));
+  await assert.rejects(prepareInbox({ pack: { title: '고양이', category: 'nature', subcategory: 'cat' } }, root), /여러 개.*cats-a, cats-b/);
+  assert.deepEqual(await readFile(join(home, 'manifest.json')), before);
+});
+
+test('omitted folder does not select incomplete folders or symlinked directories', async t => {
+  const { root, inbox, bytes } = await fixture(t);
+  await mkdir(join(inbox, 'incomplete')); await writeFile(join(inbox, 'incomplete/1.png'), bytes);
+  await mkdir(join(root, 'outside')); await writeFile(join(root, 'outside/1.png'), bytes); await writeFile(join(root, 'outside/thumbnail.png'), bytes);
+  await symlink(join(root, 'outside'), join(inbox, 'linked'));
+  await assert.rejects(prepareInbox({ pack: { title: '고양이', category: 'nature', subcategory: 'cat' } }, root), /찾을 수 없습니다/);
 });

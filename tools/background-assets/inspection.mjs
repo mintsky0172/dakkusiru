@@ -114,7 +114,8 @@ export function storageValidator(info) {
   if (!info.etag && !info.version) return null;
   return JSON.stringify([info.etag ?? null, info.version ?? null, info.size ?? null, info.lastModified ?? null]);
 }
-export async function scanExisting({ keys, cache, inspect, read, refresh = false, log = console.log, heartbeatMs = 5000, checkpoint = 10, label = '배경' }) {
+export async function scanExisting({ keys, cache, inspect, read, refresh = false, log = console.log, heartbeatMs = 5000, checkpoint = 10, label = '배경', concurrency = 1 }) {
+  if (!Number.isSafeInteger(concurrency) || concurrency < 1 || concurrency > 16) throw new Error('검사 동시 실행 수는 1~16이어야 합니다.');
   const stats = { completed: 0, cached: 0, decoded: 0 };
   const hashes = new Set(), start = Date.now();
   let current = '검사 준비', stage = '원격 변경 정보 확인';
@@ -122,7 +123,8 @@ export async function scanExisting({ keys, cache, inspect, read, refresh = false
   log(`[중복 검사] 기존 ${label} 원본 ${keys.length}개 확인 (캐시 변경 여부 확인)`);
   const heartbeat = setInterval(progress, heartbeatMs); heartbeat.unref();
   try {
-    for (const key of keys) {
+    const inspectKey = async key => {
+      try {
       current = key; stage = '원격 변경 정보 확인';
       if (!stats.completed) progress();
       const info = await inspect(key);
@@ -140,7 +142,18 @@ export async function scanExisting({ keys, cache, inspect, read, refresh = false
       }
       result.forEach(value => hashes.add(value));
       stats.completed++;
-      if (stats.completed % checkpoint === 0) { stage = '캐시 저장'; await cache.save(); progress(); }
+      } catch (error) { throw new Error(`${key}: ${error.message}`, { cause: error }); }
+    };
+    let savedAt = 0;
+    for (let offset = 0; offset < keys.length; offset += concurrency) {
+      // Settle every in-flight read before saving or failing. This keeps successful
+      // cache entries durable without allowing late writes after final cache.save().
+      const results = await Promise.allSettled(keys.slice(offset, offset + concurrency).map(inspectKey));
+      const failure = results.find(result => result.status === 'rejected');
+      if (failure) throw failure.reason;
+      if (stats.completed - savedAt >= checkpoint) {
+        stage = '캐시 저장'; await cache.save(); savedAt = stats.completed; progress();
+      }
     }
     return { hashes, stats };
   } catch (e) { throw new Error(`기존 원본 비교 실패 (${current}, ${stage}): ${e.message}`, { cause: e }); }

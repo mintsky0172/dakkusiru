@@ -3,10 +3,39 @@ import { realpathSync } from 'node:fs';
 import { resolve, dirname, basename, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
-import { validateManifest, inputFile, preparePack } from './pipeline.mjs';
+import { validateManifest, inputFile, preparePack, collectArchiveFiles } from './pipeline.mjs';
+
+export async function findInboxCandidates(root) {
+  const home = resolve(root, 'tools/sticker-assets');
+  const completed = new Set();
+  let records;
+  try { records = await readdir(resolve(home, '.state')); }
+  catch (error) { if (error.code !== 'ENOENT') throw error; records = []; }
+  for (const record of records.filter(name => name.endsWith('.json'))) {
+    const journal = JSON.parse(await readFile(resolve(home, '.state', record), 'utf8'));
+    if (['done', 'committed'].includes(journal.phase)) completed.add(journal.pack.id);
+  }
+  const candidates = [];
+  for (const entry of await readdir(resolve(home, 'inbox'), { withFileTypes: true })) {
+    if (!entry.isDirectory() || entry.name.startsWith('.') || completed.has(entry.name)) continue;
+    const files = await readdir(resolve(home, 'inbox', entry.name), { withFileTypes: true });
+    if (files.some(file => file.isFile() && file.name === 'thumbnail.png') &&
+      files.some(file => file.isFile() && !file.name.startsWith('.') && file.name !== 'thumbnail.png' && /\.(png|jpe?g)$/i.test(file.name))) {
+      candidates.push(entry.name);
+    }
+  }
+  return candidates.sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
+}
 
 // Build a manifest entry from an existing folder without modifying source files.
 export async function prepareInbox(config, root) {
+  if (!config.pack) throw new Error('pack 메타데이터가 필요합니다.');
+  if (config.folder === undefined) {
+    const candidates = await findInboxCandidates(root);
+    if (!candidates.length) throw new Error('thumbnail.png와 개별 이미지가 있는 미등록 inbox 팩 폴더를 찾을 수 없습니다.');
+    if (candidates.length > 1) throw new Error(`미등록 inbox 팩이 여러 개입니다. folder로 대상 폴더를 지정하세요: ${candidates.join(', ')}`);
+    config = { ...config, folder: candidates[0] };
+  }
   if (!config.pack || typeof config.folder !== 'string' || !/^[a-z0-9][a-z0-9-]*$/.test(config.folder)) {
     throw new Error('pack와 inbox 바로 아래 팩 폴더 이름(folder: 영문 소문자/숫자/하이픈)이 필요합니다.');
   }
@@ -18,19 +47,18 @@ export async function prepareInbox(config, root) {
   if (!entries.some(entry => entry.isFile() && entry.name === 'thumbnail.png')) throw new Error('팩 폴더에 thumbnail.png가 필요합니다.');
   const names = entries.filter(entry => entry.isFile() && !entry.name.startsWith('.') && entry.name !== 'thumbnail.png' && /\.(png|jpe?g)$/i.test(entry.name))
     .map(entry => entry.name).sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }) || (a < b ? -1 : a > b ? 1 : 0));
-  const archiveFiles = config.pack.archive_files ?? [];
-  const clip = `${config.folder}/thumbnail.clip`;
   const pack = { ...config.pack, id: config.folder, status: config.pack.status ?? 'free',
     include_subcategory_tag: config.pack.include_subcategory_tag ?? false,
     preserve_file_names: config.pack.preserve_file_names ?? true,
     thumbnail: `${config.folder}/thumbnail.png`,
-    archive_files: [...new Set([...archiveFiles, ...(entries.some(e => e.isFile() && e.name === 'thumbnail.clip') ? [clip] : [])])],
+    archive_files: config.pack.archive_files ?? [],
     items: names.map(name => ({ file: `${config.folder}/${name}`, name: basename(name, extname(name)) })) };
   const source = await readFile(resolve(root, 'src/constants/packCategories.ts'), 'utf8');
   const section = source.match(/stickerCategoryOptions\s*=\s*\[([\s\S]*?)\]/)?.[1];
   if (!section) throw new Error('프로젝트 스티커 카테고리를 읽을 수 없습니다.');
   const categories = [...section.matchAll(/["']([^"']+)["']/g)].map(m => m[1]);
   validateManifest({ version: 1, packs: [pack] }, categories);
+  pack.archive_files = await collectArchiveFiles(pack, inbox);
   const cache = resolve(home, '.cache'); await mkdir(cache, { recursive: true });
   const lock = resolve(cache, 'manifest.lock'), manifestPath = resolve(home, 'manifest.json');
   const temp = `${manifestPath}.${randomUUID()}.tmp`;

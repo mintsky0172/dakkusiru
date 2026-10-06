@@ -1,6 +1,6 @@
 import sharp from 'sharp';
 import { createHash } from 'node:crypto';
-import { readFile, realpath, mkdir, copyFile, unlink } from 'node:fs/promises';
+import { readFile, realpath, mkdir, copyFile, unlink, readdir, lstat, rmdir } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { resolve, relative, basename, extname, dirname, sep } from 'node:path';
 
@@ -63,6 +63,21 @@ export function validateManifest(manifest, categories) {
     }
   }
 }
+const editingSource = /\.(clip|psd|psb|kra|ora|xcf|procreate|sai2?|afphoto|afdesign|ai|svg)$/i;
+export async function collectArchiveFiles(pack, inbox) {
+  const files = [...(pack.archive_files ?? [])];
+  const directories = new Set([...pack.items.map(item => dirname(item.file)), ...(pack.thumbnail ? [dirname(pack.thumbnail)] : [])]);
+  for (const directory of directories) {
+    // Loose files at the inbox root can belong to unrelated packs.
+    if (directory === '.') continue;
+    const folder = await inputFile(inbox, directory);
+    const entries = await readdir(folder, { withFileTypes: true });
+    const originals = entries.filter(entry => entry.isFile() && !entry.name.startsWith('.') && editingSource.test(entry.name))
+      .map(entry => `${directory}/${entry.name}`).sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
+    for (const file of originals) if (!files.includes(file)) files.push(file);
+  }
+  return files;
+}
 export async function preparePack(pack, inbox, { validateDimensions = validateSize } = {}) {
   const items = [], seen = new Set();
   for (const [index, item] of pack.items.entries()) {
@@ -91,7 +106,7 @@ export async function preparePack(pack, inbox, { validateDimensions = validateSi
   const thumbnail = await sharp(thumbnailSource).rotate().resize({ width: 512, height: 512, fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
   const archiveFiles = [], sourcePaths = new Set([...items.map(i => i.source), thumbnailSource]);
   const archiveNames = new Set([...items.map(i => basename(i.file)), basename(thumbnailSource)]);
-  for (const file of pack.archive_files ?? []) {
+  for (const file of await collectArchiveFiles(pack, inbox)) {
     const path = await inputFile(inbox, file);
     if (sourcePaths.has(path) || archiveNames.has(basename(file))) throw new Error(`archive 파일 중복/파일명 충돌: ${file}`);
     archiveFiles.push({ path, file, byteHash: hash(await readFile(path)) });
@@ -144,6 +159,25 @@ export async function archiveSources(journal, archive) {
     if (hash(await readFile(source.path)) !== source.byteHash) throw new Error(`archive 중 원본 변경: ${source.file}`);
     await unlink(source.path);
   }
+}
+export async function cleanupInboxPack(journal, inbox, archive) {
+  if (!['committed', 'done'].includes(journal.phase)) throw new Error('등록 완료 전에는 inbox 폴더를 삭제할 수 없습니다.');
+  slug(journal.pack.id, '팩 ID');
+  const folder = resolve(inbox, journal.pack.id);
+  let stat;
+  try { stat = await lstat(folder); } catch (error) { if (error.code === 'ENOENT') return; throw error; }
+  if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error('inbox 팩 폴더가 실제 디렉터리가 아닙니다.');
+  await inputFile(inbox, journal.pack.id);
+  // Confirm every recorded original is safely archived before removing the folder.
+  for (const source of journal.sources) {
+    const target = resolve(archive, journal.category, journal.subcategory, journal.pack.id, basename(source.file));
+    if (hash(await readFile(target)) !== source.byteHash) throw new Error(`archive 확인 실패로 inbox 보존: ${source.file}`);
+  }
+  const entries = await readdir(folder, { withFileTypes: true });
+  const remaining = entries.filter(entry => entry.name !== '.DS_Store' || !entry.isFile());
+  if (remaining.length) throw new Error(`보관되지 않은 파일이 있어 inbox 폴더를 보존합니다: ${remaining.map(entry => entry.name).join(', ')}`);
+  if (entries.length) await unlink(resolve(folder, '.DS_Store'));
+  await rmdir(folder); // Never recursively delete originals or unexpected subfolders.
 }
 export async function executeRegistration(journal, adapter, persist, archive) {
   // Persist all intended IDs and keys BEFORE the first external mutation.

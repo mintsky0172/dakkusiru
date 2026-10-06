@@ -290,6 +290,156 @@
           "name": "8"
         }
       ]
+    },
+    {
+      "id": "vintage-scrapbook-background-pack",
+      "title": "빈티지 스크랩 배경팩",
+      "category": "vintage",
+      "subcategory": "scrapbook",
+      "status": "priced",
+      "coin_price": 1000,
+      "description": "빈티지한 잡지와 패턴지를 찢어서 붙인 듯한 느낌의 배경들이 들어 있어요.",
+      "tags": [
+        "빈티지",
+        "콜라주",
+        "스크랩",
+        "레터링"
+      ],
+      "include_subcategory_tag": false,
+      "preserve_file_names": true,
+      "is_active": true,
+      "thumbnail": "vintage-scrapbook-background-pack/thumbnail.png",
+      "archive_files": [
+        "vintage-scrapbook-background-pack/thumbnail.clip"
+      ],
+      "items": [
+        {
+          "file": "vintage-scrapbook-background-pack/1.png",
+          "name": "1"
+        },
+        {
+          "file": "vintage-scrapbook-background-pack/2.png",
+          "name": "2"
+        },
+        {
+          "file": "vintage-scrapbook-background-pack/3.png",
+          "name": "3"
+        },
+        {
+          "file": "vintage-scrapbook-background-pack/4.png",
+          "name": "4"
+        },
+        {
+          "file": "vintage-scrapbook-background-pack/5.png",
+          "name": "5"
+        },
+        {
+          "file": "vintage-scrapbook-background-pack/6.png",
+          "name": "6"
+        }
+      ]
+    },
+    {
+      "id": "vintage-paper-background-pack",
+      "title": "빈티지 페이퍼 배경팩",
+      "category": "vintage",
+      "subcategory": "paper",
+      "status": "priced",
+      "coin_price": 2000,
+      "description": "빈티지한 영자신문과 소설, 편지지를 모티브로 한 배경들이 들어 있어요.",
+      "tags": [
+        "빈티지",
+        "레터링",
+        "종이",
+        "신문"
+      ],
+      "include_subcategory_tag": false,
+      "preserve_file_names": true,
+      "is_active": true,
+      "thumbnail": "vintage-paper-background-pack/thumbnail.png",
+      "archive_files": [
+        "vintage-paper-background-pack/thumbnail.clip"
+      ],
+      "items": [
+        {
+          "file": "vintage-paper-background-pack/1.png",
+          "name": "1"
+        },
+        {
+          "file": "vintage-paper-background-pack/2.png",
+          "name": "2"
+        },
+        {
+          "file": "vintage-paper-background-pack/3.png",
+          "name": "3"
+        },
+        {
+          "file": "vintage-paper-background-pack/4.png",
+          "name": "4"
+        },
+        {
+          "file": "vintage-paper-background-pack/5.png",
+          "name": "5"
+        },
+        {
+          "file": "vintage-paper-background-pack/6.png",
+          "name": "6"
+        },
+        {
+          "file": "vintage-paper-background-pack/7.png",
+          "name": "7"
+        },
+        {
+          "file": "vintage-paper-background-pack/8.png",
+          "name": "8"
+        }
+      ]
+    },
+    {
+      "id": "vintage-texture-pack",
+      "title": "빈티지 텍스처 배경팩",
+      "category": "vintage",
+      "subcategory": "texture",
+      "status": "priced",
+      "coin_price": 1000,
+      "description": "빈티지한 느낌의 심플한 텍스처가 입혀진 배경들이 들어 있어요.",
+      "tags": [
+        "빈티지",
+        "종이"
+      ],
+      "include_subcategory_tag": false,
+      "preserve_file_names": true,
+      "is_active": true,
+      "thumbnail": "vintage-texture-pack/thumbnail.png",
+      "archive_files": [
+        "vintage-texture-pack/thumbnail.clip"
+      ],
+      "items": [
+        {
+          "file": "vintage-texture-pack/1.png",
+          "name": "1"
+        },
+        {
+          "file": "vintage-texture-pack/2.png",
+          "name": "2"
+        },
+        {
+          "file": "vintage-texture-pack/3.png",
+          "name": "3"
+        },
+        {
+          "file": "vintage-texture-pack/4.png",
+          "name": "4"
+        },
+        {
+          "file": "vintage-texture-pack/5.png",
+          "name": "5"
+        },
+        {
+          "file": "vintage-texture-pack/6.png",
+          "name": "6"
+        }
+      ]
     }
   ]
 }

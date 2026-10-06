@@ -1,6 +1,6 @@
 import { preparePack as prepareAssetPack, buildRegistration as buildAssetRegistration } from '../background-assets/pipeline.mjs';
 
-export { hash, normalizeItemId, pixelHash, inputFile, validateManifest, archiveSources, executeRegistration } from '../background-assets/pipeline.mjs';
+export { hash, normalizeItemId, pixelHash, inputFile, validateManifest, archiveSources, executeRegistration, collectArchiveFiles, cleanupInboxPack } from '../background-assets/pipeline.mjs';
 
 // Stickers have no fixed aspect ratio. Do not crop, resize, flatten or remove alpha.
 export function validateSize(width, height) {

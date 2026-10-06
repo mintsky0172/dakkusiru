@@ -11,11 +11,12 @@
 원본 크기·비율·투명도를 유지합니다. 투명한 스티커는 PNG를 사용하세요.
 
 다음 JSON을 `tools/sticker-assets/.cache/pack-config.json`에 저장합니다.
-`folder`는 inbox 바로 아래 폴더 이름이며 팩 ID로 사용합니다.
+`folder`는 선택 사항입니다. 생략하면 `thumbnail.png`와 개별 이미지가 있는 미등록 inbox 폴더를
+자동 탐색합니다. 후보가 하나면 선택하고, 여러 개면 대상 폴더를 지정하도록 안내합니다.
+완료된 journal의 팩은 후보에서 제외합니다. 선택한 폴더 이름을 팩 ID로 사용합니다.
 
 ```json
 {
-  "folder": "cat-doodle-pack",
   "pack": {
     "title": "고양이 낙서 스티커팩",
     "category": "nature",
@@ -35,8 +36,10 @@ npm run assets:register-stickers -- --pack cat-doodle-pack
 ```
 
 준비 도구는 파일명 자연순으로 아이템을 만들고, 아이템 이름은 확장자를 뺀 파일명으로 저장합니다.
-`thumbnail.png`와 숨김 파일은 아이템에서 제외합니다. `thumbnail.clip`은 있으면 성공 후 함께
-archive할 목록에 추가합니다. 다른 편집 파일은 `pack.archive_files`로 명시한 경우만 보관합니다.
+`thumbnail.png`와 숨김 파일은 아이템에서 제외합니다. 같은 팩 폴더의 편집 원본은 성공 후 함께
+archive할 목록에 자동으로 추가합니다. `.clip`, `.psd`, `.psb`, `.kra`, `.ora`, `.xcf`, `.procreate`,
+`.sai`, `.sai2`, `.afphoto`, `.afdesign`, `.ai`, `.svg`를 지원합니다. 그 밖의 제작 원본은
+`pack.archive_files`로 명시하면 함께 보관합니다. 편집 원본은 R2/DB에 업로드하지 않습니다.
 하위 폴더·심볼릭 링크 파일은 자동 수집하지 않습니다.
 기본적으로 입력 태그만 저장하고 R2 파일명도 원본 이름 부분을 유지합니다.
 manifest에 새 팩만 추가하며 기존 폴더·팩 ID·제목 충돌은 오류로 종료합니다.
@@ -45,7 +48,9 @@ manifest에 새 팩만 추가하며 기존 폴더·팩 ID·제목 충돌은 오�
 ## 직접 manifest 작성
 
 `manifest.example.json`을 참고해 `manifest.json`을 편집할 수도 있습니다.
-등록은 manifest에 명시된 이미지·썸네일·archive 파일만 처리합니다.
+등록할 이미지와 썸네일은 manifest에 명시한 파일만 처리합니다. archive는 명시한 파일과
+아이템/썸네일의 팩 하위 폴더에서 발견한 편집 원본을 함께 보관합니다. inbox 루트의 편집 파일은
+다른 팩과 혼동하지 않도록 자동 수집하지 않습니다.
 필드와 실패/복구 절차는 [배경 파이프라인 README](../background-assets/README.md)를 참고하되,
 스티커는 다음 규칙을 사용합니다.
 
@@ -58,6 +63,7 @@ manifest에 새 팩만 추가하며 기존 폴더·팩 ID·제목 충돌은 오�
 - R2: `packs/stickers/{packId}/items/`, `previews/`, `thumbnail*.webp`.
 - 로컬: `tools/sticker-assets/inbox/`, `archive/{category}/{subcategory}/{packId}/`, `.state/`, `.cache/`.
 - 중복: 기존 **스티커** 원본의 픽셀 해시와 비교합니다. 배경 팩과 캐시·상태를 분리합니다.
+  최초 검사에서는 원격 원본을 최대 8개씩 병렬로 읽고 해시 캐시를 저장합니다. 오류 시 진행 중인 읽기를 마친 뒤 중단합니다.
   동일 이미지가 있으면 팩 전체를 건너뛰고 원본을 보존합니다. 기존 팩 ID/제목 충돌은 종류와 관계없이 거부합니다.
 
 `preserve_file_names: false`(직접 manifest의 기본값)이면 원본 이름을 정규화하고 실행 UUID를 붙입니다.
@@ -125,3 +131,10 @@ npm run assets:register-stickers:dry -- --pack cat-doodle-pack
 원본 파일을 삭제하지 않으며 크롭·리사이즈·스티커 시트 분할·배경 제거를 하지 않습니다.
 실패한 부분 생성 파일은 보존합니다. `manifest.lock`이 남으면 해당 준비 프로세스가
 종료됐는지 확인하고 부분 생성 폴더를 조사한 뒤 복구하세요.
+
+## 등록 완료 후 inbox 정리
+
+등록 성공과 모든 기록된 원본의 archive 해시 검증이 끝나면 `inbox/{packId}/` 폴더를 삭제합니다.
+`.DS_Store`는 정리하고 빈 폴더만 제거하며, 재귀 삭제는 하지 않습니다. 보관되지 않은 파일이나
+하위 폴더가 남으면 폴더를 보존하고 원인을 표시합니다. 실패·중복 건너뜀·dry-run에서는 삭제하지 않습니다.
+등록 후 정리 실패는 DB/R2 등록을 롤백하지 않으며 다음 실제 실행에서 재개합니다.

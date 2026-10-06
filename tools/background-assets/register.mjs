@@ -5,7 +5,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { realpathSync } from 'node:fs';
-import { hash, validateManifest, preparePack, buildRegistration, executeRegistration, archiveSources } from './pipeline.mjs';
+import { hash, validateManifest, preparePack, buildRegistration, executeRegistration, archiveSources, cleanupInboxPack } from './pipeline.mjs';
 
 import { requestTimeout, withDeadline, timedR2, timedFetch, HashCache, r2Validator, storageValidator, scanExisting, listR2Objects, listingValidator } from './inspection.mjs';
 
@@ -109,6 +109,10 @@ export async function runRegistration({ kind = 'background', options = {}, root:
   const inbox = resolve(home, 'inbox'), archive = resolve(home, 'archive'), state = resolve(home, '.state');
   const { dry, refreshHashCache } = options;
   const label = kind === 'sticker' ? '스티커' : '배경';
+  const finishArchive = async journal => {
+    await archiveSources(journal, archive);
+    await cleanupInboxPack(journal, inbox, archive);
+  };
   async function persist(j) {
     const path = resolve(state, `${j.token}.json`);
     const serial = { ...j, objects: j.objects.map(({ key, sourceHash, size, outputHash }) => ({ key, sourceHash, size, outputHash })) };
@@ -168,7 +172,7 @@ export async function runRegistration({ kind = 'background', options = {}, root:
       if (['done', 'rolled-back'].includes(j.phase)) continue;
       if (dry) throw new Error(`미완료 실행 ${j.token}: 실제 실행으로 복구한 후 dry-run하세요.`);
       if (j.phase === 'committed') {
-        await adapter.verify(j); await archiveSources(j, archive); j.phase = 'done';
+        await adapter.verify(j); await finishArchive(j); j.phase = 'done';
       } else { await adapter.rollback(j); j.phase = 'rolled-back'; }
       await persist(j); summary.recovered++;
       console.log(`[복구] ${j.pack.id}: ${j.phase}`);
@@ -186,7 +190,7 @@ export async function runRegistration({ kind = 'background', options = {}, root:
       console.log(`[요청 제한 시간] ${timeoutMs}ms (응답 본문 다운로드 포함)`);
       const inspectionStarted = performance.now();
       const listed = await listR2Objects(r2, bucket, console.log, `packs/${kind === 'sticker' ? 'stickers' : 'backgrounds'}/`);
-      const scan = await scanExisting({ keys: sources, cache, refresh: refreshHashCache, label,
+      const scan = await scanExisting({ keys: sources, cache, refresh: refreshHashCache, label, concurrency: kind === 'sticker' ? 8 : 1,
         inspect: async key => {
           const object = listed.get(key);
           if (object?.ETag && object.Size !== undefined && object.LastModified) {
@@ -225,7 +229,7 @@ export async function runRegistration({ kind = 'background', options = {}, root:
     for (const spec of selected) {
       try {
         const done = history.find(j => j.phase === 'done' && j.pack.id === spec.id && j.manifestHash === hash(JSON.stringify(spec)));
-        if (done) { if (online) await adapter.verify(done); summary.skipped++; console.log(`[건너뜀] ${spec.id}: 이미 등록·archive 완료 (기록 기준)`); continue; }
+        if (done) { if (online) await adapter.verify(done); if (!dry) await cleanupInboxPack(done, inbox, archive); summary.skipped++; console.log(`[건너뜀] ${spec.id}: 이미 등록·archive 완료 (기록 기준)`); continue; }
         const prepared = await prepare(spec, inbox);
         const duplicate = prepared.items.find(i => existingHashes.has(i.sourceHash));
         if (duplicate) { summary.skipped++; console.log(`[중복 건너뜀] ${spec.id}: ${duplicate.file}; 팩 전체 미등록, 원본 유지`); continue; }
@@ -237,7 +241,7 @@ export async function runRegistration({ kind = 'background', options = {}, root:
           console.log(`[등록 예정] ${spec.id}: 원본 ${prepared.items.length}개, 미리보기 ${prepared.items.length}개, 썸네일 1개`);
           console.log(JSON.stringify({ pack: { ...j.pack, is_active: j.targetActive }, items: j.items, archive: `${spec.category}/${spec.subcategory}/${spec.id}/` }, null, 2));
         } else {
-          await executeRegistration(j, adapter, persist, journal => archiveSources(journal, archive));
+          await executeRegistration(j, adapter, persist, finishArchive);
           summary.success++; console.log(`[성공] ${spec.id}: ${prepared.items.length}개 등록·archive 완료`);
         }
         for (const item of prepared.items) existingHashes.add(item.sourceHash);
