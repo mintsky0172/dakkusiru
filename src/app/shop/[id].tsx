@@ -1,6 +1,6 @@
 import { Alert, StyleSheet, Image, View } from "react-native";
 import { Image as ExpoImage } from "expo-image";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FlashList } from "@shopify/flash-list";
 import { router, useLocalSearchParams } from "expo-router";
 import Screen from "../../components/common/Screen";
@@ -20,10 +20,6 @@ import { PackPreviewBackground, PackPreviewSticker } from "../../types/shop";
 import { getPackPreviewImageSources } from "../../utils/getPackPreviewImageSources";
 import PackDetailSkeleton from "../../components/shop/PackDetailSkeleton";
 import Chip from "../../components/common/Chip";
-import {
-  useEffectiveCoinBalance,
-  useIsAdminCoinAccount,
-} from "../../hooks/useEffectiveCoinBalance";
 
 const INITIAL_PREVIEW_COUNT = 6;
 const LOAD_MORE_PREVIEW_COUNT = 18;
@@ -46,10 +42,9 @@ const PackDetailScreen = () => {
     useState(false);
   const [isInitialPreviewReady, setIsInitialPreviewReady] = useState(false);
 
-  const balance = useEffectiveCoinBalance();
-  const isAdminCoinAccount = useIsAdminCoinAccount();
   const loadCoins = useCoinStore((state) => state.loadCoins);
-  const spendCoins = useCoinStore((state) => state.spendCoins);
+  const acquisitionPending = useRef(false);
+  const [isAcquiring, setIsAcquiring] = useState(false);
 
   const ownedPackIds = usePurchaseStore((state) => state.ownedPackIds);
   const loadOwnedPackIds = usePurchaseStore((state) => state.loadOwnedPackIds);
@@ -182,7 +177,7 @@ const PackDetailScreen = () => {
   };
 
   const handlePrimaryAction = async () => {
-    if (!pack) return;
+    if (!pack || acquisitionPending.current) return;
 
     if (pack.ownStatus === "owned") {
       Alert.alert("이 팩 사용하기:", pack.id);
@@ -190,40 +185,18 @@ const PackDetailScreen = () => {
       return;
     }
 
-    if (pack.status === "free") {
+    acquisitionPending.current = true;
+    setIsAcquiring(true);
+    try {
       await markPackAsOwned(pack.id);
-      Alert.alert("다운로드 완료", `${pack.title}을 사용할 수 있어요!`);
-      return;
+      await loadCoins();
+      Alert.alert(pack.status === "free" ? "다운로드 완료" : "구매 완료", `${pack.title}을 사용할 수 있어요!`);
+    } catch (error) {
+      Alert.alert("획득 실패", error instanceof Error ? error.message : "다시 시도해 주세요.");
+    } finally {
+      acquisitionPending.current = false;
+      setIsAcquiring(false);
     }
-
-    const coinPrice = Number(String(pack.coinPrice ?? 0).replace(/,/g, ""));
-
-    if (balance < coinPrice) {
-      Alert.alert("코인이 부족해요", "코인을 충전한 뒤 다시 구매해 주세요.", [
-        { text: "취소", style: "cancel" },
-        {
-          text: "코인 충전하기",
-          onPress: () => router.push("/coin"),
-        },
-      ]);
-      return;
-    }
-
-    const success = isAdminCoinAccount
-      ? true
-      : await spendCoins({
-          amount: coinPrice,
-          description: `${pack.title} 구매`,
-        });
-
-    if (!success) {
-      Alert.alert("구매 실패", "코인이 부족해요.");
-      return;
-    }
-
-    await markPackAsOwned(pack.id);
-
-    Alert.alert("구매 완료", `${pack.title}을 사용할 수 있어요!`);
   };
 
   const handlePressTag = (tag: string) => {
@@ -411,7 +384,8 @@ const PackDetailScreen = () => {
 
             <View style={styles.actionSection}>
               <AppButton
-                label={primaryLabel}
+                label={isAcquiring ? "처리 중..." : primaryLabel}
+                disabled={isAcquiring}
                 onPress={handlePrimaryAction}
                 leftIcon={
                   pack.status === "priced" && pack.ownStatus !== "owned" ? (

@@ -24,7 +24,7 @@ const AdminHomeScreen = () => {
     );
   }
 
-  if (!user) {
+  if (!user || user.is_anonymous) {
     return (
       <Screen>
         <View style={styles.center}>

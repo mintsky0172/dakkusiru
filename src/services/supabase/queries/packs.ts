@@ -60,6 +60,19 @@ export async function fetchShopPacksFromSupabase(params?: {
 
   if (error) throw error;
 
+  let counts: Map<string, number> | null = null;
+  try {
+    const { data: popularity, error: popularityError } = await supabase.rpc("get_pack_popularity");
+    if (!popularityError) {
+      counts = new Map<string, number>(
+        (popularity ?? []).map((row: { pack_id: string; acquisition_count: number }) =>
+          [row.pack_id, Number(row.acquisition_count)]),
+      );
+    }
+  } catch {
+    // Optional popularity data must not prevent browsing the catalog.
+  }
+
   return (data ?? []).map((pack: any) => {
     const base = {
       id: pack.id,
@@ -76,6 +89,7 @@ export async function fetchShopPacksFromSupabase(params?: {
       isNew: isPackCreatedRecently(pack.created_at ?? pack.updated_at),
       isActive: pack.is_active ?? true,
       createdAt: pack.created_at ?? undefined,
+      acquisitionCount: counts ? counts.get(pack.id) ?? 0 : undefined,
       description: pack.description ?? undefined,
       tags: pack.tags ?? [],
     };

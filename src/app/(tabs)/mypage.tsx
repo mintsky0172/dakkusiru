@@ -24,7 +24,7 @@ const MyPageScreen = () => {
 
   const balance = useEffectiveCoinBalance();
 
-  const isGuest = !authUser;
+  const isGuest = !authUser || authUser.is_anonymous === true;
   const isAdmin = !!authUser && profile?.role === "admin";
 
   const handlePressCharge = () => {
@@ -115,7 +115,7 @@ const MyPageScreen = () => {
         <ProfileCard
           name={profileName}
           description={profileDescription}
-          subDescription={!isGuest ? authUser.email : undefined}
+          subDescription={!isGuest ? authUser?.email : undefined}
           imageSource={require("../../../assets/images/default_profile.png")}
           actionLabel={isGuest ? "로그인" : "계정 정보 보기"}
           onPressAction={isGuest ? handleLogin : handleAccountInfo}

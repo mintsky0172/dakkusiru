@@ -771,7 +771,7 @@ const AdminPackFormScreen = () => {
     );
   }
 
-  if (!user) {
+  if (!user || user.is_anonymous) {
     return (
       <Screen>
         <View>

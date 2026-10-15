@@ -38,6 +38,7 @@ interface BasePack {
   isNew?: boolean;
   isActive?: boolean;
   createdAt?: string;
+  acquisitionCount?: number;
   description?: string;
   tags?: string[];
 }

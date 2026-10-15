@@ -22,8 +22,6 @@ import { useEffectiveCoinBalance } from "../hooks/useEffectiveCoinBalance";
 const CoinScreen = () => {
   const balance = useEffectiveCoinBalance();
   const loadCoins = useCoinStore((state) => state.loadCoins);
-  const chargeCoins = useCoinStore((state) => state.chargeCoins);
-  const [isPurchasing, setIsPurchasing] = useState(false);
 
   useEffect(() => {
     void loadCoins();
@@ -48,35 +46,12 @@ const CoinScreen = () => {
     connected,
     products,
     fetchProducts,
-    requestPurchase,
-    finishTransaction,
   } = useIAP({
-    onPurchaseSuccess: async (purchase) => {
-      const productId = purchase.productId ?? purchase.id;
-
-      const coinProduct = mockCoinProducts.find(
-        (item) => item.productId === productId,
-      );
-
-      if (!coinProduct) return;
-
-      const totalAmount =
-        coinProduct.coinAmount + (coinProduct.bonusAmount ?? 0);
-
-      // TODO : 서버 검증 추가(IAP 성공 -> 영수증/구매 토큰을 Supabase Edge Function으로 전송 -> 서버 검증 -> 검증 성공 시 coin_ledger 기록 -> 앱에서 잔액 갱신 )
-      await chargeCoins({
-        amount: totalAmount,
-        description: `${totalAmount.toLocaleString()}코인 충전`,
-      });
-
-      await finishTransaction({
-        purchase,
-        isConsumable: true,
-      });
-
+    onPurchaseSuccess: () => {
+      // Do not consume unfinished purchases before receipt verification exists.
       Alert.alert(
-        "충전 완료",
-        `${totalAmount.toLocaleString()}코인이 충전되었어요!`,
+        "충전 확인 필요",
+        "결제 확인을 완료하지 못했어요. 추가 결제 없이 고객 지원으로 문의해 주세요.",
       );
     },
     onPurchaseError: (error) => {
@@ -92,9 +67,6 @@ const CoinScreen = () => {
     () => new Map(products.map((product) => [product.id, product])),
     [products],
   );
-  const selectedStoreProduct = selectedProduct
-    ? storeProductsById.get(selectedProduct.productId)
-    : null;
 
   useEffect(() => {
     if (!connected) return;
@@ -109,55 +81,8 @@ const CoinScreen = () => {
     router.back();
   };
 
-  const handlePurchase = async () => {
-    if (!selectedProduct || isPurchasing) return;
-
-    if (!connected) {
-      Alert.alert("결제 준비 중", "스토어 연결 후 다시 시도해 주세요.");
-      return;
-    }
-
-    if (!selectedStoreProduct) {
-      const loadedProductIds = products.map((product) => product.id);
-
-      Alert.alert(
-        "상품 설정 확인 필요",
-        [
-          `스토어에서 ${selectedProduct.productId} 상품을 찾지 못했어요.`,
-          "",
-          "App Store Connect 또는 StoreKit Configuration에 아래 상품 ID가 모두 등록되어 있어야 해요.",
-          coinProductIds.join("\n"),
-          "",
-          loadedProductIds.length
-            ? `현재 불러온 상품:\n${loadedProductIds.join("\n")}`
-            : "현재 불러온 상품이 없어요.",
-        ].join("\n"),
-      );
-      return;
-    }
-
-    try {
-      setIsPurchasing(true);
-      await requestPurchase({
-        request: {
-          apple: {
-            sku: selectedProduct.productId,
-          },
-          google: {
-            skus: [selectedProduct.productId],
-          },
-        },
-        type: "in-app",
-      });
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "결제를 시작하는 중 오류가 발생했어요.";
-      Alert.alert("결제 실패", message);
-    } finally {
-      setIsPurchasing(false);
-    }
+  const handlePurchase = () => {
+    Alert.alert("충전 준비 중", "현재 코인 충전을 준비하고 있어요. 잠시 후 다시 이용해 주세요.");
   };
 
   return (
@@ -221,18 +146,9 @@ const CoinScreen = () => {
 
         <View style={styles.bottomAction}>
           <AppButton
-            label={
-              !selectedProduct
-                ? "상품을 선택해 주세요"
-                : !connected
-                  ? "결제 준비 중..."
-                  : !selectedStoreProduct
-                    ? "상품 설정 확인 필요"
-                    : `${selectedStoreProduct.displayPrice} 결제하기`
-            }
+            label="충전 준비 중"
             onPress={handlePurchase}
-            disabled={!selectedProduct || !connected || isPurchasing}
-            loading={isPurchasing}
+            disabled={!selectedProduct}
           />
         </View>
       </ScrollView>

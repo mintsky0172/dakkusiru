@@ -1,6 +1,8 @@
 import { supabase } from "../lib/supabase";
+import { prepareGuestTransfer } from "./packAcquisitionService";
 
 export async function signInWithEmail(email: string, password: string) {
+  await prepareGuestTransfer(email);
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -12,6 +14,7 @@ export async function signInWithEmail(email: string, password: string) {
 }
 
 export async function signUpWithEmail(email: string, password: string) {
+  await prepareGuestTransfer(email);
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -34,7 +37,7 @@ export async function fetchMyProfile() {
   } = await supabase.auth.getUser();
 
   if (userError) throw userError;
-  if (!user) return null;
+  if (!user || user.is_anonymous) return null;
 
   const { data, error } = await supabase
     .from("profiles")

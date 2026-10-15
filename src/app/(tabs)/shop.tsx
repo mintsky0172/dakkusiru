@@ -39,7 +39,7 @@ const SHOP_PREFETCH_PACK_GAP_MS = 80;
 const CURATION_PACK_COUNT = 6;
 const sortOptions = [
   { value: "name", label: "가나다순" },
-  { value: "popular", label: "인기순", disabled: true },
+  { value: "popular", label: "인기순" },
   { value: "latest", label: "최신등록순" },
 ] as const;
 
@@ -82,6 +82,10 @@ const ShopScreen = () => {
   const [curationPackIds, setCurationPackIds] = useState<string[]>([]);
 
   const packs = useShopPackStore((state) => state.packs);
+  const popularityAvailable = packs.length > 0 && packs.every((pack) => pack.acquisitionCount !== undefined);
+  useEffect(() => {
+    if (!popularityAvailable && sortOrder === "popular") setSortOrder("latest");
+  }, [popularityAvailable, sortOrder]);
   const isPackLoading = useShopPackStore((state) => state.isLoading);
   const errorMessage = useShopPackStore((state) => state.errorMessage);
   const loadPacks = useShopPackStore((state) => state.loadPacks);
@@ -362,16 +366,15 @@ const ShopScreen = () => {
           <Pressable
             key={option.value}
             accessibilityRole="radio"
-            accessibilityState={{ selected: option.value === sortOrder, disabled: option.value === "popular" }}
-            disabled={option.value === "popular"}
+            accessibilityState={{ selected: option.value === sortOrder, disabled: option.value === "popular" && !popularityAvailable }}
+            disabled={option.value === "popular" && !popularityAvailable}
             onPress={() => {
-              if (option.value === "popular") return;
               setSortOrder(option.value);
               setIsSortMenuVisible(false);
             }}
             style={styles.sortOption}
           >
-            <AppText variant="body" style={option.value === "popular" ? styles.disabledSortText : undefined}>
+            <AppText variant="body" style={option.value === "popular" && !popularityAvailable ? styles.disabledSortText : undefined}>
               {option.label}
             </AppText>
             {option.value === sortOrder ? <Check size={18} color={colors.text.primary} /> : null}
@@ -385,6 +388,10 @@ const ShopScreen = () => {
 export default ShopScreen;
 
 const styles = StyleSheet.create({
+  disabledSortText: {
+    color: colors.text.muted,
+    opacity: 0.5,
+  },
   listContent: {
     paddingBottom: spacing.xxxl,
   },
@@ -439,10 +446,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-  },
-  disabledSortText: {
-    color: colors.text.muted,
-    opacity: 0.5,
   },
   packRow: {
     flexDirection: "row",

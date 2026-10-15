@@ -1,6 +1,9 @@
 import { create } from "zustand";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
+import { claimPendingGuestPacks, ensureShopSession } from "../services/packAcquisitionService";
+import { usePurchaseStore } from "./purchaseStore";
+import { useCoinStore } from "./coinStore";
 import {
   fetchMyProfile,
   signInWithEmail,
@@ -42,6 +45,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   isLoading: false,
 
   initializeAuth: async () => {
+    // Anonymous auth may be unavailable offline; saved designs must still open.
+    await ensureShopSession().catch(() => undefined);
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -52,23 +57,23 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       isLoaded: true,
     });
 
-    if (session?.user) {
-      await get().loadProfile();
-    }
+    if (session?.user) await get().loadProfile().catch(() => undefined);
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       set({
         session: nextSession,
         user: nextSession?.user ?? null,
+        profile: null,
       });
 
-      if (nextSession?.user) {
-        await get().loadProfile();
-      } else {
-        set({ profile: null });
-      }
+      // Supabase requests must run outside the auth callback's internal lock.
+      setTimeout(() => {
+        void get().loadProfile().catch(() => undefined);
+        void usePurchaseStore.getState().loadOwnedPackIds();
+        void useCoinStore.getState().loadCoins();
+      }, 0);
     });
 
     return () => {
@@ -88,6 +93,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       });
 
       await get().loadProfile();
+      await claimPendingGuestPacks();
+      await usePurchaseStore.getState().loadOwnedPackIds();
+      await useCoinStore.getState().loadCoins();
     } finally {
       set({ isLoading: false });
     }
@@ -108,6 +116,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       if (signedInUser) {
         await get().loadProfile();
+        await claimPendingGuestPacks();
+        await usePurchaseStore.getState().loadOwnedPackIds();
+        await useCoinStore.getState().loadCoins();
       }
 
       return {
@@ -126,11 +137,16 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       user: null,
       profile: null,
     });
+    usePurchaseStore.setState({ ownedPackIds: [], isLoaded: false });
+    useCoinStore.setState({ balance: 0, transactions: [], isLoaded: false });
+    await ensureShopSession().catch(() => undefined);
+    await usePurchaseStore.getState().loadOwnedPackIds();
   },
 
   loadProfile: async () => {
+    const userId = get().user?.id;
     const profile = await fetchMyProfile();
-    set({ profile });
+    if (get().user?.id === userId) set({ profile });
   },
 
   isAdmin: () => {
