@@ -757,6 +757,391 @@
           "name": "23"
         }
       ]
+    },
+    {
+      "title": "과일바구니팩",
+      "category": "food",
+      "subcategory": "fruit",
+      "status": "priced",
+      "coin_price": 1000,
+      "tags": [
+        "과일"
+      ],
+      "description": "수박, 멜론, 망고, 레몬이 들어 있는 과일바구니를 주제로 한 스티커들이 들어 있어요.",
+      "id": "fruit-basket-pack",
+      "include_subcategory_tag": false,
+      "preserve_file_names": true,
+      "thumbnail": "fruit-basket-pack/thumbnail.png",
+      "archive_files": [
+        "fruit-basket-pack/thumbnail.clip"
+      ],
+      "items": [
+        {
+          "file": "fruit-basket-pack/1.png",
+          "name": "1"
+        },
+        {
+          "file": "fruit-basket-pack/2.png",
+          "name": "2"
+        },
+        {
+          "file": "fruit-basket-pack/3.png",
+          "name": "3"
+        },
+        {
+          "file": "fruit-basket-pack/4.png",
+          "name": "4"
+        },
+        {
+          "file": "fruit-basket-pack/5.png",
+          "name": "5"
+        },
+        {
+          "file": "fruit-basket-pack/6.png",
+          "name": "6"
+        },
+        {
+          "file": "fruit-basket-pack/7.png",
+          "name": "7"
+        },
+        {
+          "file": "fruit-basket-pack/8.png",
+          "name": "8"
+        },
+        {
+          "file": "fruit-basket-pack/9.png",
+          "name": "9"
+        },
+        {
+          "file": "fruit-basket-pack/10.png",
+          "name": "10"
+        },
+        {
+          "file": "fruit-basket-pack/11.png",
+          "name": "11"
+        },
+        {
+          "file": "fruit-basket-pack/12.png",
+          "name": "12"
+        },
+        {
+          "file": "fruit-basket-pack/13.png",
+          "name": "13"
+        },
+        {
+          "file": "fruit-basket-pack/14.png",
+          "name": "14"
+        },
+        {
+          "file": "fruit-basket-pack/15.png",
+          "name": "15"
+        },
+        {
+          "file": "fruit-basket-pack/16.png",
+          "name": "16"
+        }
+      ]
+    },
+    {
+      "title": "레몬디저트팩",
+      "category": "food",
+      "subcategory": "lemon-dessert",
+      "status": "priced",
+      "coin_price": 1000,
+      "tags": [
+        "레몬",
+        "디저트",
+        "케이크"
+      ],
+      "description": "레몬이 들어간 다양한 디저트들이 그려져 있어요.",
+      "id": "lemon-dessert-pack",
+      "include_subcategory_tag": false,
+      "preserve_file_names": true,
+      "thumbnail": "lemon-dessert-pack/thumbnail.png",
+      "archive_files": [
+        "lemon-dessert-pack/thumbnail.clip"
+      ],
+      "items": [
+        {
+          "file": "lemon-dessert-pack/1.png",
+          "name": "1"
+        },
+        {
+          "file": "lemon-dessert-pack/2.png",
+          "name": "2"
+        },
+        {
+          "file": "lemon-dessert-pack/3.png",
+          "name": "3"
+        },
+        {
+          "file": "lemon-dessert-pack/4.png",
+          "name": "4"
+        },
+        {
+          "file": "lemon-dessert-pack/5.png",
+          "name": "5"
+        },
+        {
+          "file": "lemon-dessert-pack/6.png",
+          "name": "6"
+        },
+        {
+          "file": "lemon-dessert-pack/7.png",
+          "name": "7"
+        },
+        {
+          "file": "lemon-dessert-pack/8.png",
+          "name": "8"
+        },
+        {
+          "file": "lemon-dessert-pack/9.png",
+          "name": "9"
+        },
+        {
+          "file": "lemon-dessert-pack/10.png",
+          "name": "10"
+        },
+        {
+          "file": "lemon-dessert-pack/11.png",
+          "name": "11"
+        },
+        {
+          "file": "lemon-dessert-pack/12.png",
+          "name": "12"
+        },
+        {
+          "file": "lemon-dessert-pack/13.png",
+          "name": "13"
+        }
+      ]
+    },
+    {
+      "title": "망고디저트팩",
+      "category": "food",
+      "subcategory": "mango-dessert",
+      "status": "priced",
+      "coin_price": 1000,
+      "tags": [
+        "망고",
+        "디저트",
+        "케이크"
+      ],
+      "description": "망고가 들어간 다양한 디저트들이 그려져 있어요.",
+      "id": "mango-dessert-pack",
+      "include_subcategory_tag": false,
+      "preserve_file_names": true,
+      "thumbnail": "mango-dessert-pack/thumbnail.png",
+      "archive_files": [
+        "mango-dessert-pack/thumbnail.clip"
+      ],
+      "items": [
+        {
+          "file": "mango-dessert-pack/1.png",
+          "name": "1"
+        },
+        {
+          "file": "mango-dessert-pack/2.png",
+          "name": "2"
+        },
+        {
+          "file": "mango-dessert-pack/3.png",
+          "name": "3"
+        },
+        {
+          "file": "mango-dessert-pack/4.png",
+          "name": "4"
+        },
+        {
+          "file": "mango-dessert-pack/5.png",
+          "name": "5"
+        },
+        {
+          "file": "mango-dessert-pack/6.png",
+          "name": "6"
+        },
+        {
+          "file": "mango-dessert-pack/7.png",
+          "name": "7"
+        },
+        {
+          "file": "mango-dessert-pack/8.png",
+          "name": "8"
+        },
+        {
+          "file": "mango-dessert-pack/9.png",
+          "name": "9"
+        },
+        {
+          "file": "mango-dessert-pack/10.png",
+          "name": "10"
+        },
+        {
+          "file": "mango-dessert-pack/11.png",
+          "name": "11"
+        }
+      ]
+    },
+    {
+      "title": "멜론디저트팩",
+      "category": "food",
+      "subcategory": "melon-dessert",
+      "status": "priced",
+      "coin_price": 1000,
+      "tags": [
+        "멜론",
+        "디저트",
+        "케이크"
+      ],
+      "description": "멜론이 들어간 다양한 디저트들이 그려져 있어요.",
+      "id": "melon-dessert",
+      "include_subcategory_tag": false,
+      "preserve_file_names": true,
+      "thumbnail": "melon-dessert/thumbnail.png",
+      "archive_files": [
+        "melon-dessert/thumbnail.clip"
+      ],
+      "items": [
+        {
+          "file": "melon-dessert/1.png",
+          "name": "1"
+        },
+        {
+          "file": "melon-dessert/2.png",
+          "name": "2"
+        },
+        {
+          "file": "melon-dessert/3.png",
+          "name": "3"
+        },
+        {
+          "file": "melon-dessert/4.png",
+          "name": "4"
+        },
+        {
+          "file": "melon-dessert/5.png",
+          "name": "5"
+        },
+        {
+          "file": "melon-dessert/6.png",
+          "name": "6"
+        },
+        {
+          "file": "melon-dessert/7.png",
+          "name": "7"
+        },
+        {
+          "file": "melon-dessert/8.png",
+          "name": "8"
+        },
+        {
+          "file": "melon-dessert/9.png",
+          "name": "9"
+        },
+        {
+          "file": "melon-dessert/10.png",
+          "name": "10"
+        },
+        {
+          "file": "melon-dessert/11.png",
+          "name": "11"
+        },
+        {
+          "file": "melon-dessert/12.png",
+          "name": "12"
+        },
+        {
+          "file": "melon-dessert/13.png",
+          "name": "13"
+        },
+        {
+          "file": "melon-dessert/14.png",
+          "name": "14"
+        }
+      ]
+    },
+    {
+      "title": "수박디저트팩",
+      "category": "food",
+      "subcategory": "watermelon-dessert",
+      "status": "priced",
+      "coin_price": 1000,
+      "tags": [
+        "수박",
+        "디저트",
+        "케이크",
+        "빙수"
+      ],
+      "description": "수박이 들어간 다양한 디저트들이 그려져 있어요.",
+      "id": "watermelon-dessert-pack",
+      "include_subcategory_tag": false,
+      "preserve_file_names": true,
+      "thumbnail": "watermelon-dessert-pack/thumbnail.png",
+      "archive_files": [
+        "watermelon-dessert-pack/thumbnail.clip"
+      ],
+      "items": [
+        {
+          "file": "watermelon-dessert-pack/1.png",
+          "name": "1"
+        },
+        {
+          "file": "watermelon-dessert-pack/2.png",
+          "name": "2"
+        },
+        {
+          "file": "watermelon-dessert-pack/3.png",
+          "name": "3"
+        },
+        {
+          "file": "watermelon-dessert-pack/4.png",
+          "name": "4"
+        },
+        {
+          "file": "watermelon-dessert-pack/5.png",
+          "name": "5"
+        },
+        {
+          "file": "watermelon-dessert-pack/6.png",
+          "name": "6"
+        },
+        {
+          "file": "watermelon-dessert-pack/7.png",
+          "name": "7"
+        },
+        {
+          "file": "watermelon-dessert-pack/8.png",
+          "name": "8"
+        },
+        {
+          "file": "watermelon-dessert-pack/9.png",
+          "name": "9"
+        },
+        {
+          "file": "watermelon-dessert-pack/10.png",
+          "name": "10"
+        },
+        {
+          "file": "watermelon-dessert-pack/11.png",
+          "name": "11"
+        },
+        {
+          "file": "watermelon-dessert-pack/12.png",
+          "name": "12"
+        },
+        {
+          "file": "watermelon-dessert-pack/13.png",
+          "name": "13"
+        },
+        {
+          "file": "watermelon-dessert-pack/14.png",
+          "name": "14"
+        },
+        {
+          "file": "watermelon-dessert-pack/15.png",
+          "name": "15"
+        }
+      ]
     }
   ]
 }

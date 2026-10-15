@@ -1,4 +1,10 @@
-import { StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Check, ChevronDown } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { colors } from "../../constants/colors";
+import SimpleBottomSheet from "../../components/common/SimpleBottomSheet";
+import BottomSheetHeader from "../../components/common/BottomSheetHeader";
+import { PackSortOrder, sortShopPacks } from "../../utils/sortShopPacks";
 import React, { useCallback, useMemo, useState } from "react";
 import { useEffect } from "react";
 import { ShopPack } from "../../types/shop";
@@ -31,6 +37,11 @@ type PackRow = [ShopPack, ShopPack?];
 const SHOP_MAIN_PREVIEW_PREFETCH_COUNT = 6;
 const SHOP_PREFETCH_PACK_GAP_MS = 80;
 const CURATION_PACK_COUNT = 6;
+const sortOptions = [
+  { value: "name", label: "가나다순" },
+  { value: "popular", label: "인기순", disabled: true },
+  { value: "latest", label: "최신등록순" },
+] as const;
 
 const kindFilters: { label: string; value: PackKindFilter }[] = [
   { label: "전체", value: "all" },
@@ -57,6 +68,9 @@ const shufflePacks = (packs: ShopPack[]) => {
 };
 
 const ShopScreen = () => {
+  const insets = useSafeAreaInsets();
+  const [sortOrder, setSortOrder] = useState<PackSortOrder>("latest");
+  const [isSortMenuVisible, setIsSortMenuVisible] = useState(false);
   const { search } = useLocalSearchParams<{ search?: string | string[] }>();
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -128,15 +142,20 @@ const ShopScreen = () => {
     });
   }, [resolvedPacks, selectedCategory, selectedKind, searchQuery]);
 
+  const sortedPacks = useMemo(
+    () => sortShopPacks(filteredPacks, sortOrder),
+    [filteredPacks, sortOrder],
+  );
+
   const packRows = useMemo(() => {
     const rows: PackRow[] = [];
 
-    for (let index = 0; index < filteredPacks.length; index += 2) {
-      rows.push([filteredPacks[index], filteredPacks[index + 1]]);
+    for (let index = 0; index < sortedPacks.length; index += 2) {
+      rows.push([sortedPacks[index], sortedPacks[index + 1]]);
     }
 
     return rows;
-  }, [filteredPacks]);
+  }, [sortedPacks]);
 
   const resolvedPackIdKey = useMemo(() => {
     return resolvedPacks.map((pack) => pack.id).join("|");
@@ -299,9 +318,20 @@ const ShopScreen = () => {
               </View>
             ) : null}
 
-            <AppText variant="body" style={styles.packCountText}>
-              총 {filteredPacks.length}개의 팩
-            </AppText>
+            <View style={styles.listToolbar}>
+              <AppText variant="body">총 {filteredPacks.length}개의 팩</AppText>
+              <Pressable
+                onPress={() => setIsSortMenuVisible(true)}
+                accessibilityRole="button"
+                accessibilityLabel="팩 정렬 선택"
+                style={styles.sortButton}
+              >
+                <AppText variant="body">
+                  {sortOptions.find((option) => option.value === sortOrder)?.label}
+                </AppText>
+                <ChevronDown size={16} color={colors.text.primary} />
+              </Pressable>
+            </View>
           </View>
         }
         ListEmptyComponent={
@@ -322,6 +352,32 @@ const ShopScreen = () => {
           </View>
         }
       />
+      <SimpleBottomSheet
+        visible={isSortMenuVisible}
+        onClose={() => setIsSortMenuVisible(false)}
+        contentStyle={{ height: "auto", paddingHorizontal: spacing.lg, paddingBottom: Math.max(insets.bottom, spacing.lg) }}
+      >
+        <BottomSheetHeader title="정렬" />
+        {sortOptions.map((option) => (
+          <Pressable
+            key={option.value}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: option.value === sortOrder, disabled: option.value === "popular" }}
+            disabled={option.value === "popular"}
+            onPress={() => {
+              if (option.value === "popular") return;
+              setSortOrder(option.value);
+              setIsSortMenuVisible(false);
+            }}
+            style={styles.sortOption}
+          >
+            <AppText variant="body" style={option.value === "popular" ? styles.disabledSortText : undefined}>
+              {option.label}
+            </AppText>
+            {option.value === sortOrder ? <Check size={18} color={colors.text.primary} /> : null}
+          </Pressable>
+        ))}
+      </SimpleBottomSheet>
     </Screen>
   );
 };
@@ -363,9 +419,30 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: spacing.sm,
   },
-  packCountText: {
+  listToolbar: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
     marginTop: spacing.lg,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  sortButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    minHeight: 44,
+  },
+  sortOption: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  disabledSortText: {
+    color: colors.text.muted,
+    opacity: 0.5,
   },
   packRow: {
     flexDirection: "row",

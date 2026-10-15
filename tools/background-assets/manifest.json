@@ -440,6 +440,112 @@
           "name": "6"
         }
       ]
+    },
+    {
+      "id": "pastel-hotfix-background-pack",
+      "title": "파스텔 핫픽스 배경팩",
+      "category": "deco",
+      "subcategory": "hotfix",
+      "status": "priced",
+      "coin_price": 3000,
+      "description": "한 땀 한 땀 정성스럽게 손으로 찍어서 만든 보석십자수 느낌의 배경들이 들어 있어요.",
+      "tags": [
+        "파스텔",
+        "픽셀",
+        "핫픽스",
+        "블루",
+        "핑크",
+        "화이트",
+        "하트",
+        "리본",
+        "패턴"
+      ],
+      "include_subcategory_tag": false,
+      "preserve_file_names": true,
+      "is_active": true,
+      "thumbnail": "pastel-hotfix-background-pack/thumbnail.png",
+      "archive_files": [
+        "pastel-hotfix-background-pack/1.clip",
+        "pastel-hotfix-background-pack/2.clip",
+        "pastel-hotfix-background-pack/3.clip",
+        "pastel-hotfix-background-pack/4.clip",
+        "pastel-hotfix-background-pack/5.clip",
+        "pastel-hotfix-background-pack/6.clip",
+        "pastel-hotfix-background-pack/thumbnail.clip"
+      ],
+      "items": [
+        {
+          "file": "pastel-hotfix-background-pack/1.png",
+          "name": "1"
+        },
+        {
+          "file": "pastel-hotfix-background-pack/2.png",
+          "name": "2"
+        },
+        {
+          "file": "pastel-hotfix-background-pack/3.png",
+          "name": "3"
+        },
+        {
+          "file": "pastel-hotfix-background-pack/4.png",
+          "name": "4"
+        },
+        {
+          "file": "pastel-hotfix-background-pack/5.png",
+          "name": "5"
+        },
+        {
+          "file": "pastel-hotfix-background-pack/6.png",
+          "name": "6"
+        }
+      ]
+    },
+    {
+      "id": "vintage-sheet-music-background-pack",
+      "title": "빈티지 악보 배경팩",
+      "category": "vintage",
+      "subcategory": "sheet-music",
+      "status": "priced",
+      "coin_price": 1000,
+      "description": "다양한 레이아웃과 색상의 빈티지한 악보 배경들이 들어 있어요.",
+      "tags": [
+        "빈티지",
+        "악보",
+        "종이"
+      ],
+      "include_subcategory_tag": false,
+      "preserve_file_names": true,
+      "is_active": true,
+      "thumbnail": "vintage-sheet-music-background-pack/thumbnail.png",
+      "archive_files": [
+        "vintage-sheet-music-background-pack/thumbnail.clip"
+      ],
+      "items": [
+        {
+          "file": "vintage-sheet-music-background-pack/1.png",
+          "name": "1"
+        },
+        {
+          "file": "vintage-sheet-music-background-pack/2.png",
+          "name": "2"
+        },
+        {
+          "file": "vintage-sheet-music-background-pack/3.png",
+          "name": "3"
+        },
+        {
+          "file": "vintage-sheet-music-background-pack/4.png",
+          "name": "4"
+        },
+        {
+          "file": "vintage-sheet-music-background-pack/5.png",
+          "name": "5"
+        },
+        {
+          "file": "vintage-sheet-music-background-pack/6.png",
+          "name": "6"
+        }
+      ]
     }
   ]
 }

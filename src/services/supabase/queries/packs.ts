@@ -75,6 +75,7 @@ export async function fetchShopPacksFromSupabase(params?: {
         : undefined,
       isNew: isPackCreatedRecently(pack.created_at ?? pack.updated_at),
       isActive: pack.is_active ?? true,
+      createdAt: pack.created_at ?? undefined,
       description: pack.description ?? undefined,
       tags: pack.tags ?? [],
     };

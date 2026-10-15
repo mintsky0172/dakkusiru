@@ -37,6 +37,7 @@ interface BasePack {
   thumbnailSource?: any;
   isNew?: boolean;
   isActive?: boolean;
+  createdAt?: string;
   description?: string;
   tags?: string[];
 }
