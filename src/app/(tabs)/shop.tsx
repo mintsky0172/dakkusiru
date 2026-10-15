@@ -5,6 +5,7 @@ import { colors } from "../../constants/colors";
 import SimpleBottomSheet from "../../components/common/SimpleBottomSheet";
 import BottomSheetHeader from "../../components/common/BottomSheetHeader";
 import { PackSortOrder, sortShopPacks } from "../../utils/sortShopPacks";
+import { filterShopPacks } from "../../utils/filterShopPacks";
 import React, { useCallback, useMemo, useState } from "react";
 import { useEffect } from "react";
 import { ShopPack } from "../../types/shop";
@@ -73,6 +74,7 @@ const ShopScreen = () => {
   const [isSortMenuVisible, setIsSortMenuVisible] = useState(false);
   const { search } = useLocalSearchParams<{ search?: string | string[] }>();
   const [searchQuery, setSearchQuery] = useState("");
+  const [freeOnly, setFreeOnly] = useState(false);
 
   const loadCoins = useCoinStore((state) => state.loadCoins);
   const [selectedKind, setSelectedKind] = useState<PackKindFilter>("all");
@@ -109,6 +111,7 @@ const ShopScreen = () => {
     setSearchQuery(nextSearchQuery);
     setSelectedKind("all");
     setSelectedCategory("all");
+    setFreeOnly(false);
   }, [search]);
 
   const resolvedPacks = useMemo(() => {
@@ -124,27 +127,12 @@ const ShopScreen = () => {
     return [];
   }, [selectedKind]);
 
-  const filteredPacks = useMemo(() => {
-    const keyword = searchQuery.trim().toLowerCase();
-
-    return resolvedPacks.filter((pack) => {
-      if (selectedKind !== "all" && pack.kind !== selectedKind) return false;
-      if (
-        selectedKind !== "all" &&
-        selectedCategory !== "all" &&
-        pack.category !== selectedCategory
-      ) {
-        return false;
-      }
-      if (!keyword) return true;
-
-      const searchableText = [pack.title, pack.category, ...(pack.tags ?? [])]
-        .join(" ")
-        .toLowerCase();
-
-      return searchableText.includes(keyword);
-    });
-  }, [resolvedPacks, selectedCategory, selectedKind, searchQuery]);
+  const filteredPacks = useMemo(
+    () => filterShopPacks(resolvedPacks, {
+      kind: selectedKind, category: selectedCategory, search: searchQuery, freeOnly,
+    }),
+    [resolvedPacks, selectedCategory, selectedKind, searchQuery, freeOnly],
+  );
 
   const sortedPacks = useMemo(
     () => sortShopPacks(filteredPacks, sortOrder),
@@ -324,17 +312,31 @@ const ShopScreen = () => {
 
             <View style={styles.listToolbar}>
               <AppText variant="body">총 {filteredPacks.length}개의 팩</AppText>
-              <Pressable
-                onPress={() => setIsSortMenuVisible(true)}
-                accessibilityRole="button"
-                accessibilityLabel="팩 정렬 선택"
-                style={styles.sortButton}
-              >
-                <AppText variant="body">
-                  {sortOptions.find((option) => option.value === sortOrder)?.label}
-                </AppText>
-                <ChevronDown size={16} color={colors.text.primary} />
-              </Pressable>
+              <View style={styles.toolbarActions}>
+                <Pressable
+                  onPress={() => setFreeOnly((value) => !value)}
+                  accessibilityRole="checkbox"
+                  accessibilityLabel="무료만"
+                  accessibilityState={{ checked: freeOnly }}
+                  style={styles.freeOnlyButton}
+                >
+                  <View style={[styles.checkbox, freeOnly && styles.checkboxChecked]}>
+                    {freeOnly ? <Check size={16} color={colors.text.inverse} strokeWidth={3} /> : null}
+                  </View>
+                  <AppText variant="body">무료만</AppText>
+                </Pressable>
+                <Pressable
+                  onPress={() => setIsSortMenuVisible(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="팩 정렬 선택"
+                  style={styles.sortButton}
+                >
+                  <AppText variant="body">
+                    {sortOptions.find((option) => option.value === sortOrder)?.label}
+                  </AppText>
+                  <ChevronDown size={16} color={colors.text.primary} />
+                </Pressable>
+              </View>
             </View>
           </View>
         }
@@ -346,7 +348,9 @@ const ShopScreen = () => {
             <AppText variant="caption" style={styles.emptyDescription}>
               {searchQuery
                 ? "다른 검색어를 입력해 보세요."
-                : "다른 카테고리를 선택해 보세요."}
+                : freeOnly
+                  ? "무료만 필터를 해제하거나 다른 카테고리를 선택해 보세요."
+                  : "다른 카테고리를 선택해 보세요."}
             </AppText>
             {errorMessage ? (
               <View style={styles.retryButtonWrapper}>
@@ -441,6 +445,32 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     minHeight: 44,
   },
+  toolbarActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    columnGap: spacing.md,
+    maxWidth: "100%",
+  },
+  freeOnlyButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    minHeight: 44,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: colors.text.secondary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkboxChecked: {
+    backgroundColor: colors.text.primary,
+    borderColor: colors.text.primary,
+  },
   sortOption: {
     minHeight: 48,
     flexDirection: "row",
@@ -472,6 +502,8 @@ const styles = StyleSheet.create({
   },
   emptyDescription: {
     marginTop: spacing.xs,
+    alignSelf: "stretch",
+    textAlign: "center",
   },
   retryButtonWrapper: {
     marginTop: spacing.md,

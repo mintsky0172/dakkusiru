@@ -21,6 +21,7 @@ test('acquisitions, guest merge, wallet atomicity and permissions', async () => 
     `);
     await db.exec(await readFile(new URL('../migrations/202610150001_pack_acquisitions.sql', import.meta.url), 'utf8'));
     await db.exec(await readFile(new URL('../migrations/202610150002_preserve_guest_acquisition_counts.sql', import.meta.url), 'utf8'));
+    await db.exec(await readFile(new URL('../migrations/202610150003_verified_apple_coins.sql', import.meta.url), 'utf8'));
     const ids = [1, 2, 3, 4, 5, 6].map(i => `00000000-0000-0000-0000-${String(i).padStart(12, '0')}`);
     for (let i = 0; i < ids.length; i++) {
       await db.query('insert into auth.users values ($1, $2)', [ids[i], i === 0 || i >= 4]);
@@ -87,5 +88,22 @@ test('acquisitions, guest merge, wallet atomicity and permissions', async () => 
     await db.query('select claim_guest_packs($1)', [upgradeToken]);
     await db.query("select acquire_pack('free')");
     assert.equal(await count(), 3, 'in-place account upgrade can still acquire');
+    await assert.rejects(db.query("select fulfill_apple_coin_purchase($1, $1, '100', 'dakkusiru.coin_1000', 'Sandbox', 1)", [ids[5]]), /permission denied/);
+    await db.exec('reset role');
+    const fulfill = (requester, owner, transaction, product = 'dakkusiru.coin_1000', quantity = 1) =>
+      db.query('select fulfill_apple_coin_purchase($1, $2, $3, $4, $5, $6) as result',
+        [requester, owner, transaction, product, 'Sandbox', quantity]);
+    await assert.rejects(fulfill(ids[3], ids[0], '100'), /PURCHASE_OWNER_MISMATCH/);
+    let receipt = (await fulfill(ids[1], ids[0], '100')).rows[0].result;
+    assert.equal(receipt.balance, 1050, 'delayed guest receipt credits the account after merge');
+    assert.equal(receipt.alreadyCredited, false);
+    receipt = (await fulfill(ids[1], ids[0], '100')).rows[0].result;
+    assert.equal(receipt.balance, 1050);
+    assert.equal(receipt.alreadyCredited, true, 'replay does not credit again');
+    await assert.rejects(fulfill(ids[1], ids[0], '100', 'dakkusiru.coin_3000'), /TRANSACTION_CONFLICT/);
+    await assert.rejects(fulfill(ids[1], ids[0], '101', 'fake'), /INVALID_PRODUCT/);
+    await assert.rejects(fulfill(ids[1], ids[0], '101', 'dakkusiru.coin_1000', 0), /INVALID_PURCHASE/);
+    receipt = (await fulfill(ids[5], ids[5], '102', 'dakkusiru.coin_5000')).rows[0].result;
+    assert.equal(receipt.balance, 5500, 'server product catalog applies the bonus');
   } finally { await db.close(); }
 });

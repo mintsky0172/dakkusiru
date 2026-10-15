@@ -4,14 +4,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 const ts = require('typescript');
 
-function load(relativePath, imports = {}) {
+function load(relativePath, imports = {}, globals = {}) {
   const source = fs.readFileSync(path.join(__dirname, '../../src', relativePath), 'utf8');
   const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
   const exports = {};
-  new Function('exports', 'require', js)(exports, name => {
+  new Function('exports', 'require', ...Object.keys(globals), js)(exports, name => {
     if (!(name in imports)) throw new Error(`Unexpected import: ${name}`);
     return imports[name];
-  });
+  }, ...Object.values(globals));
   return exports;
 }
 
@@ -60,6 +60,34 @@ test('catalog survives missing or unreachable popularity RPC without inventing c
   assert.equal((await api.fetchShopPacksFromSupabase())[0].acquisitionCount, 0);
   failure = null;
   assert.equal((await api.fetchShopPacksFromSupabase())[0].acquisitionCount, 5);
+});
+
+test('billing readiness works with the React Native AbortSignal polyfill and cleans up timers', async () => {
+  const nativeAbort = require('abort-controller');
+  assert.equal(nativeAbort.AbortSignal.timeout, undefined);
+  let fail = false;
+  let calls = 0;
+  let cleared = 0;
+  const api = load('services/iap/billing.ts', {
+    '../packAcquisitionService': { ensureShopSession: async () => ({ access_token: 'test-token', user: { id: 'guest' } }) },
+  }, {
+    AbortController: nativeAbort.AbortController,
+    AbortSignal: nativeAbort.AbortSignal,
+    setTimeout: (_callback, duration) => { assert.equal(duration, 30000); return 123; },
+    clearTimeout: id => { assert.equal(id, 123); cleared++; },
+    fetch: async (_url, options) => {
+      calls++;
+      assert.ok(options.signal instanceof nativeAbort.AbortSignal);
+      if (fail) throw new Error('Network request failed');
+      return { ok: true, json: async () => ({ enabled: true, amount: 1000, balance: 1000, alreadyCredited: false }) };
+    },
+  });
+  assert.equal(await api.isAppleBillingReady(), true);
+  assert.equal((await api.verifyAppleCoinPurchase('100', 'dakkusiru.coin_1000')).balance, 1000);
+  fail = true;
+  assert.equal(await api.isAppleBillingReady(), false);
+  assert.equal(calls, 3);
+  assert.equal(cleared, 3);
 });
 
 test('guest session coalescing, retryable transfer, legacy exclusion and offline failures', async () => {
